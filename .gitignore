@@ -1,0 +1,53 @@
+# Data (optional, keep if generated locally)
+data/
+
+# Logs and run artifacts
+logs/
+**/logs/
+*.log
+output/
+outputs/
+results/
+checkpoints/
+**/checkpoints/
+*.ckpt
+
+# Model weights and large binaries
+*.pt
+*.pth
+*.onnx
+*.bin
+*.safetensors
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.cache/
+.ipynb_checkpoints/
+
+# Notebooks and docs (optional)
+*.ipynb
+*.pdf
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# IDE/editor settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
