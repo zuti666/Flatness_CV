@@ -3,7 +3,7 @@ import json
 import os
 import logging
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
 import torch
@@ -21,9 +21,18 @@ def _sdp_disable_context():
     forces PyTorch to fall back to math kernels, restoring higher-order
     differentiation at the expense of a modest slowdown.
     """
+    attn = getattr(torch.nn, "attention", None)
+    if attn is not None and hasattr(attn, "sdpa_kernel"):
+        return attn.sdpa_kernel(
+            enable_flash=False,
+            enable_math=True,
+            enable_mem_efficient=False,
+        )
     if hasattr(torch.backends, "cuda") and hasattr(torch.backends.cuda, "sdp_kernel"):
         return torch.backends.cuda.sdp_kernel(
-            enable_flash=False, enable_math=True, enable_mem_efficient=True
+            enable_flash=False,
+            enable_math=True,
+            enable_mem_efficient=False,
         )
     return nullcontext()
 
@@ -43,6 +52,7 @@ class FlatnessConfig:
     power_iters: int = 5
     trace_samples: int = 5
     grad_batches: Optional[int] = 1
+    max_examples_per_batch: Optional[int] = 128
     # Optional persistence for metrics
     save_metrics_path: Optional[str] = None
     save_prefix: str = "flatness"
@@ -53,20 +63,26 @@ def _unwrap_batch(batch):
     if isinstance(batch, (list, tuple)):
         if len(batch) == 3:
             _, inputs, targets = batch
+            inputs, targets = _maybe_truncate_batch(inputs, targets)
             return inputs, targets
         if len(batch) == 2:
-            return batch
+            inputs, targets = batch
+            inputs, targets = _maybe_truncate_batch(inputs, targets)
+            return inputs, targets
     raise ValueError("Unexpected batch format")
 
 
 def _clone_params(params: Iterable[torch.nn.Parameter]) -> List[torch.Tensor]:
     """Detach and clone parameter tensors for later restoration."""
-    return [p.data.detach().clone() for p in params]
+    return [p.detach().to("cpu").clone() for p in params]
 
 
 def _restore_params(params: Iterable[torch.nn.Parameter], copies: List[torch.Tensor]):
     for p, saved in zip(params, copies):
-        p.data.copy_(saved)
+        if saved.device == p.device and saved.dtype == p.dtype:
+            p.data.copy_(saved)
+        else:
+            p.data.copy_(saved.to(device=p.device, dtype=p.dtype))
 
 
 def _add_vector_to_params(params: List[torch.nn.Parameter], vec: torch.Tensor):
@@ -77,6 +93,49 @@ def _add_vector_to_params(params: List[torch.nn.Parameter], vec: torch.Tensor):
         slice_vec = vec[pointer : pointer + numel].view_as(p)
         p.data.add_(slice_vec)
         pointer += numel
+
+
+_GLOBAL_MAX_EXAMPLES_PER_BATCH: Optional[int] = None
+
+
+def _truncate_first_dim(obj: Any, limit: int):
+    if isinstance(obj, torch.Tensor):
+        if obj.dim() > 0 and obj.size(0) > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, np.ndarray):
+        if obj.ndim > 0 and obj.shape[0] > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, list):
+        if len(obj) > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, tuple):
+        if len(obj) > limit:
+            return obj[:limit]
+        return obj
+    return obj
+
+
+def _maybe_truncate_batch(inputs, targets):
+    limit = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    if limit is None or limit <= 0:
+        return inputs, targets
+    inputs = _truncate_first_dim(inputs, limit)
+    targets = _truncate_first_dim(targets, limit)
+    return inputs, targets
+
+
+@contextmanager
+def _limit_batch_examples(limit: Optional[int]):
+    global _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    prev = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    _GLOBAL_MAX_EXAMPLES_PER_BATCH = limit
+    try:
+        yield
+    finally:
+        _GLOBAL_MAX_EXAMPLES_PER_BATCH = prev
 
 
 def _compute_loss(
@@ -825,83 +884,71 @@ def evaluate_flatness_metrics(
     config = config or FlatnessConfig()
     wrapped_model = network.module if isinstance(network, nn.DataParallel) else network
     params = [p for p in wrapped_model.parameters() if p.requires_grad]
+    global _GLOBAL_MAX_EXAMPLES_PER_BATCH
     if not params:
         return {"base_loss": 0.0}
 
-    flat_metrics: Dict[str, float] = {}
-
-    base_loss = _compute_loss(
-        wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
-    )
-    flat_metrics["base_loss"] = float(base_loss)
-
-    grad_vector = _compute_grad_vector(
-        wrapped_model,
-        loader,
-        device,
-        params,
-        max_batches=config.grad_batches,
-        known_classes=known_classes,
-    )
-    grad_norm = grad_vector.norm().item()
-    flat_metrics["grad_norm"] = grad_norm
-    flat_metrics["first_order_sharpness"] = config.rho * grad_norm
-
-    total_dim = grad_vector.numel()
-    param_backup = _clone_params(params)
-
-    # max sharpness
-    if grad_norm > 0:
-        direction = grad_vector / (grad_norm + 1e-12)
-        perturb = direction * config.rho
-        _add_vector_to_params(params, perturb)
-        perturbed_loss = _compute_loss(
-            wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
-        )
-        sh0 = perturbed_loss - base_loss
-        flat_metrics["sh0_max"] = float(sh0)
-        _restore_params(params, param_backup)
-    else:
-        flat_metrics["sh0_max"] = 0.0
-
-    # Random expectation sharpness
-    gaussian_std = config.gaussian_std or (config.rho / (total_dim ** 0.5))
-    rand_losses: List[float] = []
-    for _ in range(config.num_random_samples):
-        noise = torch.randn(total_dim, device=device) * gaussian_std
-        _add_vector_to_params(params, noise)
-        loss = _compute_loss(
-            wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
-        )
-        rand_losses.append(loss - base_loss)
-        _restore_params(params, param_backup)
-
-    if rand_losses:
-        rand_tensor = torch.tensor(rand_losses)
-        flat_metrics["esh_mean"] = float(rand_tensor.mean().item())
-        flat_metrics["esh_std"] = float(rand_tensor.std(unbiased=False).item())
-    else:
-        flat_metrics["esh_mean"] = 0.0
-        flat_metrics["esh_std"] = 0.0
-
-    # Hessian spectral proxies (power iteration)
-    lambda_max_power = _power_iteration_lambda_max(
-        wrapped_model,
-        loader,
-        device,
-        params,
-        dim=total_dim,
-        num_iters=config.power_iters,
-        max_batches=config.max_batches,
-        known_classes=known_classes,
-    )
-    # Backward‑compat key + explicit method key
-    flat_metrics["lambda_max"] = lambda_max_power
-    flat_metrics["lambda_max_power"] = lambda_max_power
-
-    # Hessian spectral proxies (Lanczos)
+    prev_max_examples = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    _GLOBAL_MAX_EXAMPLES_PER_BATCH = config.max_examples_per_batch
     try:
-        lambda_max_lanczos = _lanczos_lambda_max(
+        flat_metrics: Dict[str, float] = {}
+    
+        base_loss = _compute_loss(
+            wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
+        )
+        flat_metrics["base_loss"] = float(base_loss)
+    
+        grad_vector = _compute_grad_vector(
+            wrapped_model,
+            loader,
+            device,
+            params,
+            max_batches=config.grad_batches,
+            known_classes=known_classes,
+        )
+        grad_norm = grad_vector.norm().item()
+        flat_metrics["grad_norm"] = grad_norm
+        flat_metrics["first_order_sharpness"] = config.rho * grad_norm
+    
+        total_dim = grad_vector.numel()
+        param_backup = _clone_params(params)
+    
+        # max sharpness
+        if grad_norm > 0:
+            direction = grad_vector / (grad_norm + 1e-12)
+            perturb = direction * config.rho
+            _add_vector_to_params(params, perturb)
+            perturbed_loss = _compute_loss(
+                wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
+            )
+            sh0 = perturbed_loss - base_loss
+            flat_metrics["sh0_max"] = float(sh0)
+            _restore_params(params, param_backup)
+        else:
+            flat_metrics["sh0_max"] = 0.0
+    
+        # Random expectation sharpness
+        gaussian_std = config.gaussian_std or (config.rho / (total_dim ** 0.5))
+        rand_losses: List[float] = []
+        for _ in range(config.num_random_samples):
+            noise = torch.randn(total_dim, device=device) * gaussian_std
+            _add_vector_to_params(params, noise)
+            loss = _compute_loss(
+                wrapped_model, loader, device, max_batches=config.max_batches, known_classes=known_classes
+            )
+            rand_losses.append(loss - base_loss)
+            _restore_params(params, param_backup)
+    
+        if rand_losses:
+            rand_tensor = torch.tensor(rand_losses)
+            flat_metrics["esh_mean"] = float(rand_tensor.mean().item())
+            flat_metrics["esh_std"] = float(rand_tensor.std(unbiased=False).item())
+        else:
+            flat_metrics["esh_mean"] = 0.0
+            flat_metrics["esh_std"] = 0.0
+    
+        # Hessian spectral proxies (power iteration)
+        lambda_max_power = _power_iteration_lambda_max(
             wrapped_model,
             loader,
             device,
@@ -911,125 +958,141 @@ def evaluate_flatness_metrics(
             max_batches=config.max_batches,
             known_classes=known_classes,
         )
-        flat_metrics["lambda_max_lanczos"] = lambda_max_lanczos
-    except Exception:
-        # Keep evaluation robust even if Lanczos fails
-        pass
-
-    trace_est = _hutchinson_trace(
-        wrapped_model,
-        loader,
-        device,
-        params,
-        dim=total_dim,
-        num_samples=config.trace_samples,
-        max_batches=config.max_batches,
-        known_classes=known_classes,
-    )
-    flat_metrics["hessian_trace"] = trace_est
-
-    # Loss landscape slices (optional)
-    try:
-        do_1d = bool(getattr(config, "loss_land_1d", False))
-        do_2d = bool(getattr(config, "loss_land_2d", False))
-        loss_radius = float(getattr(config, "loss_land_radius", 0.5))
-        loss_points = int(getattr(config, "loss_land_num_points", 21))
-        loss_batches = int(getattr(config, "loss_land_max_batches", 1))
-        loss_filter = bool(getattr(config, "loss_land_filter_norm", True))
-        save_dir = getattr(config, "save_metrics_path", None)
-        prefix = getattr(config, "save_prefix", "flatness")
-
-        if do_1d:
-            res1d = _loss_landscape_1d(
-                wrapped_model, loader, device, params,
-                radius=loss_radius, num_points=loss_points,
-                max_batches=loss_batches, filter_norm=loss_filter,
-                known_classes=known_classes,
-            )
-            flat_metrics["lossland_1d_min"] = float(np.min(res1d["loss"]))
-            flat_metrics["lossland_1d_max"] = float(np.max(res1d["loss"]))
-            if save_dir:
-                os.makedirs(save_dir, exist_ok=True)
-                path1d = os.path.join(save_dir, f"{prefix}_lossland_1d.npz")
-                np.savez_compressed(path1d, x=res1d["x"], loss=res1d["loss"])
-                flat_metrics["lossland_1d_file"] = path1d
-
-        if do_2d:
-            res2d = _loss_landscape_2d(
-                wrapped_model, loader, device, params,
-                radius=loss_radius, num_points=loss_points,
-                max_batches=loss_batches, filter_norm=loss_filter,
-                known_classes=known_classes,
-            )
-            flat_metrics["lossland_2d_min"] = float(np.min(res2d["loss"]))
-            flat_metrics["lossland_2d_max"] = float(np.max(res2d["loss"]))
-            if save_dir:
-                os.makedirs(save_dir, exist_ok=True)
-                path2d = os.path.join(save_dir, f"{prefix}_lossland_2d.npz")
-                np.savez_compressed(path2d, x=res2d["x"], y=res2d["y"], loss=res2d["loss"])
-                flat_metrics["lossland_2d_file"] = path2d
-    except Exception as _err:
-        logging.debug("Loss landscape evaluation failed: %s", _err)
+        # Backward‑compat key + explicit method key
+        flat_metrics["lambda_max"] = lambda_max_power
+        flat_metrics["lambda_max_power"] = lambda_max_power
     
-    # ---------------- GGN / Fisher / Empirical Fisher (optional) ----------------
-    # Define MVP closures that reuse the same data/batch budget
-    def _mvp_ggn(v: torch.Tensor) -> torch.Tensor:
-        return _ggn_vector_product(
-            wrapped_model, loader, device, params, v,
-            max_batches=config.max_batches, known_classes=known_classes
-        )
-
-    def _mvp_emp_fisher(v: torch.Tensor) -> torch.Tensor:
-        return _empirical_fisher_vector_product(
-            wrapped_model, loader, device, params, v,
-            max_batches=config.max_batches, known_classes=known_classes
-        )
-
-    try:
-        flat_metrics["ggn_lambda_max_power"] = _power_iteration_generic(
-            _mvp_ggn, total_dim, config.power_iters, device
-        )
-        flat_metrics["ggn_lambda_max_lanczos"] = _lanczos_lambda_max_generic(
-            _mvp_ggn, total_dim, config.power_iters, device
-        )
-        flat_metrics["ggn_trace"] = _hutchinson_trace_generic(
-            _mvp_ggn, total_dim, config.trace_samples, device
-        )
-        # For CE/NLL, Fisher == GGN
-        flat_metrics["fisher_trace"] = flat_metrics["ggn_trace"]
-    except Exception:
-        pass
-
-    try:
-        flat_metrics["emp_fisher_trace"] = _hutchinson_trace_generic(
-            _mvp_emp_fisher, total_dim, max(1, config.trace_samples // 2), device
-        )
-    except Exception:
-        pass
-
-    _restore_params(params, param_backup)
-    wrapped_model.zero_grad(set_to_none=True)
-    # Optional persistence
-    if getattr(config, "save_metrics_path", None):
+        # Hessian spectral proxies (Lanczos)
         try:
-            os.makedirs(config.save_metrics_path, exist_ok=True)
-            save_file = os.path.join(
-                config.save_metrics_path,
-                f"{getattr(config, 'save_prefix', 'flatness')}_metrics.json",
+            lambda_max_lanczos = _lanczos_lambda_max(
+                wrapped_model,
+                loader,
+                device,
+                params,
+                dim=total_dim,
+                num_iters=config.power_iters,
+                max_batches=config.max_batches,
+                known_classes=known_classes,
             )
-            with open(save_file, "w", encoding="utf-8") as fh:
-                json.dump(flat_metrics, fh, indent=2)
+            flat_metrics["lambda_max_lanczos"] = lambda_max_lanczos
+        except Exception:
+            # Keep evaluation robust even if Lanczos fails
+            pass
+    
+        trace_est = _hutchinson_trace(
+            wrapped_model,
+            loader,
+            device,
+            params,
+            dim=total_dim,
+            num_samples=config.trace_samples,
+            max_batches=config.max_batches,
+            known_classes=known_classes,
+        )
+        flat_metrics["hessian_trace"] = trace_est
+    
+        # Loss landscape slices (optional)
+        try:
+            do_1d = bool(getattr(config, "loss_land_1d", False))
+            do_2d = bool(getattr(config, "loss_land_2d", False))
+            loss_radius = float(getattr(config, "loss_land_radius", 0.5))
+            loss_points = int(getattr(config, "loss_land_num_points", 21))
+            loss_batches = int(getattr(config, "loss_land_max_batches", 1))
+            loss_filter = bool(getattr(config, "loss_land_filter_norm", True))
+            save_dir = getattr(config, "save_metrics_path", None)
+            prefix = getattr(config, "save_prefix", "flatness")
+    
+            if do_1d:
+                res1d = _loss_landscape_1d(
+                    wrapped_model, loader, device, params,
+                    radius=loss_radius, num_points=loss_points,
+                    max_batches=loss_batches, filter_norm=loss_filter,
+                    known_classes=known_classes,
+                )
+                flat_metrics["lossland_1d_min"] = float(np.min(res1d["loss"]))
+                flat_metrics["lossland_1d_max"] = float(np.max(res1d["loss"]))
+                if save_dir:
+                    os.makedirs(save_dir, exist_ok=True)
+                    path1d = os.path.join(save_dir, f"{prefix}_lossland_1d.npz")
+                    np.savez_compressed(path1d, x=res1d["x"], loss=res1d["loss"])
+                    flat_metrics["lossland_1d_file"] = path1d
+    
+            if do_2d:
+                res2d = _loss_landscape_2d(
+                    wrapped_model, loader, device, params,
+                    radius=loss_radius, num_points=loss_points,
+                    max_batches=loss_batches, filter_norm=loss_filter,
+                    known_classes=known_classes,
+                )
+                flat_metrics["lossland_2d_min"] = float(np.min(res2d["loss"]))
+                flat_metrics["lossland_2d_max"] = float(np.max(res2d["loss"]))
+                if save_dir:
+                    os.makedirs(save_dir, exist_ok=True)
+                    path2d = os.path.join(save_dir, f"{prefix}_lossland_2d.npz")
+                    np.savez_compressed(path2d, x=res2d["x"], y=res2d["y"], loss=res2d["loss"])
+                    flat_metrics["lossland_2d_file"] = path2d
         except Exception as _err:
-            logging.debug("Failed to save flatness metrics: %s", _err)
-
-    return flat_metrics
+            logging.debug("Loss landscape evaluation failed: %s", _err)
+        
+        # ---------------- GGN / Fisher / Empirical Fisher (optional) ----------------
+        # Define MVP closures that reuse the same data/batch budget
+        def _mvp_ggn(v: torch.Tensor) -> torch.Tensor:
+            return _ggn_vector_product(
+                wrapped_model, loader, device, params, v,
+                max_batches=config.max_batches, known_classes=known_classes
+            )
+    
+        def _mvp_emp_fisher(v: torch.Tensor) -> torch.Tensor:
+            return _empirical_fisher_vector_product(
+                wrapped_model, loader, device, params, v,
+                max_batches=config.max_batches, known_classes=known_classes
+            )
+    
+        try:
+            flat_metrics["ggn_lambda_max_power"] = _power_iteration_generic(
+                _mvp_ggn, total_dim, config.power_iters, device
+            )
+            flat_metrics["ggn_lambda_max_lanczos"] = _lanczos_lambda_max_generic(
+                _mvp_ggn, total_dim, config.power_iters, device
+            )
+            flat_metrics["ggn_trace"] = _hutchinson_trace_generic(
+                _mvp_ggn, total_dim, config.trace_samples, device
+            )
+            # For CE/NLL, Fisher == GGN
+            flat_metrics["fisher_trace"] = flat_metrics["ggn_trace"]
+        except Exception:
+            pass
+    
+        try:
+            flat_metrics["emp_fisher_trace"] = _hutchinson_trace_generic(
+                _mvp_emp_fisher, total_dim, max(1, config.trace_samples // 2), device
+            )
+        except Exception:
+            pass
+    
+        _restore_params(params, param_backup)
+        wrapped_model.zero_grad(set_to_none=True)
+        # Optional persistence
+        if getattr(config, "save_metrics_path", None):
+            try:
+                os.makedirs(config.save_metrics_path, exist_ok=True)
+                save_file = os.path.join(
+                    config.save_metrics_path,
+                    f"{getattr(config, 'save_prefix', 'flatness')}_metrics.json",
+                )
+                with open(save_file, "w", encoding="utf-8") as fh:
+                    json.dump(flat_metrics, fh, indent=2)
+            except Exception as _err:
+                logging.debug("Failed to save flatness metrics: %s", _err)
+    
+        return flat_metrics
+    finally:
+        _GLOBAL_MAX_EXAMPLES_PER_BATCH = prev_max_examples
 
 
 # ---------------------------------------------------------------------------
 # Optional CLI to evaluate flatness from a stored config/checkpoint
 # ---------------------------------------------------------------------------
-
-
 def _load_args(config_path: str) -> Dict:
     with open(config_path, "r", encoding="utf-8") as fh:
         return json.load(fh)

@@ -253,6 +253,7 @@ def _train(args):
                         power_iters=args.get("flat_eval_power_iters", 5),
                         trace_samples=args.get("flat_eval_trace_samples", 5),
                         grad_batches=args.get("flat_eval_grad_batches", 1),
+                        max_examples_per_batch=args.get("flat_eval_max_examples_per_batch", 128),
                         save_metrics_path=args.get("feature_flat_save_path", None),
                         save_prefix=f"task{task}",
                     )

@@ -13,5 +13,5 @@
 
 # python3 main.py --config=./exps/sdlora_c100.json  >> ./logs/sdlora/cifar224/train_sdlora.log 2>&1 &
 
-python3 main.py --config=./exps/sdlora_inr_sgd.json >> ./logs/sdlora/imagenet_r/train_sdlora_sgd.log 2>&1 &
-python3 main.py --config=./exps/sdlora_inr_sam.json >> ./logs/sdlora/imagenet_r/train_sdlora_sgd.log 2>&1 &
+python3 main.py --config=./exps/sdlora_inr_sgd.json >> ./logs/sdlora/imagenet_r_sgd/train_sdlora_sgd.log 2>&1 &
+# python3 main.py --config=./exps/sdlora_inr_sam.json >> ./logs/sdlora/imagenet_r_sam/train_sdlora_sam.log 2>&1 &
