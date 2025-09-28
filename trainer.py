@@ -253,7 +253,16 @@ def _train(args):
                         power_iters=args.get("flat_eval_power_iters", 5),
                         trace_samples=args.get("flat_eval_trace_samples", 5),
                         grad_batches=args.get("flat_eval_grad_batches", 1),
+                        save_metrics_path=args.get("feature_flat_save_path", None),
+                        save_prefix=f"task{task}",
                     )
+                    # Optional: loss landscape visualization controls
+                    setattr(flat_cfg, "loss_land_1d", args.get("loss_land_1d", False))
+                    setattr(flat_cfg, "loss_land_2d", args.get("loss_land_2d", False))
+                    setattr(flat_cfg, "loss_land_radius", args.get("loss_land_radius", 0.5))
+                    setattr(flat_cfg, "loss_land_num_points", args.get("loss_land_num_points", 21))
+                    setattr(flat_cfg, "loss_land_max_batches", args.get("loss_land_max_batches", 1))
+                    setattr(flat_cfg, "loss_land_filter_norm", args.get("loss_land_filter_norm", True))
                     # attention: this is in train
                     flat_metrics = evaluate_flatness_metrics(
                         model._network,

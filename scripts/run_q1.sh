@@ -11,4 +11,7 @@
 # # python3 main.py --config exps/sdlora_c100.json --override optimizer_type=sam sam_rho=0.05 flat_eval=true flat_eval_rho=0.05
 
 
-python3 main.py --config=./exps/sdlora_c100.json  >> ./logs/sdlora/cifar224/train_sdlora.log 2>&1 &
+# python3 main.py --config=./exps/sdlora_c100.json  >> ./logs/sdlora/cifar224/train_sdlora.log 2>&1 &
+
+python3 main.py --config=./exps/sdlora_inr_sgd.json >> ./logs/sdlora/imagenet_r/train_sdlora_sgd.log 2>&1 &
+python3 main.py --config=./exps/sdlora_inr_sam.json >> ./logs/sdlora/imagenet_r/train_sdlora_sgd.log 2>&1 &
