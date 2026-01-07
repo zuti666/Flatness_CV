@@ -61,6 +61,11 @@ logs_inc/
 logs_inc_lora/
 summaries/
 *.csv
+logs*/
+
+# experiments setting 
+scripts*/
+Result_analyse/
 
 # config/output collections (keep only minimal hand-picked exps/)
 exps_all/
@@ -86,3 +91,16 @@ data/
 
 # papers/materials
 relatedPaper/
+
+models/LPFT.py
+models/LPFT_EFM.py
+models_EFM/
+
+backbone/vit_inflora.py
+eval_all.py
+eval_flat/attn_utils.py
+eval_flat/visualize_attention.py
+evaluation/eval_ood.py
+optimer/ARWP_cos.py
+utils/config.py
+utils/random_reproduce.py
