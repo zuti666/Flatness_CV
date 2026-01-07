@@ -1,0 +1,122 @@
+prefix: "inflora_inr_rwp_imagenetr_t20_rank16"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+#----------- Dataset ---------------- 
+dataset: "imagenetr" 
+
+# task divided
+class_shuffle: true  # Whether to shuffle class order
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20 
+
+seed:
+  - 521
+  - 1993
+  - 1024
+  - 42
+
+all_or_inc: inc
+
+backbone_type: "vit_base_patch16_224" 
+
+# GPU used for training
+device:
+  - "3"
+
+#---------- Method --------
+model_name: "inflora"
+lora_rank: 16
+
+#---------- Train --------
+batch_size: 128
+
+# optimizer
+optimizer: "sgd"
+optimizer_type: "rwp"
+rwp_std: 0.01
+rwp_eta: 0.1
+rwp_beta: 0.99
+rwp_std_follow_lr: true
+rwp_noise_type: Gauss_standard
+
+scheduler: cosine # "constant"
+# Init stage for the first task 
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+
+#---------------------------- For evaluation ------------------------------------
+
+
+#-------------- # Linear Probe Evaluation , False------------------
+linear_probe_eval_num_workers: 0
+linear_probe_softmax_joint_seen_eval: true
+linear_probe_softmax_per_task_eval: false
+probe_train_mode: train
+probe_test_mode: test
+
+
+probe_fit_epochs: 20       
+probe_fit_lr: 0.015
+probe_fit_moment: 0 
+probe_fit_wd: 0.0005
+probe_fit_train_batch_size: 128
+
+
+
+
+#-------------- #  Weight Flatness ------------------
+flat_eval: false
+flat_eval_batch_size: 32
+flat_eval_dataset_fraction: 0.1  #  10% of TestDataset for flatness/lossland 
+# First and zero order Sharpness definition
+flat_eval_sharpness_radius: 0.05
+# E-sh definition
+flat_eval_esh_gaussian_std: null
+flat_eval_esh_samples: 100  
+# Hessian 
+flat_eval_hessian_power_iters: 100   
+flat_eval_hessian_trace_samples: 100  
+#  Loss landscape
+weight_loss_land_1d: true
+weight_loss_land_2d: true
+weight_loss_land_radius: 1            
+weight_loss_land_num_points: 41
+weight_loss_land_filter_norm: true     
+loss_land_modes: "full"
+loss_land_basis: "random"
+eig_save_vectors: false                   
+
+
+#-------------- # Feature Roubtness（EFM）------------------
+feature_flat_eval: false
+# feature_flat_max_batches: None
+feature_flat_topk: 200
+feature_flat_eps: 1e-12
+feature_flat_rank_tol: 1e-06
+feature_flat_save_path: null
+# CKA eval
+feature_cka_eval: true
+feature_cka_max_batches: 32         # Max batches for CKA anchor sampling
+feature_cka_max_samples: 2048       # Max samples for CKA anchor sampling
+feature_sep_max_samples: 2048       # Sampling cap for separability metric
+feature_margin_max_samples: 4096    # Sampling cap for margin statistics
+# Prptotype drift
+feature_proto_eval: true
+feature_proto_max_batches: 32        # Max batches for prototype drift stats
+feature_proto_max_samples: 2048     # Max samples for prototype drift stats
+
+# for attention probe
+attention_probe_eval: false

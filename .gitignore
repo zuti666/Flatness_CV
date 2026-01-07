@@ -60,6 +60,11 @@ exp*/
 !exp_1_sam-sgd_imageR_r16_t20_seed_1024/
 !exp_1_sam-sgd_imageR_r16_t20_seed_1024/**
 
+!exp2_sam-rwp-flat_imageR_r16_t20/
+!exp2_sam-rwp-flat_imageR_r16_t20/
+exp2_sam-rwp-flat_imageR_r16_t20/**
+
+
 !exp4_ablation_length/
 !exp4_ablation_length/**
 
@@ -78,6 +83,8 @@ Result_analyse/
 !scripts/
 !scripts/exp1_script/
 !scripts/exp1_script/run_q1_seed.sh
+!scripts/exp2_script_rwp_imager_16_cosine/
+!scripts/exp2_script_rwp_imager_16_cosine/run_exp2.sh
 !scripts/exp4_script/
 !scripts/exp4_script/run_imagenet-r_length_r16_l40_cosine_1993.sh
 
