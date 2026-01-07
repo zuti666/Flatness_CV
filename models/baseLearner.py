@@ -111,8 +111,8 @@ class BaseLearner(object):
         init_cls = int(self.args.get("init_cls", 0))
         inc = int(self.args.get("increment", 0))
         if inc <= 0:
-            # 全量微调场景：将分组步长退化为“单桶”
-            # 优先用已知总类数；否则用标签上界+1；再不济用 1 兜底
+            # Full finetune: collapse to a single bucket.
+            # Prefer known total classes; else max label + 1; else fallback to 1.
             total_classes = getattr(self, "_total_classes", None)
             if total_classes is None:
                 try:

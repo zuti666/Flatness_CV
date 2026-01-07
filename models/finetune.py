@@ -198,7 +198,7 @@ class Learner(BaseLearner):
         )
 
 
-        # 进行评估注释掉这一行
+        # Comment out this line during evaluation.
         self._full_finetune(self.train_loader, self.test_loader, optimizer, scheduler, epochs)
 
 
@@ -247,7 +247,7 @@ class Learner(BaseLearner):
         self._network.to(self._device)
         if self._cur_task == 0:
 
-            # 首任务阶段 teacher
+            # Teacher for the first task stage.
             if self._efm:
                 self._efm.capture_teacher(self._network)
 
@@ -270,7 +270,7 @@ class Learner(BaseLearner):
             )
             self._init_train(train_loader, test_loader, optimizer, scheduler)
         else:
-            # 增量阶段 teacher（已扩展 fc 之后）
+            # Teacher for incremental stages (after fc expansion).
             if self._efm:
                 self._efm.capture_teacher(self._network)
             params = [p for p in self._network.parameters() if p.requires_grad]
@@ -324,7 +324,7 @@ class Learner(BaseLearner):
                         logits = outputs["logits"]
                         loss = F.cross_entropy(logits, targets)
                         loss_value = loss.detach()
-                        loss.backward()  # ← 必须：让 p.grad 生效
+                        loss.backward()  # Required so p.grad is populated.
                         return outputs, loss_value
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
@@ -429,7 +429,7 @@ class Learner(BaseLearner):
                 else:
                     optimizer.zero_grad()
                     # logits = self._network(inputs)["logits"]
-                    outputs = self._network(inputs)      # 需要 outputs 含 "features"
+                    outputs = self._network(inputs)      # outputs must include "features"
                     logits  = outputs["logits"]
                     loss = F.cross_entropy(logits, targets)
                     # if self._efm:
@@ -520,7 +520,7 @@ class Learner(BaseLearner):
                         logits = outputs["logits"]
                         loss = F.cross_entropy(logits[:, self._known_classes :], fake_targets)
                         loss_value = loss.detach()
-                        loss.backward()  # ← 必须：让 p.grad 生效
+                        loss.backward()  # Required so p.grad is populated.
                         return outputs, loss_value
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
@@ -638,7 +638,7 @@ class Learner(BaseLearner):
                     outputs = self._network(inputs)
                     logits  = outputs["logits"]
                     loss = F.cross_entropy(logits[:, self._known_classes :], fake_targets)
-                    # ---- EFM（只新类切片）----
+                    # ---- EFM (new-class slice only) ----
                     if self._efm:
                         efm_pen = self._efm.penalty(
                             inputs=inputs, outputs=outputs,
@@ -712,7 +712,7 @@ class Learner(BaseLearner):
                         logits = outputs["logits"]
                         loss = F.cross_entropy(logits, targets)
                         loss_value = loss.detach()
-                        loss.backward()  # ← 必须：让 p.grad 生效
+                        loss.backward()  # Required so p.grad is populated.
                         return outputs, loss_value
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)

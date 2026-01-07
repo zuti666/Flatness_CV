@@ -246,7 +246,7 @@ class Learner(BaseLearner):
                 if self._optimizer_type == "sam":
                     loss.backward()
                     optimizer.first_step(zero_grad=True)
-                    # ★ SAM 第二步要在“干净前向”上重算同一图路径（adapter一致）
+                    # SAM second step: recompute on the clean forward with the same adapter path.
                     features2 = self._network.backbone(inputs, adapter_id=self._cur_task, train=True)["features"]
                     logits2 = self._network.fc(features2)["logits"]
                     second_loss = loss_cos(logits2[:, self._known_classes:], targets - self._known_classes)
