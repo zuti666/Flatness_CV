@@ -72,7 +72,7 @@ $$
   also increasing interference across tasks.
 
 $$
-  W_T = W_0 + A_T B_T
+  W_T = W_0 + A B
 $$
 
 
