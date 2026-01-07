@@ -42,10 +42,12 @@ Evaluation utilities are in `eval_flat/eval_flatness_weight_Loss.py`. You can sw
 The LoRA-based CL methods are implemented in `loraCL/`. In the PECL setting, the backbone is frozen and only the
 LoRA adapter parameters are trained. A LoRA update is parameterized as a low-rank residual:
 
-```
-W = W0 + DeltaW,   DeltaW = B A
-A in R^{r x d_in}, B in R^{d_out x r}, r << min(d_in, d_out)
-```
+$$
+W = W_0 + \Delta W,\ \ \Delta W = B A
+$$
+$$
+A \in \mathbb{R}^{r \times d_{in}},\ \ B \in \mathbb{R}^{d_{out} \times r},\ \ r \ll \min(d_{in}, d_{out})
+$$
 
 
 
@@ -55,9 +57,9 @@ A in R^{r x d_in}, B in R^{d_out x r}, r << min(d_in, d_out)
   the current task branch is trained.
 - `olora` (OLoRA): incremental LoRA with an orthogonality regularizer between the new and previous LoRA A factors,
   plus L2 on the new LoRA params. The training objective follows:
-  ```
-  L = L_cls + lambda_1 * sum_{i < t} || A_t A_i^T ||_F^2 + lambda_2 * ||DeltaW_t||_F^2
-  ```
+  $$
+  L = L_{cls} + \lambda_1 \sum_{i < t} \lVert A_t A_i^T \rVert_F^2 + \lambda_2 \lVert \Delta W_t \rVert_F^2
+  $$
   (see `loraCL/olora.py` and `backbone/lora.py::compute_ortho_loss`).
 
 ### Sharpness/Optimizer Methods (optimer)
@@ -65,29 +67,35 @@ Sharpness-related optimizers are implemented in `optimer/`. In PECL, these opera
 explicitly configured otherwise (see Flat-CL discussion in the PDF).
 
 - `sam`: Sharpness-Aware Minimization. Solve:
-  ```
-  min_w  max_{||eps|| <= rho}  L(w + eps)
-  eps ~= rho * g / (||g|| + 1e-12),  g = grad_w L(w)
-  ```
+  $$
+  \min_w\ \max_{\lVert \epsilon \rVert \le \rho}\ L(w + \epsilon)
+  $$
+  $$
+  \epsilon \approx \rho \cdot \frac{g}{\lVert g \rVert + 1e{-12}},\ \ g = \nabla_w L(w)
+  $$
   This encourages flat minima in the adapter subspace.
   (see `optimer/optimer_sam.py`).
 - `rwp` / `arwp`: Robust Weight Perturbation with stochastic noise. The implementation perturbs weights as:
-  ```
-  w_tilde = w + eps,  eps ~ N(0, sigma * ||w||)
-  ```
+  $$
+  \tilde{w} = w + \epsilon,\ \ \epsilon \sim \mathcal{N}(0,\ \sigma \lVert w \rVert)
+  $$
   with optional Fisher scaling `eps <- eps / sqrt(1 + eta * F)` and then updates using the base optimizer
   (see `optimer/ARWP_cos.py`).
 - `gam`: Gradient-Aligned Minimization. Uses two perturbation radii (rho, rho') and gradient decomposition:
-  ```
-  eps_0 = rho * g0 / (||g0|| + eps)
-  eps_1 = rho' * (g1 - g0) / (||g1 - g0|| + eps)
-  g = beta1 * g1 + beta3 * g2 - gamma * v_perp
-  ```
+  $$
+  \epsilon_0 = \rho \cdot \frac{g_0}{\lVert g_0 \rVert + \epsilon}
+  $$
+  $$
+  \epsilon_1 = \rho' \cdot \frac{g_1 - g_0}{\lVert g_1 - g_0 \rVert + \epsilon}
+  $$
+  $$
+  g = \beta_1 g_1 + \beta_3 g_2 - \gamma v_{\perp}
+  $$
   (see `optimer/gam.py` for the exact steps and weights).
 - `cflat`: Composite-Flatness optimizer. Aggregates gradients from a perturbation and norm-ascent path:
-  ```
-  g = g1 + lambda * (g - g2)
-  ```
+  $$
+  g = g_1 + \lambda (g - g_2)
+  $$
   (see `optimer/c_flat.py`).
 
 ### Flatness Evaluation (eval_flat)
@@ -96,21 +104,23 @@ statistics. These metrics are computed on a selected parameter set (e.g., LoRA-o
 flatness analysis in the PDF. Key proxies include:
 
 - Zeroth-order sharpness along gradient:
-  ```
-  Sh0(rho) = L(w + rho * g / ||g||) - L(w)
-  ```
+  $$
+  Sh_0(\rho) = L\left(w + \rho \frac{g}{\lVert g \rVert}\right) - L(w)
+  $$
 - First-order sharpness:
-  ```
-  Sh1(rho) = rho * ||g||
-  ```
+  $$
+  Sh_1(\rho) = \rho \lVert g \rVert
+  $$
 - Expected sharpness (E-Sh) under random perturbations:
-  ```
-  ESh = E_{eps ~ N(0, sigma^2 I)} [ L(w + eps) - L(w) ]
-  ```
+  $$
+  ESh = \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \sigma^2 I)} \left[ L(w + \epsilon) - L(w) \right]
+  $$
 - Hessian spectral proxies:
-  ```
-  lambda_max(H) via power iteration
-  tr(H) ~= (1/K) * sum_k v_k^T H v_k,  v_k in {+1, -1}^d
-  ```
+  $$
+  \lambda_{max}(H)\ \text{via power iteration}
+  $$
+  $$
+  \mathrm{tr}(H) \approx \frac{1}{K} \sum_k v_k^T H v_k,\ \ v_k \in \{+1, -1\}^d
+  $$
 
 Use the config fields in your experiment YAMLs to enable/disable these metrics.
