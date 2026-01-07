@@ -56,6 +56,14 @@ build/
 
 # experiment outputs
 exp*/
+# But keep these two experiment folders (and everything inside)
+!exp_1_sam-sgd_imageR_r16_t20_seed_1024/
+!exp_1_sam-sgd_imageR_r16_t20_seed_1024/**
+
+!exp4_ablation_length/
+!exp4_ablation_length/**
+
+
 logs_all/
 logs_inc/
 logs_inc_lora/
@@ -91,16 +99,3 @@ data/
 
 # papers/materials
 relatedPaper/
-
-models/LPFT.py
-models/LPFT_EFM.py
-models_EFM/
-
-backbone/vit_inflora.py
-eval_all.py
-eval_flat/attn_utils.py
-eval_flat/visualize_attention.py
-evaluation/eval_ood.py
-optimer/ARWP_cos.py
-utils/config.py
-utils/random_reproduce.py
