@@ -3,6 +3,8 @@ import json
 from typing import Dict
 
 from trainer import train
+from trainer_allData import train_all
+from utils.config import load_config
 
 
 def _parse_override_pairs(pairs) -> Dict[str, object]:
@@ -51,7 +53,7 @@ def _parse_override_pairs(pairs) -> Dict[str, object]:
 def main():
     namespace = setup_parser().parse_args()
     config_path = namespace.config
-    cfg = load_json(config_path)
+    cfg = load_config(config_path)
 
     cli_args = vars(namespace)
     override_pairs = cli_args.pop("override", None)
@@ -65,17 +67,21 @@ def main():
     cfg.update(overrides)
     cfg["config"] = config_path
 
-    train(cfg)
+    if str(cfg["all_or_inc"]) == "inc":
+        train(cfg)
+    elif str(cfg["all_or_inc"]) == "all":
+        train_all(cfg)
+
+
 
 def load_json(setting_path):
-    with open(setting_path) as data_file:
-        param = json.load(data_file)
-    return param
+    # Backward-compatible helper if called elsewhere; prefer load_config
+    return load_config(setting_path)
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Reproduce of multiple pre-trained incremental learning algorthms.')
     parser.add_argument('--config', type=str, default='./exps/simplecil.json',
-                        help='Json file of settings.')
+                        help='Settings file (.json/.yaml/.yml supported).')
     parser.add_argument(
         '--override',
         nargs='+',
