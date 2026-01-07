@@ -71,13 +71,21 @@ $$
 - `seqlora` (SeqLoRA): one shared LoRA adapter (A, B) is trained sequentially across tasks, maximizing sharing but
   also increasing interference across tasks.
 
-- `inclora` (IncLoRA): a new LoRA branch $(A_t, B_t)$ is added per task; previous LoRA parameters are frozen and only
+$$
+  W_T = W_0 + A_T B_T
+$$
+
+
+- `inclora` (IncLoRA): a new LoRA branch (A_t, B_t) is added per task; previous LoRA parameters are frozen and only
   the current task branch is trained.
+
+
+$$
+  W_T = W_0 + \sum_{t=0}^{T} A_t B_t
+$$
 
 - `olora` (OLoRA): incremental LoRA with an orthogonality regularizer between the new and previous LoRA A factors,
   plus L2 on the new LoRA params. The training objective follows:
-
-  
 
 
 $$
