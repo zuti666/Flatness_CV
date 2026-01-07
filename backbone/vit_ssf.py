@@ -21,6 +21,7 @@ Hacked together by / Copyright 2020, Ross Wightman
 """
 import math
 import logging
+import inspect
 from functools import partial
 from collections import OrderedDict
 from typing import Optional
@@ -731,11 +732,14 @@ def _create_vision_transformer(variant, pretrained=False, **kwargs):
         raise RuntimeError('features_only not implemented for Vision Transformer models.')
 
     pretrained_cfg = resolve_pretrained_cfg(variant, pretrained_cfg=kwargs.pop('pretrained_cfg', None))
+    url = pretrained_cfg.get("url", "") if isinstance(pretrained_cfg, dict) else getattr(pretrained_cfg, "url", "") or ""
+    supports_custom_load = "pretrained_custom_load" in inspect.signature(build_model_with_cfg).parameters
+    custom_kw = {"pretrained_custom_load": 'npz' in str(url)} if supports_custom_load else {}
     model = build_model_with_cfg(
         VisionTransformer, variant, pretrained,
         pretrained_cfg=pretrained_cfg,
         pretrained_filter_fn=checkpoint_filter_fn,
-        pretrained_custom_load='npz' in pretrained_cfg['url'],
+        **custom_kw,
         **kwargs)
     return model
 
@@ -867,6 +871,3 @@ def vit_large_patch16_224_in21k_ssf(pretrained=False, **kwargs):
     model_kwargs = dict(patch_size=16, embed_dim=1024, depth=24, num_heads=16, **kwargs)
     model = _create_vision_transformer('vit_large_patch16_224_in21k', pretrained=pretrained, **model_kwargs)
     return model
-
-
-

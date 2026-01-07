@@ -4,6 +4,7 @@
 '''
 import math
 import logging
+import inspect
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -532,11 +533,14 @@ def _create_vision_transformer(variant, pretrained=False, **kwargs):
         raise RuntimeError('features_only not implemented for Vision Transformer models.')
 
     pretrained_cfg = resolve_pretrained_cfg(variant, pretrained_cfg=kwargs.pop('pretrained_cfg', None))
+    url = pretrained_cfg.get("url", "") if isinstance(pretrained_cfg, dict) else getattr(pretrained_cfg, "url", "") or ""
+    supports_custom_load = "pretrained_custom_load" in inspect.signature(build_model_with_cfg).parameters
+    custom_kw = {"pretrained_custom_load": 'npz' in str(url)} if supports_custom_load else {}
     model = build_model_with_cfg(
         VisionTransformer, variant, pretrained,
         pretrained_cfg=pretrained_cfg,
         pretrained_filter_fn=checkpoint_filter_fn,
-        pretrained_custom_load='npz' in pretrained_cfg['url'],
+        **custom_kw,
         **kwargs)
     return model
 
@@ -925,4 +929,3 @@ def vit_small_patch16_36x1_224_coda_prompt(pretrained=False, **kwargs):
     model_kwargs = dict(patch_size=16, embed_dim=384, depth=36, num_heads=6, init_values=1e-5, **kwargs)
     model = _create_vision_transformer('vit_small_patch16_36x1_224', pretrained=pretrained, **model_kwargs)
     return model
-

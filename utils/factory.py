@@ -2,6 +2,7 @@ def get_model(model_name, args):
     name = model_name.lower()
     if name == "simplecil":
         from models.simplecil import Learner
+    # loraBased
     elif name == "sdlora":
         from loraCL.sdlora import Learner
     elif name == "seqlora":
@@ -10,6 +11,20 @@ def get_model(model_name, args):
         from loraCL.inclora import Learner
     elif name == "olora":
         from loraCL.olora import Learner
+    elif name == "inflora":
+        from loraCL.inflora import Learner
+
+
+    elif name == "finetune":
+        from models.finetune import Learner
+    elif name == "LPFT":
+        from models.LPFT import Learner
+    elif name == "linearprobe":
+        from models.linearprobe import Learner
+    elif name == "lpft_efm":
+        from models.LPFT_EFM import Learner
+
+
     elif name == "aper_finetune":
         from models.aper_finetune import Learner
     elif name == "aper_ssf":
@@ -24,8 +39,10 @@ def get_model(model_name, args):
         from models.dualprompt import Learner
     elif name == "coda_prompt":
         from models.coda_prompt import Learner
-    elif name == "finetune":
-        from models.finetune import Learner
+        
+    
+
+
     elif name == "icarl":
         from models.icarl import Learner
     elif name == "der":
@@ -56,6 +73,9 @@ def get_model(model_name, args):
         from models.duct import Learner
     elif name == 'tuna':
         from models.tuna import Learner
+    elif name == 'tuna_efm':
+        from models_EFM.tuna_efm import Learner
+
     else:
         assert 0
     return Learner(args)

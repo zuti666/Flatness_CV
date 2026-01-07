@@ -4,17 +4,30 @@ import os
 import torch
 from torch import nn
 from backbone.linears import SimpleLinear, SplitCosineLinear, CosineLinear, EaseCosineLinear, SimpleContinualLinear, TunaLinear
-
+from pathlib import Path
 from backbone.prompt import CodaPrompt
 import timm
+from backbone.lora import LoRA_ViT_timm
 
 def get_backbone(args, pretrained=False):
     name = args["backbone_type"].lower()
+    method_name = str(args.get("model_name", "")).lower()
+    ## Lora version
+    if (name == "pretrained_vit_b16_224" or name == "vit_base_patch16_224") and ("lora" in method_name):
+        model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
+        model = LoRA_ViT_timm(vit_model=model.eval(), r=args['lora_rank'],  num_classes=0, increment=args['increment'], filepath=args['filepath'])
+        model.out_dim = 768
+        print("lora version")
+        return model
+
     # SimpleCIL or SimpleCIL w/ Finetune
-    if name == "pretrained_vit_b16_224" or name == "vit_base_patch16_224":
+    elif name == "pretrained_vit_b16_224" or name == "vit_base_patch16_224":
+        
         model = timm.create_model("vit_base_patch16_224",pretrained=True, num_classes=0)
+        
         model.out_dim = 768
         return model.eval()
+
     elif name == "pretrained_vit_b16_224_in21k" or name == "vit_base_patch16_224_in21k":
         model = timm.create_model("vit_base_patch16_224_in21k",pretrained=True, num_classes=0)
         model.out_dim = 768
@@ -1291,6 +1304,9 @@ class TUNANet(nn.Module):
         self.backbone.out_dim = 768
         self.fc = None
         self._device = args["device"][0]
+
+        # ★ 新增：当前激活的 adapter（默认 0）
+        self.backbone.active_adapter_id = 0
        
 
     @property
@@ -1320,3 +1336,245 @@ class TUNANet(nn.Module):
     def forward(self, x, adapter_id=-1, train=False, fc_only=False):
         res = self.backbone(x, adapter_id, train, fc_only)
         return res
+    
+    # ★ 新增：切换当前使用的 adapter（给 LP 或评估前调用）
+    def set_active_adapter(self, adapter_id: int):
+        self.backbone.active_adapter_id = int(adapter_id)
+
+    # ★ 新增：统一的特征提取接口，供 probe.py 调用
+    @torch.no_grad()
+    def extract_vector(self, x: torch.Tensor) -> torch.Tensor:
+        # 使用当前 active_adapter_id 来抽特征（与评估时保持一致）
+        aid = getattr(self.backbone, "active_adapter_id", 0)
+        out = self.backbone(x, adapter_id=aid, train=False, fc_only=False)
+        feats = out["features"]
+        # 规整到 [B, D]
+        if hasattr(feats, "dim"):
+            if feats.dim() == 3:         # ViT：取 CLS
+                feats = feats[:, 0, ...]
+            elif feats.dim() > 2:
+                feats = feats.view(feats.size(0), -1)
+        return feats
+
+
+
+class SiNet(nn.Module):
+
+    def __init__(self, args):
+        super(SiNet, self).__init__()
+
+        # 复用全局的 backbone 构建（在 LoRA 情况下会返回 LoRA_ViT_timm）
+        self.backbone = get_backbone(args, pretrained=True)
+
+        # 改为与 IncrementalNet 一致：单一线性分类头，随任务扩展输出维度
+        self.fc: nn.Module | None = None
+
+        # 记录当前已出现的任务数（用于接口兼容）
+        self.numtask = 0
+
+    @property
+    def feature_dim(self):
+        return getattr(self.backbone, "out_dim", 0)
+
+    @torch.no_grad()
+    def extract_vector(self, image, task=None):
+        feats = self.backbone(image)
+        if hasattr(feats, "dim") and feats.dim() > 2:
+            feats = feats[:, 0, :]
+        return feats
+
+    def forward(self, image, get_feat: bool = False, get_cur_feat: bool = False, fc_only: bool = False):
+        features = self.backbone(image)
+        if hasattr(features, "dim") and features.dim() > 2:
+            features = features[:, 0, :]
+        features = features.view(features.size(0), -1)
+
+        if self.fc is None:
+            logits = torch.empty(features.size(0), 0, device=features.device)
+        else:
+            fc_out = self.fc(features)
+            logits = fc_out["logits"] if isinstance(fc_out, dict) and "logits" in fc_out else fc_out
+
+        return {
+            "logits": logits,
+            "features": features,
+            "prompt_loss": torch.zeros((1,), device=features.device, requires_grad=True),
+        }
+
+    # 供评估使用：返回“全头拼接”的 logits，这里与 forward 一致
+    def interface(self, image, task_id=None):
+        features = self.backbone(image)
+        if hasattr(features, "dim") and features.dim() > 2:
+            features = features[:, 0, :]
+        features = features.view(features.size(0), -1)
+        if self.fc is None:
+            return torch.empty(features.size(0), 0, device=features.device)
+        fc_out = self.fc(features)
+        return fc_out["logits"] if isinstance(fc_out, dict) and "logits" in fc_out else fc_out
+
+    def generate_fc(self, in_dim, out_dim):
+        return SimpleLinear(in_dim, out_dim)
+
+    def update_fc(self, nb_classes):
+        # 与 IncrementalNet 相同：扩展分类头并保留旧权重
+        fc = self.generate_fc(self.feature_dim, nb_classes)
+        if getattr(self, "fc", None) is not None:
+            nb_output = self.fc.out_features
+            try:
+                weight = copy.deepcopy(self.fc.weight.data)
+                bias = copy.deepcopy(self.fc.bias.data)
+                fc.weight.data[:nb_output] = weight
+                fc.bias.data[:nb_output] = bias
+            except Exception:
+                pass
+        self.fc = fc
+        self.numtask += 1
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def freeze(self):
+        for param in self.parameters():
+            param.requires_grad = False
+        self.eval()
+        return self
+
+
+
+class SiNet_BEFORE(nn.Module):
+
+    def __init__(self, args):
+        super(SiNet, self).__init__()
+
+        model_kwargs = dict(patch_size=16, embed_dim=768, depth=12, num_heads=12, n_tasks=args["total_sessions"], rank=args["rank"])
+
+
+        # 判断是否跳过 timm 自带预训练逻辑，改为加载训练后模型权重
+        if args.get("reload_model", False):
+            # 不使用 ImageNet21k 预训练，构建裸模型
+            self.image_encoder = _create_vision_transformer(
+                'vit_base_patch16_224_in21k', pretrained=False, **model_kwargs)
+        else:
+            # 默认行为：加载 timm 的 ImageNet21k 权重
+            self.image_encoder = _create_vision_transformer(
+                'vit_base_patch16_224_in21k', pretrained=True, **model_kwargs)
+
+        # 分类器池：每个任务一个头
+        self.class_num = args["init_cls"]
+        self.classifier_pool = nn.ModuleList([
+            nn.Linear(768, self.class_num, bias=True)
+            for _ in range(args["total_sessions"])
+        ])
+        self.classifier_pool_backup = nn.ModuleList([
+            nn.Linear(768, self.class_num, bias=True)
+            for _ in range(args["total_sessions"])
+        ])
+
+        # 当前任务编号
+        self.numtask = 0
+
+        # ✅ 若 reload_model，则手动加载训练好的模型参数
+        if args.get("reload_model", False):
+            assert "pretrained_ckpt" in args, "reload_model=True 但未提供 pretrained_ckpt 参数！"
+            state_dict = torch.load(
+                args["pretrained_ckpt"], map_location="cpu")
+
+            # 可选择只加载 image_encoder，也可加载整体 _network
+            missing_keys, unexpected_keys = self.load_state_dict(
+                state_dict, strict=False)
+            print(f"[SiNet] Loaded from checkpoint: {args['pretrained_ckpt']}")
+            print(f"[SiNet] Missing keys: {missing_keys}")
+            print(f"[SiNet] Unexpected keys: {unexpected_keys}")
+
+    @property
+    def feature_dim(self):
+        return self.image_encoder.out_dim
+
+    def extract_vector(self, image, task=None):
+        if task == None:
+            image_features, _ = self.image_encoder(image, self.numtask-1)
+        else:
+            image_features, _ = self.image_encoder(image, task)
+        image_features = image_features[:, 0, :]
+        # image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        return image_features
+
+    def forward(self, image, get_feat=False, get_cur_feat=False, fc_only=False):
+        if fc_only:
+            fc_outs = []
+            for ti in range(self.numtask):
+                fc_out = self.classifier_pool[ti](image)
+                fc_outs.append(fc_out)
+            return torch.cat(fc_outs, dim=1)
+
+        logits = []
+        image_features, prompt_loss = self.image_encoder(
+            image, task_id=self.numtask-1, get_feat=get_feat, get_cur_feat=get_cur_feat)
+        image_features = image_features[:, 0, :]
+        image_features = image_features.view(image_features.size(0), -1)
+        for prompts in [self.classifier_pool[self.numtask-1]]:
+            logits.append(prompts(image_features))
+
+        return {
+            'logits': torch.cat(logits, dim=1),
+            'features': image_features,
+            'prompt_loss': prompt_loss
+        }
+
+    def interface(self, image, task_id=None):
+        image_features, _ = self.image_encoder(
+            image, task_id=self.numtask-1 if task_id is None else task_id)
+
+        image_features = image_features[:, 0, :]
+        image_features = image_features.view(image_features.size(0), -1)
+
+        logits = []
+        for prompt in self.classifier_pool[:self.numtask]:
+            logits.append(prompt(image_features))
+
+        logits = torch.cat(logits, 1)
+        return logits
+
+    def interface1(self, image, task_ids):
+        logits = []
+        for index in range(len(task_ids)):
+            image_features, _ = self.image_encoder(
+                image[index:index+1], task_id=task_ids[index].item())
+            image_features = image_features[:, 0, :]
+            image_features = image_features.view(image_features.size(0), -1)
+
+            logits.append(
+                self.classifier_pool_backup[task_ids[index].item()](image_features))
+
+        logits = torch.cat(logits, 0)
+        return logits
+
+    def interface2(self, image_features):
+
+        logits = []
+        for prompt in self.classifier_pool[:self.numtask]:
+            logits.append(prompt(image_features))
+
+        logits = torch.cat(logits, 1)
+        return logits
+
+    def update_fc(self, nb_classes):
+        self.numtask += 1
+
+    def classifier_backup(self, task_id):
+        self.classifier_pool_backup[task_id].load_state_dict(
+            self.classifier_pool[task_id].state_dict())
+
+    def classifier_recall(self):
+        self.classifier_pool.load_state_dict(self.old_state_dict)
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def freeze(self):
+        for param in self.parameters():
+            param.requires_grad = False
+        self.eval()
+
+        return self
+

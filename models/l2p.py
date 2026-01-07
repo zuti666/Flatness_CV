@@ -7,7 +7,7 @@ from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import PromptVitNet
-from models.base import BaseLearner
+from models.baseLearner import BaseLearner
 from utils.toolkit import tensor2numpy
 
 # tune the model at first session with vpt, and then conduct simple shot.

@@ -1,4 +1,4 @@
-import logging
+ import logging
 import numpy as np
 import torch
 from torch import nn
@@ -8,7 +8,8 @@ from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import IncrementalNet,SimpleCosineIncrementalNet,SimpleVitNet
-from models.base import BaseLearner
+# from models.base import BaseLearner
+from models.baseLearner import BaseLearner
 from utils.toolkit import target2onehot, tensor2numpy
 
 

@@ -7,7 +7,8 @@ from torch import optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import TUNANet
-from models.base import BaseLearner
+# from models.base import BaseLearner
+from models.baseLearner import BaseLearner
 from utils.toolkit import tensor2numpy, target2onehot
 from torch.distributions.multivariate_normal import MultivariateNormal
 
@@ -33,6 +34,9 @@ class AngularPenaltySMLoss(nn.Module):
         self.eps = eps
 
         self.cross_entropy = nn.CrossEntropyLoss()
+
+
+        
 
     def forward(self, wf, labels):
         if self.loss_type == 'crossentropy':
@@ -65,7 +69,7 @@ class Learner(BaseLearner):
         self.use_orth = args["use_orth"]
         self.batch_size = args["batch_size"]
         self.init_lr = args["init_lr"]
-        self.weight_decay = args["weight_decay"] if args["weight_decay"] is not None else 0.0005
+        self.weight_decay = args["init_weight_decay"] if args["init_weight_decay"] is not None else 0.0005
         self.min_lr = args["min_lr"] if args["min_lr"] is not None else 1e-8
         self.args = args
         self.args['tuned_epoch'] = args['tuned_epoch']
@@ -88,6 +92,32 @@ class Learner(BaseLearner):
             for name, param in self._network.named_parameters():
                 if param.requires_grad:
                     logging.info("{}: {}".format(name, param.numel()))
+
+
+        self._optimizer_type = args.get("optimizer_type", "sgd").lower()
+        if self._optimizer_type == "sam":
+            self._sam_rho = float(args.get("sam_rho", 0.05))
+            self._sam_adaptive = bool(args.get("sam_adaptive", False))
+        elif self._optimizer_type == "cflat":
+            self._cflat_rho = float(args.get("cflat_rho", 0.2))
+            self._cflat_lambda = float(args.get("cflat_lambda", 0.2))
+            self._cflat_adaptive = bool(args.get("cflat_adaptive", False))
+            self._cflat_perturb_eps = float(args.get("cflat_perturb_eps", 1e-12))
+            self._cflat_grad_reduce = args.get("cflat_grad_reduce", "mean")
+
+        # --- GAM hyperparams (with safe defaults) ---
+        elif self._optimizer_type == "gam":
+            self._gam_adaptive = bool(args.get("gam_adaptive", False))
+            self._gam_grad_reduce = args.get("gam_grad_reduce", "mean")
+            self._gam_perturb_eps = float(args.get("gam_perturb_eps", 1e-12))
+            # two perturbation radii (ρ for loss-grad step; ρ' for norm-ascent step)
+            self._gam_grad_rho = float(args.get("gam_grad_rho", 0.2))
+            self._gam_grad_norm_rho = float(args.get("gam_grad_norm_rho", 0.2))
+            # gradient decomposition weights in gam.py::gradient_decompose
+            self._gam_beta1 = float(args.get("gam_grad_beta_1", 1.0))
+            self._gam_beta2 = float(args.get("gam_grad_beta_2", 1.0))
+            self._gam_beta3 = float(args.get("gam_grad_beta_3", 1.0))
+            self._gam_gamma = float(args.get("gam_grad_gamma", 0.1))
 
     def after_task(self):
         self._known_classes = self._total_classes
@@ -146,32 +176,51 @@ class Learner(BaseLearner):
                           'weight_decay': self.weight_decay}
         network_params = [base_params, base_fc_params]
 
-        if self.args['optimizer'] == 'sgd':
-            optimizer = optim.SGD(
-                network_params,
-                momentum=0.9,
-            )
-        elif self.args['optimizer'] == 'adam':
-            optimizer = optim.Adam(
-                network_params,
-            )
+        optimizer = self._build_optimizer(network_params,  stage="init")
 
-        elif self.args['optimizer'] == 'adamw':
-            optimizer = optim.AdamW(
-                network_params,
-            )
+        # if self.args['optimizer'] == 'sgd':
+        #     # optimizer = optim.SGD(
+        #     #     network_params,
+        #     #     momentum=0.9,
+        #     # )
+        #     optimizer = self._build_optimizer(network_params,state="init")
+        # elif self.args['optimizer'] == 'adam':
+        #     # 
+        #     optimizer = self._build_optimizer(network_params,state="init")
+
+        # elif self.args['optimizer'] == 'adamw':
+
+        #     optimizer = self._build_optimizer(network_params,state="init")
+            # optimizer = optim.AdamW(
+            #     network_params,
+            # )
+            
 
         return optimizer
+    
+    # self._optimizer_type = str(self.args.get("optimizer", "sgd")).lower()
+        # adapter_params = [p for name, p in model.named_parameters() if 'adapter' in name and p.requires_grad]
+        # group_adapter = {"params": adapter_params} if adapter_params else None
+        # base_fc_params = {'params': self._network.fc.parameters(), 'lr': self.init_lr,
+        #                    'weight_decay': self.weight_decay}
+        # group_head = {"params": base_fc_params} if base_fc_params else None
+        # param_groups = [g for g in (group_adapter, group_head) if g is not None]
+        # optimizer = self._build_optimizer(network_params,state="init")
 
     def get_scheduler(self, optimizer):
         if self.args["scheduler"] == 'cosine':
-            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=self.args['tuned_epoch'],
-                                                             eta_min=self.min_lr)
+            # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=self.args['tuned_epoch'],
+                                                #   eta_min=self.min_lr)
+            scheduler = self.build_scheduler(optimizer=optimizer,policy=self.args["scheduler"],T_max=self.args['tuned_epoch'],eta_min=self.min_lr)
         elif self.args["scheduler"] == 'steplr':
-            scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=self.args["init_milestones"],
-                                                       gamma=self.args["init_lr_decay"])
+            # scheduler = optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=self.args["init_milestones"],
+            #                                            gamma=self.args["init_lr_decay"])
+            scheduler = self.build_scheduler(optimizer=optimizer,policy=self.args["scheduler"], milestones=self.args["init_milestones"],gamma=self.args["init_lr_decay"])
         elif self.args["scheduler"] == 'constant':
-            scheduler = None
+            # scheduler = None
+            scheduler = self.build_scheduler(optimizer=optimizer,policy=self.args["scheduler"])
+        
+        
 
         return scheduler
 
@@ -187,14 +236,31 @@ class Learner(BaseLearner):
                 features = self._network.backbone(inputs, adapter_id=self._cur_task, train=True)["features"]
                 logits = self._network.fc(features)["logits"]
 
+
                 loss = loss_cos(logits[:, self._known_classes:], targets - self._known_classes)
                 # loss = F.cross_entropy(logits, targets.long())
                 if self._cur_task > 0 and self.use_orth:
                     loss += self.orth_loss(features) * self.args["reg"] * torch.exp(-torch.tensor(self._cur_task+1, dtype=torch.float32, device=self._device))
                 optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                losses += loss.item()
+
+                if self._optimizer_type == "sam":
+                    loss.backward()
+                    optimizer.first_step(zero_grad=True)
+                    # ★ SAM 第二步要在“干净前向”上重算同一图路径（adapter一致）
+                    features2 = self._network.backbone(inputs, adapter_id=self._cur_task, train=True)["features"]
+                    logits2 = self._network.fc(features2)["logits"]
+                    second_loss = loss_cos(logits2[:, self._known_classes:], targets - self._known_classes)
+                    logits = logits2
+                    if self._cur_task > 0 and self.use_orth:
+                        second_loss += self.orth_loss(features2) * self.args["reg"] * torch.exp(-torch.tensor(self._cur_task+1, dtype=torch.float32, device=self._device))
+                
+                    second_loss.backward()
+                    optimizer.second_step(zero_grad=True)
+                    losses += second_loss.item()
+                else:
+                    loss.backward()
+                    optimizer.step()
+                    losses += loss.item()
 
                 _, preds = torch.max(logits, dim=1)
                 correct += preds.eq(targets.expand_as(preds)).cpu().sum()

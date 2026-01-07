@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import logging
 import math
+import inspect
 from functools import partial
 from timm.models.registry import register_model
 from timm.models.helpers import build_model_with_cfg, resolve_pretrained_cfg, named_apply, adapt_input_conv, checkpoint_seq
@@ -1152,11 +1153,14 @@ def _create_vision_transformer(variant, pretrained=False, **kwargs):
         raise RuntimeError('features_only not implemented for Vision Transformer models.')
 
     pretrained_cfg = resolve_pretrained_cfg(variant, pretrained_cfg=kwargs.pop('pretrained_cfg', None))
+    url = pretrained_cfg.get("url", "") if isinstance(pretrained_cfg, dict) else getattr(pretrained_cfg, "url", "") or ""
+    supports_custom_load = "pretrained_custom_load" in inspect.signature(build_model_with_cfg).parameters
+    custom_kw = {"pretrained_custom_load": 'npz' in str(url)} if supports_custom_load else {}
     model = build_model_with_cfg(
         VisionTransformer, variant, pretrained,
         pretrained_cfg=pretrained_cfg,
         pretrained_filter_fn=checkpoint_filter_fn,
-        pretrained_custom_load='npz' in pretrained_cfg['url'],
+        **custom_kw,
         **kwargs)
     return model
 
@@ -1579,4 +1583,3 @@ def vit_base_patch16_18x2_224_lae(pretrained=False, **kwargs):
         patch_size=16, embed_dim=768, depth=18, num_heads=12, init_values=1e-5, block_fn=ParallelBlock, **kwargs)
     model = _create_vision_transformer('vit_base_patch16_18x2_224', pretrained=pretrained, **model_kwargs)
     return model
-

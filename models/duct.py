@@ -12,7 +12,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from utils.inc_net import SimpleCosineIncrementalNet,SimpleVitNet
-from models.base import BaseLearner
+from models.baseLearner import BaseLearner
 from utils.toolkit import state_dict_to_vector, vector_to_state_dict
 
 import copy
