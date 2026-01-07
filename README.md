@@ -58,9 +58,10 @@ $$
   the current task branch is trained.
 - `olora` (OLoRA): incremental LoRA with an orthogonality regularizer between the new and previous LoRA A factors,
   plus L2 on the new LoRA params. The training objective follows:
-  $
+
+  $$
   L = L_{cls} + \lambda_1 \sum_{i < t} \lVert A_t A_i^T \rVert_F^2 + \lambda_2 \lVert \Delta W_t \rVert_F^2
-  $
+  $$
   (see `loraCL/olora.py` and `backbone/lora.py::compute_ortho_loss`).
 
 ### Sharpness/Optimizer Methods (optimer)
@@ -68,28 +69,34 @@ Sharpness-related optimizers are implemented in `optimer/`. In PECL, these opera
 explicitly configured otherwise (see Flat-CL discussion in the PDF).
 
 - `sam`: Sharpness-Aware Minimization. Solve:
-  $
+
+  $$
   \min_w\ \max_{\lVert \epsilon \rVert \le \rho}\ L(w + \epsilon),
   \epsilon \approx \rho \cdot \frac{g}{\lVert g \rVert + 1e{-12}},\ \ g = \nabla_w L(w)
-  $
+  $$
 
   This encourages flat minima in the adapter subspace.
   (see `optimer/optimer_sam.py`).
 - `rwp` / `arwp`: Robust Weight Perturbation with stochastic noise. The implementation perturbs weights as:
-  $
+
+
+  $$
   \tilde{w} = w + \epsilon,\ \ \epsilon \sim \mathcal{N}(0,\ \sigma \lVert w \rVert)
-  $
-  
+  $$
+
   with optional Fisher scaling `eps <- eps / sqrt(1 + eta * F)` and then updates using the base optimizer
   (see `optimer/ARWP_cos.py`).
 - `gam`: Gradient-Aligned Minimization. Uses two perturbation radii (rho, rho') and gradient decomposition:
+
   $$
   \epsilon_0 = \rho \cdot \frac{g_0}{\lVert g_0 \rVert + \epsilon}
   $$
 
+
   $$
   \epsilon_1 = \rho' \cdot \frac{g_1 - g_0}{\lVert g_1 - g_0 \rVert + \epsilon}
   $$
+
 
   $$
   g = \beta_1 g_1 + \beta_3 g_2 - \gamma v_{\perp}
@@ -108,21 +115,29 @@ statistics. These metrics are computed on a selected parameter set (e.g., LoRA-o
 flatness analysis in the PDF. Key proxies include:
 
 - Zeroth-order sharpness along gradient:
+
+
   $$
   Sh_0(\rho) = L\left(w + \rho \frac{g}{\lVert g \rVert}\right) - L(w)
   $$
 
 - First-order sharpness:
+
+
   $$
   Sh_1(\rho) = \rho \lVert g \rVert
   $$
 
 - Expected sharpness (E-Sh) under random perturbations:
+
+
   $$
   ESh = \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \sigma^2 I)} \left[ L(w + \epsilon) - L(w) \right]
   $$
 
 - Hessian spectral proxies:
+
+
   $$
   \lambda_{max}(H)\ \text{via power iteration}
   $$
