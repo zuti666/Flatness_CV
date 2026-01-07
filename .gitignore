@@ -2,6 +2,7 @@
 data/
 
 # Logs and run artifacts
+# experiment outputs
 logs/
 **/logs/
 *.log
@@ -11,6 +12,7 @@ results/
 checkpoints/
 **/checkpoints/
 *.ckpt
+
 
 # Model weights and large binaries
 *.pt
@@ -51,3 +53,36 @@ build/
 
 # OS files
 .DS_Store
+
+# experiment outputs
+exp*/
+logs_all/
+logs_inc/
+logs_inc_lora/
+summaries/
+*.csv
+
+# config/output collections (keep only minimal hand-picked exps/)
+exps_all/
+exps_inc/
+exps_inc_lora/
+exps_test/
+
+# caches
+__pycache__/
+*.pyc
+cache/
+data/
+
+# large artifacts
+*.pt
+*.pth
+*.ckpt
+*.h5
+
+# temp/backup variants
+*_upload.py
+*_origin.py
+
+# papers/materials
+relatedPaper/
