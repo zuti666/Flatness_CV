@@ -94,10 +94,10 @@ explicitly configured otherwise (see Flat-CL discussion in the PDF).
 - `sam`: Sharpness-Aware Minimization. Solve:
 
   
-  $$
+$$
   \min_w\ \max_{\lVert \epsilon \rVert \le \rho}\ L(w + \epsilon),
   \epsilon \approx \rho \cdot \frac{g}{\lVert g \rVert + 1e{-12}},\ \ g = \nabla_w L(w)
-  $$
+$$
 
   This encourages flat minima in the adapter subspace.
   (see `optimer/optimer_sam.py`).
@@ -116,10 +116,11 @@ $$
 
 - `gam`: Gradient-Aligned Minimization. Uses two perturbation radii (rho, rho') and gradient decomposition:
 
-  
-  $$
+
+
+$$
   \epsilon_0 = \rho \cdot \frac{g_0}{\lVert g_0 \rVert + \epsilon}
-  $$
+$$
 
 
 $$
@@ -136,9 +137,9 @@ $$
 - `cflat`: Composite-Flatness optimizer. Aggregates gradients from a perturbation and norm-ascent path:
 
   
-  $$
+$$
   g = g_1 + \lambda (g - g_2)
-  $$
+$$
 
   (see `optimer/c_flat.py`).
 
@@ -183,6 +184,7 @@ $$
 $$
   \lambda_{max}(H)\ \text{via power iteration}
 $$
+
 
 $$
   \mathrm{tr}(H) \approx \frac{1}{K} \sum_k v_k^T H v_k,\ \ v_k \in \{+1, -1\}^d
