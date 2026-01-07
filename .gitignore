@@ -74,6 +74,12 @@ logs*/
 # experiments setting 
 scripts*/
 Result_analyse/
+# allow this specific script (and its parent dirs)
+!scripts/
+!scripts/exp1_script/
+!scripts/exp1_script/run_q1_seed.sh
+!scripts/exp4_script/
+!scripts/exp4_script/run_imagenet-r_length_r16_l40_cosine_1993.sh
 
 # config/output collections (keep only minimal hand-picked exps/)
 exps_all/
