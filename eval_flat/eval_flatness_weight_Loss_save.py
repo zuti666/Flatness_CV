@@ -1,66 +1,56 @@
 import argparse
 import json
+import os
 import logging
 import math
-import os
-from dataclasses import MISSING, dataclass, field, fields as dc_fields
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from dataclasses import dataclass, field, fields as dc_fields, MISSING
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Callable
 
-import h5py
+
 import numpy as np
 import torch
 import torch.nn as nn
-from contextlib import nullcontext
 from torch.utils.data import DataLoader, Subset
+from contextlib import contextmanager, nullcontext
+import copy
+import h5py
+from tqdm import tqdm
 
 from evaluation.probe import TunaEvalWrapper
-from eval_flat.power_iter import (
-    _power_iteration_generic,
-    _power_iteration_lambda_max,
-)
-from eval_flat.lanczos_iter import (
-    _lanczos_lambda_max,
-    _lanczos_lambda_max_generic,
-    _lanczos_topk_generic,
-)
-from eval_flat.param_utils import (
-    _add_vector_to_params,
-    _clone_params,
-    _get_fc_params,
-    _param_names_and_shapes,
-    _restore_params,
-    _select_params_by_name,
-    _unflatten_to_param_like,
-    _weight_norm_for_params,
-)
-from eval_flat.loss_landscape import (
-    compute_full_vs_lora_curvature_1d,
-    compute_loss_landscape_v1,
-)
-from eval_flat.loss_utils import (
-    _compute_loss,
-    _forward_logits_full,
-    _get_max_examples_per_batch,
-    _set_max_examples_per_batch,
-    _unwrap_batch,
-)
-from eval_flat.io_utils import (
-    _load_args,
-    _save_eigvecs,
-)
-from eval_flat.curv_localization import (
-    _build_subspace_mask,
-    _build_qkv_block_mask,
-    _curvature_localization_metrics,
-    _curv_noise_cov_eval,
-    _curv_ts_eval,
-    _delta_w_projection_eval,
-    _delta_w_full_projection_eval,
-    _w_delta_alignment_eval,
-    _mean_drift_eval,
-    _lora_kl_eval,
-)
 
+
+def _extract_logits(model: nn.Module, inputs: torch.Tensor):
+    """Run model forward and return logits tensor.
+
+    Accepts either dict outputs with key 'logits' or direct logits tensor.
+    """
+    outputs = model(inputs)
+    if isinstance(outputs, dict):
+        return outputs.get("logits", outputs)
+    return outputs
+
+def _forward_logits_full(model: nn.Module, inputs: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
+    """Best-effort to obtain logits over all seen classes.
+
+    - First try regular forward.
+    - If logits cols < max(targets)+1 (mismatch), and the model exposes an
+      'interface' method (SiNet), call it to get concatenated logits over all
+      heads.
+    """
+    logits = _extract_logits(model, inputs)
+    try:
+        need_classes = (int(targets.max().item()) + 1) if (targets is not None) else None
+    except Exception:
+        need_classes = None
+    if need_classes is not None and logits.size(-1) < need_classes:
+        if hasattr(model, "interface") and callable(getattr(model, "interface")):
+            try:
+                logits_full = model.interface(inputs)
+                if isinstance(logits_full, torch.Tensor) and logits_full.size(-1) >= need_classes:
+                    return logits_full
+            except Exception:
+                pass
+    return logits
 
 def _sdp_disable_context():
     """
@@ -129,29 +119,16 @@ class FlatnessConfig:
     include_frozen_params: bool = False
 
     # ---------------- weight loss landscape ----------------
-    loss_land_enabled: bool = False
     weight_loss_land_1d: bool = False
     weight_loss_land_2d: bool = False
     weight_loss_land_radius: float = 0.5
     weight_loss_land_num_points: int = 21
     weight_loss_land_max_batches: Optional[float] = None
-    weight_loss_land_filter_norm: bool = False
+    weight_loss_land_filter_norm: bool = True
 
     loss_land_modes: str = "lora"             # "lora" | "full" | "all"
     loss_land_include_frozen: bool = True
     loss_land_param_names: Optional[List[str]] = None
-    loss_land_curv_1d: bool = False
-    loss_land_curv_backend: str = "emp_fisher"   # "hessian" | "ggn" | "emp_fisher"
-    loss_land_curv_method: str = "power"         # "power" | "lanczos"
-    loss_land_curv_iters: Optional[int] = None
-    loss_land_curv_topk: int = 1
-    loss_land_curv_num_points: Optional[int] = None
-    loss_land_curv_radius_full: Optional[float] = None
-    loss_land_curv_radius_lora: Optional[float] = None
-    loss_land_curv_max_batches: Optional[int] = None
-    loss_land_curv_use_abs_eig: bool = False
-    loss_land_curv_normalize: bool = False
-    loss_land_curv_lora_param_names: Optional[List[str]] = None
 
     # eig / basis / radius controls
     eig_save_vectors: bool = False
@@ -171,7 +148,7 @@ class FlatnessConfig:
 
     # ---------------- Fisher–Rao & Relative Flatness ----------------
     fisher_rao: bool = True
-    relative_flatness: bool = False
+    relative_flatness: bool = True
     rf_scope: str = "custom"                    # "fc" | "lora" | "custom"
     rf_norm_mode: str = "fro"                 # "fro" | "spectral"
     rf_param_name_substrings: Optional[List[str]] = None
@@ -191,21 +168,6 @@ class FlatnessConfig:
     curv_eig_method: str = "power"  # "power" | "lanczos"
     ratio_as_percent: bool = False
 
-    # ---------------- Perturbation curvature term (rank-one) ----------------
-    curv_ts: bool = False
-    curv_ts_backend: str = "ggn"  # "ggn" | "hessian" | "emp_fisher"
-    curv_ts_rho: Optional[float] = None
-    curv_ts_dir_max_batches: Optional[int] = None
-    curv_ts_eps: float = 1e-12
-
-    # ---------------- Noise covariance alignment (top-k) ----------------
-    curv_noise: bool = False
-    curv_noise_backend: str = "ggn"  # "ggn" | "hessian" | "emp_fisher"
-    curv_noise_eig_method: str = "lanczos"  # "power" | "lanczos"
-    curv_noise_topk: Optional[int] = None
-    curv_noise_max_batches: Optional[int] = None
-    curv_noise_eps: float = 1e-12
-
     # ---------------- Delta-W projection (weight-space LoRA subspace) ----------------
     delta_w_projection: bool = False
     delta_w_param_name: Optional[str] = None
@@ -215,20 +177,8 @@ class FlatnessConfig:
     delta_w_rank: Optional[int] = None
     delta_w_backend: Optional[str] = None
     delta_w_eig_method: str = "lanczos"  # "power" | "lanczos"
-    delta_w_save_tensors: bool = False
+    delta_w_save_tensors: bool = True
     delta_w_svd_eps: float = 1e-12
-
-    # ---------------- Delta-W full projection (param -> effective weight) ----------------
-    delta_w_full_projection: bool = False
-    delta_w_full_param_name: Optional[str] = None
-    delta_w_full_block_index: Optional[int] = None
-    delta_w_full_blocks: Optional[List[Dict[str, Any]]] = None
-    delta_w_full_topk: Optional[int] = None
-    delta_w_full_rank: Optional[int] = None
-    delta_w_full_backend: Optional[str] = None
-    delta_w_full_eig_method: Optional[str] = None
-    delta_w_full_save_tensors: Optional[bool] = None
-    delta_w_full_svd_eps: Optional[float] = None
 
     # ---------------- W vs Delta-W alignment (LoRA paper 7.3-style) ----------------
     w_delta_alignment: bool = False
@@ -237,27 +187,8 @@ class FlatnessConfig:
     w_delta_blocks: Optional[List[Dict[str, Any]]] = None
     w_delta_rank: Optional[int] = None
     w_delta_seed: int = 42
-    w_delta_save_tensors: bool = False
+    w_delta_save_tensors: bool = True
     w_delta_eps: float = 1e-12
-
-    # ---------------- Mean drift (LoRA update displacement) ----------------
-    mean_drift: bool = False
-    mean_drift_param_name: Optional[str] = None
-    mean_drift_block_index: Optional[int] = None
-    mean_drift_blocks: Optional[List[Dict[str, Any]]] = None
-    mean_drift_sigma2: float = 1.0
-    mean_drift_eps: float = 1e-12
-    mean_drift_effective_mode: Optional[str] = None
-
-    # ---------------- LoRA KL (diag Fisher, taskwise) ----------------
-    lora_kl: bool = False
-    lora_kl_block_index: Optional[int] = None
-    lora_kl_blocks: Optional[List[Dict[str, Any]]] = None
-    lora_kl_lambda: float = 1.0
-    lora_kl_damping: float = 1e-4
-    lora_kl_eps: float = 1e-12
-    lora_kl_max_batches: Optional[int] = None
-    lora_kl_micro_bs: int = 1
 
     # ---------------- NEW: accept args mapping ----------------
     args: Optional[Dict[str, Any]] = field(default=None, repr=False)
@@ -306,7 +237,6 @@ class FlatnessConfig:
             "flat_eval_include_frozen": "include_frozen_params",
 
             # weight loss landscape
-            "loss_land_enabled": "loss_land_enabled",
             "weight_loss_land_1d": "weight_loss_land_1d",
             "weight_loss_land_2d": "weight_loss_land_2d",
             "weight_loss_land_radius": "weight_loss_land_radius",
@@ -316,18 +246,6 @@ class FlatnessConfig:
             "loss_land_modes": "loss_land_modes",
             "loss_land_include_frozen": "loss_land_include_frozen",
             "loss_land_param_names": "loss_land_param_names",
-            "loss_land_curv_1d": "loss_land_curv_1d",
-            "loss_land_curv_backend": "loss_land_curv_backend",
-            "loss_land_curv_method": "loss_land_curv_method",
-            "loss_land_curv_iters": "loss_land_curv_iters",
-            "loss_land_curv_topk": "loss_land_curv_topk",
-            "loss_land_curv_num_points": "loss_land_curv_num_points",
-            "loss_land_curv_radius_full": "loss_land_curv_radius_full",
-            "loss_land_curv_radius_lora": "loss_land_curv_radius_lora",
-            "loss_land_curv_max_batches": "loss_land_curv_max_batches",
-            "loss_land_curv_use_abs_eig": "loss_land_curv_use_abs_eig",
-            "loss_land_curv_normalize": "loss_land_curv_normalize",
-            "loss_land_curv_lora_param_names": "loss_land_curv_lora_param_names",
 
             "eig_save_vectors": "eig_save_vectors",
             "eig_backend": "eig_backend",
@@ -367,21 +285,6 @@ class FlatnessConfig:
             "flat_eval_curv_eig_method": "curv_eig_method",
             "flat_eval_ratio_as_percent": "ratio_as_percent",
 
-            # perturbation curvature term (rank-one)
-            "flat_eval_curv_ts": "curv_ts",
-            "flat_eval_curv_ts_backend": "curv_ts_backend",
-            "flat_eval_curv_ts_rho": "curv_ts_rho",
-            "flat_eval_curv_ts_dir_max_batches": "curv_ts_dir_max_batches",
-            "flat_eval_curv_ts_eps": "curv_ts_eps",
-
-            # noise covariance alignment (top-k)
-            "flat_eval_curv_noise": "curv_noise",
-            "flat_eval_curv_noise_backend": "curv_noise_backend",
-            "flat_eval_curv_noise_eig_method": "curv_noise_eig_method",
-            "flat_eval_curv_noise_topk": "curv_noise_topk",
-            "flat_eval_curv_noise_max_batches": "curv_noise_max_batches",
-            "flat_eval_curv_noise_eps": "curv_noise_eps",
-
             # delta-W projection
             "flat_eval_delta_w_projection": "delta_w_projection",
             "flat_eval_delta_w_param_name": "delta_w_param_name",
@@ -394,17 +297,6 @@ class FlatnessConfig:
             "flat_eval_delta_w_save_tensors": "delta_w_save_tensors",
             "flat_eval_delta_w_svd_eps": "delta_w_svd_eps",
 
-            "flat_eval_delta_w_full_projection": "delta_w_full_projection",
-            "flat_eval_delta_w_full_param_name": "delta_w_full_param_name",
-            "flat_eval_delta_w_full_block_index": "delta_w_full_block_index",
-            "flat_eval_delta_w_full_blocks": "delta_w_full_blocks",
-            "flat_eval_delta_w_full_topk": "delta_w_full_topk",
-            "flat_eval_delta_w_full_rank": "delta_w_full_rank",
-            "flat_eval_delta_w_full_backend": "delta_w_full_backend",
-            "flat_eval_delta_w_full_eig_method": "delta_w_full_eig_method",
-            "flat_eval_delta_w_full_save_tensors": "delta_w_full_save_tensors",
-            "flat_eval_delta_w_full_svd_eps": "delta_w_full_svd_eps",
-
             # W vs Delta-W alignment (LoRA paper 7.3-style)
             "flat_eval_w_delta_alignment": "w_delta_alignment",
             "flat_eval_w_delta_param_name": "w_delta_param_name",
@@ -414,25 +306,6 @@ class FlatnessConfig:
             "flat_eval_w_delta_seed": "w_delta_seed",
             "flat_eval_w_delta_save_tensors": "w_delta_save_tensors",
             "flat_eval_w_delta_eps": "w_delta_eps",
-
-            # mean drift (LoRA update displacement)
-            "flat_eval_mean_drift": "mean_drift",
-            "flat_eval_mean_drift_param_name": "mean_drift_param_name",
-            "flat_eval_mean_drift_block_index": "mean_drift_block_index",
-            "flat_eval_mean_drift_blocks": "mean_drift_blocks",
-            "flat_eval_mean_drift_sigma2": "mean_drift_sigma2",
-            "flat_eval_mean_drift_eps": "mean_drift_eps",
-            "flat_eval_mean_drift_effective_mode": "mean_drift_effective_mode",
-
-            # LoRA KL (diag Fisher)
-            "flat_eval_lora_kl": "lora_kl",
-            "flat_eval_lora_kl_block_index": "lora_kl_block_index",
-            "flat_eval_lora_kl_blocks": "lora_kl_blocks",
-            "flat_eval_lora_kl_lambda": "lora_kl_lambda",
-            "flat_eval_lora_kl_damping": "lora_kl_damping",
-            "flat_eval_lora_kl_eps": "lora_kl_eps",
-            "flat_eval_lora_kl_max_batches": "lora_kl_max_batches",
-            "flat_eval_lora_kl_micro_bs": "lora_kl_micro_bs",
 
             # backward-compat (optional aliases)
             "flat_eval_param_names": "param_name_substrings",
@@ -463,6 +336,250 @@ class FlatnessConfig:
                     self.weight_loss_land_radius = float(rho) * float(self.loss_land_radius_scale)
             except Exception:
                 pass
+
+
+
+def _get_fc_params(module: nn.Module, include_bias: bool = False) -> List[torch.nn.Parameter]:
+    picked: List[torch.nn.Parameter] = []
+    for name, p in module.named_parameters():
+        if not p.requires_grad:
+            continue
+        if name.endswith("fc.weight") or name == "fc.weight":
+            picked.append(p)
+        elif include_bias and (name.endswith("fc.bias") or name == "fc.bias"):
+            picked.append(p)
+        elif name.endswith("classifier.weight") or name == "classifier.weight":
+            picked.append(p)
+        elif include_bias and (name.endswith("classifier.bias") or name == "classifier.bias"):
+            picked.append(p)
+    return picked
+
+
+def _weight_norm_for_params(params: List[torch.nn.Parameter], mode: str = "fro") -> Tuple[float, str]:
+    mode = (mode or "fro").lower()
+    if not params:
+        return 0.0, mode
+    if mode == "fro":
+        s = 0.0
+        for p in params:
+            t = p.detach().float()
+            s += float(torch.sum(t * t).item())
+        return float(math.sqrt(max(s, 0.0))), "fro"
+    spectral_vals: List[float] = []
+    fro2 = 0.0
+    for p in params:
+        t = p.detach().float()
+        if t.ndim == 2 and t.numel() > 0:
+            try:
+                svals = torch.linalg.svdvals(t)
+                spectral_vals.append(float(svals.max().item()))
+            except Exception:
+                pass
+        fro2 += float(torch.sum(t * t).item())
+    if spectral_vals:
+        return float(max(spectral_vals)), "spectral"
+    return float(math.sqrt(max(fro2, 0.0))), "fro"
+
+
+def _unwrap_batch(batch):
+    """Convert a ``(idx, inputs, targets)`` batch into tensors only."""
+    if isinstance(batch, (list, tuple)):
+        if len(batch) == 3:
+            _, inputs, targets = batch
+            inputs, targets = _maybe_truncate_batch(inputs, targets)
+            return inputs, targets
+        if len(batch) == 2:
+            inputs, targets = batch
+            inputs, targets = _maybe_truncate_batch(inputs, targets)
+            return inputs, targets
+    raise ValueError("Unexpected batch format")
+
+
+def _clone_params(params: Iterable[torch.nn.Parameter]) -> List[torch.Tensor]:
+    """Detach and clone parameter tensors for later restoration."""
+    return [p.detach().to("cpu").clone() for p in params]
+
+
+def _restore_params(params: Iterable[torch.nn.Parameter], copies: List[torch.Tensor]):
+    for p, saved in zip(params, copies):
+        if saved.device == p.device and saved.dtype == p.dtype:
+            p.data.copy_(saved)
+        else:
+            p.data.copy_(saved.to(device=p.device, dtype=p.dtype))
+
+
+def _add_vector_to_params(params: List[torch.nn.Parameter], vec: torch.Tensor):
+    """Add a flattened vector ``vec`` onto a list of parameters in-place."""
+    pointer = 0
+    for p in params:
+        numel = p.numel()
+        slice_vec = vec[pointer : pointer + numel].view_as(p)
+        p.data.add_(slice_vec)
+        pointer += numel
+
+
+def _param_names_and_shapes(module: nn.Module, params: List[torch.nn.Parameter]):
+    """Return names, shapes, and splits for the given params in order.
+
+    names: List[str]
+    shapes: List[torch.Size]
+    splits: List[int]
+    """
+    id2info = {}
+    for name, p in module.named_parameters():
+        id2info[id(p)] = (name, p.shape, p.numel())
+
+    names: List[str] = []
+    shapes: List[torch.Size] = []
+    splits: List[int] = []
+    for p in params:
+        key = id(p)
+        if key not in id2info:
+            # unnamed or detached param; fabricate a placeholder
+            names.append("")
+            shapes.append(p.shape)
+            splits.append(p.numel())
+        else:
+            n, s, k = id2info[key]
+            names.append(n)
+            shapes.append(s)
+            splits.append(k)
+    return names, shapes, splits
+
+
+def _unflatten_to_param_like(vec: torch.Tensor, params: List[torch.nn.Parameter]) -> List[torch.Tensor]:
+    out: List[torch.Tensor] = []
+    pointer = 0
+    for p in params:
+        k = p.numel()
+        out.append(vec[pointer:pointer + k].view_as(p))
+        pointer += k
+    return out
+
+
+def _save_eigvecs(save_path: str, payload: Dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    torch.save(payload, save_path)
+
+
+def _load_eigvecs_for_params(path: str, module: nn.Module, params: List[torch.nn.Parameter]):
+    """Load flat eigenvectors and align to current params by names/shapes.
+
+    Returns (vals, vecs_flat, dirs_list) on success, else None.
+    dirs_list is a list of list[Tensor] shaped like params: [v1_list, v2_list, ...].
+    """
+    if not os.path.isfile(path):
+        return None
+    payload = torch.load(path, map_location="cpu")
+
+    vals = payload.get("vals", None)
+    vlist = []
+    for key in ("v1", "v2", "v3"):
+        if key in payload and isinstance(payload[key], torch.Tensor):
+            vlist.append(payload[key].float().view(-1))
+    names_saved = payload.get("names", None)
+    shapes_saved = payload.get("shapes", None)
+    splits_saved = payload.get("splits", None)
+    if vals is None or not vlist or names_saved is None or shapes_saved is None or splits_saved is None:
+        return None
+
+    names_cur, shapes_cur, splits_cur = _param_names_and_shapes(module, params)
+    if names_saved != names_cur or splits_saved != splits_cur:
+        logging.info("[FlatEval] Saved eigvecs do not match current param ordering; fallback.")
+        return None
+
+    dirs = []
+    for v in vlist:
+        dirs.append(_unflatten_to_param_like(v, params))
+    return vals, vlist, dirs
+
+
+_GLOBAL_MAX_EXAMPLES_PER_BATCH: Optional[int] = None
+
+
+def _truncate_first_dim(obj: Any, limit: int):
+    if isinstance(obj, torch.Tensor):
+        if obj.dim() > 0 and obj.size(0) > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, np.ndarray):
+        if obj.ndim > 0 and obj.shape[0] > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, list):
+        if len(obj) > limit:
+            return obj[:limit]
+        return obj
+    if isinstance(obj, tuple):
+        if len(obj) > limit:
+            return obj[:limit]
+        return obj
+    return obj
+
+
+def _maybe_truncate_batch(inputs, targets):
+    limit = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    if limit is None or limit <= 0:
+        return inputs, targets
+    inputs = _truncate_first_dim(inputs, limit)
+    targets = _truncate_first_dim(targets, limit)
+    return inputs, targets
+
+
+@contextmanager
+def _limit_batch_examples(limit: Optional[int]):
+    global _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    prev = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    _GLOBAL_MAX_EXAMPLES_PER_BATCH = limit
+    try:
+        yield
+    finally:
+        _GLOBAL_MAX_EXAMPLES_PER_BATCH = prev
+
+
+
+
+
+def _compute_loss(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    max_batches: Optional[int] = None,
+    known_classes: Optional[int] = None,
+) -> float:
+    """Average cross-entropy loss on ``loader`` (used for base/E–Sh estimates)."""
+    criterion = nn.CrossEntropyLoss(reduction="sum")
+    total_loss = 0.0
+    total_samples = 0
+    model.eval()
+    with torch.no_grad():
+        for batch_idx, batch in enumerate(loader):
+            inputs, targets = _unwrap_batch(batch)
+            inputs = inputs.to(device, non_blocking=True)
+            targets = targets.to(device, non_blocking=True)
+
+            logits = _forward_logits_full(model, inputs, targets)
+
+            num_classes = logits.size(-1)
+
+
+            if known_classes is not None and known_classes > 0:
+                loss = criterion(logits[:, known_classes:], targets - known_classes)
+            else:
+                # 全量微调或混合标签的情形：直接用全部 logits 计算 CE
+                loss = criterion(logits, targets)
+
+
+            total_loss += loss.item()
+            total_samples += targets.size(0)
+
+            if max_batches is not None and batch_idx + 1 >= max_batches:
+                break
+
+    if total_samples == 0:
+        return 0.0
+    return total_loss / total_samples
+
 
 def _compute_grad_vector(
     model: nn.Module,
@@ -867,6 +984,202 @@ def _empirical_fisher_vector_product(
 # ---------------------------------------------------------------------------
 
 
+def _power_iteration_generic(
+    mv: callable,
+    dim: int,
+    num_iters: int,
+    device: torch.device,
+    *,
+    return_vec: bool = False,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    patience: int = 2,
+    seed: Optional[int] = None,
+) -> Any:
+    """Generic power iteration; optionally return eigenvector(s).
+
+    If topk==2, compute v1 via power iteration and v2 on the orthogonal complement via deflated power.
+    """
+    if num_iters <= 0 or dim == 0:
+        return (0.0, None) if return_vec else 0.0
+
+    if return_vec:
+        vals, vecs = _deflated_power_iteration(
+            mv,
+            dim,
+            num_iters,
+            device,
+            topk=max(1, int(topk)),
+            tol=tol,
+            patience=patience,
+            seed=seed,
+            use_rayleigh=False,
+        )
+        if not vals:
+            return (0.0, None)
+        if int(topk) <= 1:
+            return (float(vals[0]), vecs[0])
+        return [float(v) for v in vals], vecs
+
+    eig1, _ = _deflated_power_iteration(
+        mv,
+        dim,
+        num_iters,
+        device,
+        topk=1,
+        tol=tol,
+        patience=patience,
+        seed=seed,
+        use_rayleigh=False,
+    )
+    return float(eig1[0]) if eig1 else 0.0
+
+
+def _deflated_power_iteration(
+    mv: callable,
+    dim: int,
+    num_iters: int,
+    device: torch.device,
+    *,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    patience: int = 2,
+    seed: Optional[int] = None,
+    use_rayleigh: bool = True,
+    use_abs_eig: bool = False,
+) -> Tuple[List[float], List[torch.Tensor]]:
+    """Compute top-k eigenpairs using simple deflated power iteration.
+
+    - ``use_rayleigh=True``: eigenvalue from Rayleigh quotient v^T A v
+    - ``use_rayleigh=False``: eigenvalue from ||A v|| (spectral radius proxy)
+    """
+    if dim == 0 or num_iters <= 0 or topk <= 0:
+        return [], []
+
+    if seed is not None:
+        torch.manual_seed(int(seed))
+
+    eigvals: List[float] = []
+    eigvecs: List[torch.Tensor] = []
+
+    def _project_out(vec: torch.Tensor, basis: List[torch.Tensor]) -> torch.Tensor:
+        if not basis:
+            return vec
+        for b in basis:
+            vec = vec - torch.dot(vec, b) * b
+        return vec
+
+    for _ in range(max(1, int(topk))):
+        v = torch.randn(dim, device=device)
+        v = _project_out(v, eigvecs)
+        v = v / (v.norm() + 1e-12)
+        prev = None
+        hit = 0
+        eig = 0.0
+        for _ in range(num_iters):
+            w = mv(v)
+            w = _project_out(w, eigvecs)
+            nrm = w.norm()
+            if not torch.isfinite(nrm) or nrm.item() == 0.0:
+                eig = 0.0
+                break
+            if use_rayleigh:
+                eig_cur = float(torch.dot(v, w).item())
+                eig = abs(eig_cur) if use_abs_eig else eig_cur
+            else:
+                eig = float(nrm.item())
+            v = w / (nrm + 1e-12)
+            if tol is not None and prev is not None:
+                rel = abs(eig - prev) / (abs(eig) + 1e-12)
+                if rel < tol:
+                    hit += 1
+                    if hit >= patience:
+                        break
+                else:
+                    hit = 0
+            prev = eig
+        eigvals.append(float(eig))
+        eigvecs.append(v)
+    return eigvals, eigvecs
+
+
+def _lanczos_lambda_max_generic(
+    mv: callable,
+    dim: int,
+    num_iters: int,
+    device: torch.device,
+    tol: float = 1e-3,
+    reorth: bool = False,
+    *,
+    return_vec: bool = False,
+    seed: Optional[int] = None,
+) -> Any:
+    m = int(max(0, num_iters))
+    if m == 0 or dim == 0:
+        return (0.0, None) if return_vec else 0.0
+    if seed is not None:
+        torch.manual_seed(int(seed))
+    v = torch.randn(dim, device=device)
+    v = v / (v.norm() + 1e-12)
+    v_prev = torch.zeros_like(v)
+    beta_prev = 0.0
+    alphas: List[float] = []
+    betas: List[float] = []
+    basis: List[torch.Tensor] = [v] if reorth else []
+    prev_ritz: Optional[float] = None
+    for it in range(m):
+        hv = mv(v)
+        alpha = torch.dot(v, hv).item()
+        alphas.append(alpha)
+        w = hv - alpha * v - beta_prev * v_prev
+        if reorth:
+            K = 5
+            for q in basis[-K:]:
+                coeff = torch.dot(w, q)
+                w = w - coeff * q
+        beta = w.norm().item()
+        if it < m - 1:
+            betas.append(beta)
+        if beta <= 1e-12 or torch.isnan(torch.tensor(beta)):
+            break
+        v_prev = v
+        v = w / (beta + 1e-12)
+        beta_prev = beta
+        if reorth:
+            basis.append(v)
+        if it >= 1 and tol is not None:
+            k = len(alphas)
+            T = torch.zeros((k, k), dtype=torch.float64, device=device)
+            for i in range(k):
+                T[i, i] = alphas[i]
+            for i in range(min(len(betas), k - 1)):
+                beta_val = betas[i]
+                T[i, i + 1] = beta_val
+                T[i + 1, i] = beta_val
+            cur_ritz = float(torch.linalg.eigvalsh(T.cpu()).max().item())
+            if prev_ritz is not None:
+                rel = abs(cur_ritz - prev_ritz) / (abs(cur_ritz) + 1e-12)
+                if rel < tol:
+                    prev_ritz = cur_ritz
+                    break
+            prev_ritz = cur_ritz
+    k = len(alphas)
+    if k == 0:
+        return (0.0, None) if return_vec else 0.0
+    T = torch.zeros((k, k), dtype=torch.float64, device=device)
+    for i in range(k):
+        T[i, i] = alphas[i]
+    for i in range(min(len(betas), k - 1)):
+        beta_val = betas[i]
+        T[i, i + 1] = beta_val
+        T[i + 1, i] = beta_val
+    lam = float(torch.linalg.eigvalsh(T.cpu()).max().item())
+    if return_vec:
+        # Return the last Lanczos basis vector as an approximation of the top eigenvector
+        return lam, v
+    return lam
+
+
 def _hutchinson_trace_generic(
     mv: callable,
     dim: int,
@@ -882,6 +1195,497 @@ def _hutchinson_trace_generic(
         est += torch.dot(v, mv_v).item()
     return est / num_samples
 
+
+# ---------------------------------------------------------------------------
+# Loss landscape: 1D/2D slices with random or filter-normalized directions
+# ---------------------------------------------------------------------------
+
+
+def _filter_normalize_direction(param: torch.Tensor, d: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
+    """Filter-wise normalize direction d to match per-filter norms of param."""
+    if param.ndim >= 2:
+        p_flat = param.reshape(param.shape[0], -1)
+        d_flat = d.reshape(d.shape[0], -1)
+        p_norm = p_flat.norm(dim=1, keepdim=True)
+        d_norm = d_flat.norm(dim=1, keepdim=True)
+        scale = p_norm / (d_norm + eps)
+        d_flat = d_flat * scale
+        return d_flat.view_as(d)
+    else:
+        scale = (param.norm() / (d.norm() + eps)) if d.norm() > 0 else 1.0
+        return d * scale
+
+
+def _build_direction_list(
+    params: List[torch.nn.Parameter],
+    device: torch.device,
+    filter_norm: bool = False,
+    seed: Optional[int] = 42,
+) -> List[torch.Tensor]:
+    if seed is not None:
+        torch.manual_seed(seed)
+    dirs: List[torch.Tensor] = []
+    for p in params:
+        d = torch.randn_like(p, device=device)
+        if filter_norm:
+            d = _filter_normalize_direction(p.data, d)
+        else:
+            if d.norm() > 0:
+                d = d / d.norm() * (p.data.norm() + 1e-12)
+        dirs.append(d.to(device))
+    return dirs
+
+
+def _dir_inner(dirs_a: List[torch.Tensor], dirs_b: List[torch.Tensor]) -> torch.Tensor:
+    s = 0.0
+    for a, b in zip(dirs_a, dirs_b):
+        s = s + torch.dot(a.view(-1), b.view(-1))
+    return s
+
+
+def _dir_norm(dirs: List[torch.Tensor]) -> float:
+    total = 0.0
+    for t in dirs:
+        total += float(t.view(-1).dot(t.view(-1)))
+    return float(total ** 0.5)
+
+
+def _orthonormalize(dirs_v: List[torch.Tensor], dirs_u: List[torch.Tensor], eps: float = 1e-12) -> List[torch.Tensor]:
+    proj = _dir_inner(dirs_v, dirs_u) / ( _dir_inner(dirs_u, dirs_u) + eps )
+    out: List[torch.Tensor] = []
+    for v, u in zip(dirs_v, dirs_u):
+        out.append(v - proj * u)
+    nrm = _dir_norm(out)
+    if nrm > 0:
+        out = [t / nrm for t in out]
+    return out
+
+
+def _apply_direction(params: List[torch.nn.Parameter], dirs: List[torch.Tensor], alpha: float) -> None:
+    with torch.no_grad():
+        for p, d in zip(params, dirs):
+            p.add_(alpha * d.to(p.dtype))
+
+
+def _loss_landscape_1d(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    params: List[torch.nn.Parameter],
+    radius: float = 0.5,
+    num_points: int = 21,
+    max_batches: Optional[int] = None,
+    filter_norm: bool = True,
+    known_classes: Optional[int] = None,
+    dirs_override: Optional[List[torch.Tensor]] = None,
+) -> Dict[str, np.ndarray]:
+    backup = _clone_params(params)
+    if dirs_override is not None and len(dirs_override) > 0:
+        dirs = dirs_override
+    else:
+        dirs = _build_direction_list(params, device=device, filter_norm=filter_norm)
+    concat_norm = _dir_norm(dirs)
+    if concat_norm > 0:
+        dirs = [d / concat_norm for d in dirs]
+
+    xs = np.linspace(-radius, radius, num_points).astype(np.float64)
+    losses = np.zeros_like(xs, dtype=np.float64)
+
+    for i, x in enumerate(xs):
+        _restore_params(params, backup)
+        _apply_direction(params, dirs, float(x))
+        losses[i] = _compute_loss(model, loader, device, max_batches=max_batches, known_classes=known_classes)
+
+    _restore_params(params, backup)
+    return {"x": xs, "loss": losses}
+
+
+def _loss_landscape_2d(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    params: List[torch.nn.Parameter],
+    radius: float = 0.5,
+    num_points: int = 21,
+    max_batches: Optional[int] = None,
+    filter_norm: bool = True,
+    known_classes: Optional[int] = None,
+    dirs_override: Optional[List[List[torch.Tensor]]] = None,
+) -> Dict[str, np.ndarray]:
+    backup = _clone_params(params)
+    if dirs_override is not None and len(dirs_override) == 2:
+        d1, d2 = dirs_override
+    else:
+        d1 = _build_direction_list(params, device=device, filter_norm=filter_norm, )
+        d2 = _build_direction_list(params, device=device, filter_norm=filter_norm, )
+    n1 = _dir_norm(d1)
+    d1 = [t / n1 for t in d1] if n1 > 0 else d1
+    d2 = _orthonormalize(d2, d1)
+
+    xs = np.linspace(-radius, radius, num_points).astype(np.float64)
+    ys = np.linspace(-radius, radius, num_points).astype(np.float64)
+    Z = np.zeros((num_points, num_points), dtype=np.float64)
+
+    for i, x in enumerate(xs):
+        for j, y in enumerate(ys):
+            _restore_params(params, backup)
+            with torch.no_grad():
+                for p, a, b in zip(params, d1, d2):
+                    p.add_((float(x) * a + float(y) * b).to(p.dtype))
+            Z[i, j] = _compute_loss(model, loader, device, max_batches=max_batches, known_classes=known_classes)
+
+    _restore_params(params, backup)
+    return {"x": xs, "y": ys, "loss": Z}
+
+
+def compute_loss_landscape_v1(
+    model: nn.Module,
+    test_loader: DataLoader,
+    device: torch.device,
+    criterion: Callable,
+    output_dir: str,
+    save_file_name: str = "lossLandscape",
+    eval_task_id: Optional[int] = 200,
+    class_incremental: bool = False,
+    x_range: Tuple[float, float] = (-1.0, 1.0),
+    y_range: Tuple[float, float] = (-1.0, 1.0),
+    num_points: int = 20,
+    max_batches: int = 5,
+    sample_batches: bool = False,
+    param_name_exclude_substr: Optional[str] = "shared",
+    seed: int = 42,
+) -> str:
+    """Compute 2D loss-landscape surface using per-parameter random directions.
+
+    This mirrors the user-provided implementation:
+      - Select parameters excluding names containing ``param_name_exclude_substr``
+      - For each tensor, build two directions ``d_x, d_y``
+        (normalize+scale by ``||p||``; ``d_y`` orthogonalized to ``d_x`` per-tensor)
+      - Explore a grid over ``x_range × y_range`` without global concat normalization
+      - Evaluate loss in eval mode and no-grad, averaging over up to ``max_batches``
+      - Save an HDF5 file with datasets: xcoordinates, ycoordinates, train_loss
+
+    Returns the file path of the saved surface.
+    """
+    # Deepcopy and eval-mode to avoid mutating the caller's model
+    work_model = copy.deepcopy(model).to(device)
+    was_training = work_model.training
+    work_model.eval()
+
+    # Choose parameters to perturb: exclude names containing the given substring
+    original_params_to_perturb: Dict[str, torch.Tensor] = {}
+    with torch.no_grad():
+        for name, param in work_model.named_parameters():
+            if param_name_exclude_substr is not None and param_name_exclude_substr in name:
+                continue
+            original_params_to_perturb[name] = param.data.detach().clone().cpu()
+
+    # Build per-parameter directions d_x, d_y (per-tensor normalization; no global concat norm)
+    torch.manual_seed(int(seed))
+    perturb_x: Dict[str, torch.Tensor] = {}
+    perturb_y: Dict[str, torch.Tensor] = {}
+    eps = 1e-8
+    for name, p0 in original_params_to_perturb.items():
+        p_norm = p0.norm().item()
+        d_x = torch.randn_like(p0)
+        d_x_norm = d_x.norm().item()
+        if d_x_norm > 0:
+            d_x = d_x / d_x_norm * (p_norm + eps)
+        else:
+            d_x = torch.zeros_like(p0)
+
+        d_y = torch.randn_like(p0)
+        dx_norm_sq = max(float(d_x.norm().item()) ** 2, eps)
+        proj = torch.sum(d_y * d_x) * d_x / dx_norm_sq
+        d_y = d_y - proj
+        d_y_norm = d_y.norm().item()
+        if d_y_norm > 0:
+            d_y = d_y / d_y_norm * (p_norm + eps)
+        else:
+            d_y = torch.zeros_like(p0)
+
+        perturb_x[name] = d_x.to(device)
+        perturb_y[name] = d_y.to(device)
+
+    # Cache up to max_batches from the test loader
+    all_batches = []
+    for i, batch in enumerate(test_loader):
+        if (max_batches is not None)  and (i >= max_batches):
+            break
+        all_batches.append(batch)
+
+    # Grid coordinates
+    x_coords = np.linspace(x_range[0], x_range[1], int(num_points)).astype(np.float64)
+    y_coords = np.linspace(y_range[0], y_range[1], int(num_points)).astype(np.float64)
+    loss_grid = np.zeros((int(num_points), int(num_points)), dtype=np.float64)
+
+    # Task id handling: follow provided flags
+    # current_task_id: Optional[int] = (0 if class_incremental else None)
+
+    # Helper to forward and compute loss robustly
+    # def _forward_loss(_inputs: torch.Tensor, _labels: torch.Tensor) -> torch.Tensor:
+    #     # Call model with task_id if available, else fallback
+    #     # try:
+    #     #     if current_task_id is not None:
+    #     #         outputs = work_model(_inputs, task_id=current_task_id)
+    #     #     else:
+    #     #         outputs = work_model(_inputs)
+    #     # except TypeError:
+    #     outputs = work_model(_inputs)
+
+    #     logits = outputs["logits"] if isinstance(outputs, dict) and "logits" in outputs else outputs
+    #     return criterion(logits, _labels)
+
+    # Sweep grid; restore params per point; evaluate in no-grad
+    with torch.no_grad():
+        state = work_model.state_dict()
+        for i, xv in enumerate(tqdm(x_coords, desc="Grid X")):
+            xv = float(xv)
+            for j, yv in enumerate(y_coords):
+                yv = float(yv)
+
+                # Restore original parameters
+                for name, tensor in original_params_to_perturb.items():
+                    state[name].copy_(tensor.to(device=device, dtype=state[name].dtype))
+
+                # Apply perturbation
+                for name in original_params_to_perturb.keys():
+                    delta = xv * perturb_x[name] + yv * perturb_y[name]
+                    state[name].add_(delta)
+
+                # Average loss over cached batches
+                total = 0.0
+                count = 0
+                for batch in all_batches:
+                    inputs, labels = _unwrap_batch(batch)
+                    inputs = inputs.to(device, non_blocking=True)
+                    labels = labels.to(device, non_blocking=True)
+                    # loss = _forward_loss(inputs, labels)
+                    outputs = work_model(inputs)
+                    logits = outputs["logits"] if isinstance(outputs, dict) and "logits" in outputs else outputs
+                    loss = criterion(logits, labels)
+                    total += float(loss.item())
+                    count += 1
+                loss_grid[i, j] = total / max(1, count)
+
+                if (j % 10 == 0) and torch.cuda.is_available() and device.type == "cuda":
+                    torch.cuda.empty_cache()
+
+    # Save surface
+    os.makedirs(output_dir, exist_ok=True)
+    surf_file = os.path.join(output_dir, f"{save_file_name}_task{eval_task_id}.h5")
+    with h5py.File(surf_file, "w") as f:
+        f.create_dataset("xcoordinates", data=x_coords)
+        f.create_dataset("ycoordinates", data=y_coords)
+        f.create_dataset("train_loss", data=loss_grid)
+
+    # No need to restore mode on deepcopy; return saved path
+    logging.info("[LossLandV1] Saved loss surface to %s", surf_file)
+    return surf_file
+
+def _power_iteration_lambda_max(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    params: List[torch.nn.Parameter],
+    dim: int,
+    num_iters: int,
+    max_batches: Optional[int]= None,
+    known_classes: Optional[int]= None,
+    *,
+    tol: float = 1e-3,          # 对齐 Lanczos 的默认收敛容差
+    patience: int = 2,
+    return_vec: bool = False,
+    topk: int = 1,
+    seed: Optional[int] = None,
+    use_abs_eig: bool = False,  # False: 代数主特征值；True: 谱半径代理（取绝对值）
+) -> Any:
+    """Estimate the dominant Hessian eigenvalue ``lambda_max`` via power iteration.
+
+    - Computes algebraic largest eigenvalue via Rayleigh quotient by default.
+    - Switches the model to eval() during iteration and restores the previous mode.
+
+    If ``return_vec`` is True, also return the eigenvector; if ``topk`` > 1, return top-k.
+    """
+    if num_iters <= 0 or dim == 0:
+        return (0.0, None) if return_vec else 0.0
+
+    # 统一 eval() 模式，避免 Dropout/BN 干扰；结束后恢复
+    was_training = model.training
+    model.eval()
+
+    try:
+        def _mvp(v: torch.Tensor) -> torch.Tensor:
+            return _hessian_vector_product(
+                model, loader, device, params, v, max_batches=max_batches, known_classes=known_classes
+            )
+
+        if return_vec:
+            vals, vecs = _deflated_power_iteration(
+                _mvp,
+                dim,
+                num_iters,
+                device,
+                topk=max(1, int(topk)),
+                tol=tol,
+                patience=patience,
+                seed=seed,
+                use_rayleigh=True,
+                use_abs_eig=use_abs_eig,
+            )
+            if not vals:
+                return (0.0, None)
+            if int(topk) <= 1:
+                return (float(vals[0]), vecs[0])
+            return [float(v) for v in vals], vecs
+
+        vals_only, _ = _deflated_power_iteration(
+            _mvp,
+            dim,
+            num_iters,
+            device,
+            topk=1,
+            tol=tol,
+            patience=patience,
+            seed=seed,
+            use_rayleigh=True,
+            use_abs_eig=use_abs_eig,
+        )
+        return float(vals_only[0]) if vals_only else 0.0
+    
+    finally:
+        if was_training:
+            model.train()
+
+
+def _lanczos_lambda_max(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    params: List[torch.nn.Parameter],
+    dim: int,
+    num_iters: int,
+    max_batches: Optional[int] = None,
+    known_classes: Optional[int] = None,
+    tol: float = 1e-3,
+    reorth: bool = False,
+    seed: Optional[int] = None,
+    *,
+    patience: int = 2,           # 新增：需连续命中次数（默认 2 次更稳）
+    return_vec: bool = False,
+) -> Any:
+    """Estimate the dominant (algebraic) Hessian eigenvalue via Lanczos.
+
+    Builds a size-``m`` tridiagonal approximation of the Hessian using the
+    three-term Lanczos recurrence with Hessian–vector products and returns the
+    largest eigenvalue of the tridiagonal matrix as an estimate of ``lambda_max``.
+
+    Notes:
+    - Shares the same HVP routine as power iteration (``_hessian_vector_product``).
+    - Uses a single random start vector; no re-orthogonalization to keep memory
+      and runtime small (reasonable for small ``m`` like 5–20).
+    """
+    m = int(max(0, num_iters))
+    if m == 0 or dim == 0:
+        return (0.0, None) if return_vec else 0.0
+
+    if seed is not None:
+        torch.manual_seed(seed)
+
+    was_training = model.training
+    model.eval()
+
+    v = torch.randn(dim, device=device)
+    v = v / (v.norm() + 1e-12)
+    v_prev = torch.zeros_like(v)
+    beta_prev = 0.0
+
+    alphas: List[float] = []
+    betas: List[float] = []
+    basis: List[torch.Tensor] = [v] if reorth else []
+
+
+    prev_ritz: Optional[float] = None
+    hit = 0  # 连续命中计数（修复未定义变量）
+
+    for it in range(m):
+        hv = _hessian_vector_product(
+            model,
+            loader,
+            device,
+            params,
+            v,
+            max_batches=max_batches,
+            known_classes=known_classes,
+        )
+
+        alpha = torch.dot(v, hv).item()
+        alphas.append(alpha)
+
+        w = hv - alpha * v - beta_prev * v_prev
+
+        if reorth:
+            K = 5
+            for q in basis[-K:]:
+                coeff = torch.dot(w, q)
+                w = w - coeff * q
+
+        beta = w.norm().item()
+        if it < m - 1:
+            betas.append(beta)
+
+        if beta <= 1e-12 or torch.isnan(torch.tensor(beta)):
+            break
+
+        v_prev = v
+        v = w / (beta + 1e-12)
+        beta_prev = beta
+        if reorth:
+            basis.append(v)
+
+        # —— 新增：Ritz 最大特征值的相对变化 + 连续命中 —— #
+        if it >= 1 and tol is not None:
+            k = len(alphas)
+            T = torch.zeros((k, k), dtype=torch.float64, device=device)
+            for i in range(k):
+                T[i, i] = alphas[i]
+            for i in range(min(len(betas), k - 1)):
+                beta_val = betas[i]
+                T[i, i + 1] = beta_val
+                T[i + 1, i] = beta_val
+            cur_ritz = float(torch.linalg.eigvalsh(T.cpu()).max().item())
+            if prev_ritz is not None:
+                rel = abs(cur_ritz - prev_ritz) / (abs(cur_ritz) + 1e-12)
+                if rel < tol:
+                    hit += 1
+                    if hit >= patience:
+                        prev_ritz = cur_ritz
+                        break
+                else:
+                    hit = 0
+            prev_ritz = cur_ritz
+
+    k = len(alphas)
+    if k == 0:
+        if was_training:
+            model.train()
+        return (0.0, None) if return_vec else 0.0
+
+    T = torch.zeros((k, k), dtype=torch.float64, device=device)
+    for i in range(k):
+        T[i, i] = alphas[i]
+    for i in range(min(len(betas), k - 1)):
+        beta_val = betas[i]
+        T[i, i + 1] = beta_val
+        T[i + 1, i] = beta_val
+
+    lam_max = float(torch.linalg.eigvalsh(T.cpu()).max().item())
+
+    if was_training:
+        model.train()
+    if return_vec:
+        return lam_max, v
+    return lam_max
 
 def _hutchinson_trace(
     model: nn.Module,
@@ -967,11 +1771,16 @@ def evaluate_flatness_metrics(
             "base_loss": float(_compute_loss(wrapped_model, loader, device, max_batches=config.loss_eval_max_batches))
         }
     
+    
+
+
+
+    global _GLOBAL_MAX_EXAMPLES_PER_BATCH
     if not params:
         return {"base_loss": 0.0}
 
-    prev_max_examples = _get_max_examples_per_batch()
-    _set_max_examples_per_batch(config.max_examples_per_batch)
+    prev_max_examples = _GLOBAL_MAX_EXAMPLES_PER_BATCH
+    _GLOBAL_MAX_EXAMPLES_PER_BATCH = config.max_examples_per_batch
     try:
         flat_metrics: Dict[str, float] = {}
         vals_power = None
@@ -1021,19 +1830,12 @@ def evaluate_flatness_metrics(
         logging.info("[FlatEval] Done base_loss=%.6f", base_loss)
 
         total_dim = int(sum(p.numel() for p in params))
-        metrics_json_path = None
-        if getattr(config, "save_metrics_path", None):
-            metrics_json_path = os.path.join(
-                config.save_metrics_path,
-                f"{getattr(config, 'save_prefix', 'flatness')}_metrics.json",
-            )
 
         disable_power = bool(getattr(config, "disable_power", False))
         ggn_vecs_power = None
         ef_vecs_power = None
         ef_vals_power = None
         if bool(getattr(config, "eval_sharpness", True)):
-            logging.info("[FlatEval] Enable sharpness eval")
             # 2) First-order gradient and Sh^(1)
             logging.info(
                 "[FlatEval] Start grad/first-order (grad_batches=%s, rho=%.4f)",
@@ -1074,59 +1876,52 @@ def evaluate_flatness_metrics(
             logging.info("[FlatEval] Done Sh0_max=%.6f", flat_metrics.get("sh0_max", 0.0))
 
             # Random expectation sharpness
-            if False:
-                gaussian_std = config.esh_gaussian_std or (config.sharpness_radius)
-                logging.info(
-                    "[FlatEval] Start E-Sh (samples=%d, sigma=%.6f)",
-                    int(config.esh_num_samples), float(gaussian_std),
+            gaussian_std = config.esh_gaussian_std or (config.sharpness_radius / (total_dim ** 0.5))
+            logging.info(
+                "[FlatEval] Start E-Sh (samples=%d, sigma=%.6f)",
+                int(config.esh_num_samples), float(gaussian_std),
+            )
+            rand_losses: List[float] = []
+            for _ in range(config.esh_num_samples):
+                noise = torch.randn(total_dim, device=device) * gaussian_std
+                _add_vector_to_params(params, noise)
+                loss = _compute_loss(
+                    wrapped_model, loader, device, max_batches=config.loss_eval_max_batches, known_classes=known_classes
                 )
-                rand_losses: List[float] = []
-                for _ in range(config.esh_num_samples):
-                    noise = torch.randn(total_dim, device=device) * gaussian_std
-                    _add_vector_to_params(params, noise)
-                    loss = _compute_loss(
-                        wrapped_model, loader, device, max_batches=config.loss_eval_max_batches, known_classes=known_classes
-                    )
-                    rand_losses.append(loss - base_loss)
-                    _restore_params(params, param_backup)
+                rand_losses.append(loss - base_loss)
+                _restore_params(params, param_backup)
 
-                if rand_losses:
-                    rand_tensor = torch.tensor(rand_losses)
-                    flat_metrics["esh_mean"] = float(rand_tensor.mean().item())
-                    flat_metrics["esh_std"] = float(rand_tensor.std(unbiased=False).item())
-                else:
-                    flat_metrics["esh_mean"] = 0.0
-                    flat_metrics["esh_std"] = 0.0
-                logging.info(
-                    "[FlatEval] Done E-Sh mean=%.6f std=%.6f",
-                    flat_metrics["esh_mean"], flat_metrics["esh_std"],
-                )
-            logging.info("[FlatEval] Done sharpness eval (metrics_json=%s)", metrics_json_path)
-        else:
-            logging.info("[FlatEval] Skip sharpness eval (disabled)")
+            if rand_losses:
+                rand_tensor = torch.tensor(rand_losses)
+                flat_metrics["esh_mean"] = float(rand_tensor.mean().item())
+                flat_metrics["esh_std"] = float(rand_tensor.std(unbiased=False).item())
+            else:
+                flat_metrics["esh_mean"] = 0.0
+                flat_metrics["esh_std"] = 0.0
+            logging.info(
+                "[FlatEval] Done E-Sh mean=%.6f std=%.6f",
+                flat_metrics["esh_mean"], flat_metrics["esh_std"],
+            )
 
         
         if bool(getattr(config, "eval_hessian", False)):
-            logging.info("[FlatEval] Enable Hessian eval")
             if want_vecs:
                 if not disable_power:
-                    was_training = wrapped_model.training
-                    wrapped_model.eval()
-                    try:
-                        res = _power_iteration_lambda_max(
-                            _mvp_hessian,
-                            total_dim,
-                            config.hessian_power_iters,
-                            device,
-                            tol=getattr(config, "eig_tol", 1e-2),
-                            patience=getattr(config, "eig_patience", 2),
-                            return_vec=True,
-                            topk=eig_topk_req,
-                            seed=getattr(config, "loss_land_seed", None),
-                        )
-                    finally:
-                        if was_training:
-                            wrapped_model.train()
+                    res = _power_iteration_lambda_max(
+                        wrapped_model,
+                        loader,
+                        device,
+                        params,
+                        dim=total_dim,
+                        num_iters=config.hessian_power_iters,
+                        max_batches=config.loss_eval_max_batches,
+                        known_classes=known_classes,
+                        tol=getattr(config, "eig_tol", 1e-2),
+                        patience=getattr(config, "eig_patience", 2),
+                        return_vec=True,
+                        topk=eig_topk_req,
+                        seed=getattr(config, "loss_land_seed", None),
+                    )
                     if isinstance(res, tuple) and isinstance(res[0], float):
                         lambda_max_power, v1_power = res
                         vals_power = [lambda_max_power]
@@ -1142,20 +1937,18 @@ def evaluate_flatness_metrics(
                     vecs_power = None
             else:
                 if not disable_power:
-                    was_training = wrapped_model.training
-                    wrapped_model.eval()
-                    try:
-                        lambda_max_power = _power_iteration_lambda_max(
-                            _mvp_hessian,
-                            total_dim,
-                            config.hessian_power_iters,
-                            device,
-                            tol=1e-3,
-                            patience=int(getattr(config, "eig_patience", 2)),
-                        )
-                    finally:
-                        if was_training:
-                            wrapped_model.train()
+                    lambda_max_power = _power_iteration_lambda_max(
+                        wrapped_model,
+                        loader,
+                        device,
+                        params,
+                        dim=total_dim,
+                        num_iters=config.hessian_power_iters,
+                        max_batches=config.loss_eval_max_batches,
+                        known_classes=known_classes,
+                        tol=1e-3,
+                        patience=int(getattr(config, "eig_patience", 2))
+                    )
                 else:
                     lambda_max_power = float("nan")
             # Backward‑compat key + explicit method key
@@ -1195,38 +1988,34 @@ def evaluate_flatness_metrics(
         
             # Hessian spectral proxies (Lanczos)
             if want_vecs:
-                was_training = wrapped_model.training
-                wrapped_model.eval()
-                try:
-                    lam_l, v_l = _lanczos_lambda_max(
-                        _mvp_hessian,
-                        total_dim,
-                        config.hessian_power_iters,
-                        device,
-                        tol=1e-3,
-                        reorth=False,
-                        patience=getattr(config, "eig_patience", 2),
-                        return_vec=True,
-                    )
-                finally:
-                    if was_training:
-                        wrapped_model.train()
+                lam_l, v_l = _lanczos_lambda_max(
+                    wrapped_model,
+                    loader,
+                    device,
+                    params,
+                    dim=total_dim,
+                    num_iters=config.hessian_power_iters,
+                    max_batches=config.loss_eval_max_batches,
+                    known_classes=known_classes,
+                    tol=1e-3,
+                    reorth=False,
+                    patience=getattr(config, "eig_patience", 2),
+                    return_vec=True,
+                )
                 lambda_max_lanczos = float(lam_l)
                 v_lanczos = v_l.detach().cpu()
             else:
-                was_training = wrapped_model.training
-                wrapped_model.eval()
-                try:
-                    lambda_max_lanczos = _lanczos_lambda_max(
-                        _mvp_hessian,
-                        total_dim,
-                        config.hessian_power_iters,
-                        device,
-                        reorth=True,
-                    )
-                finally:
-                    if was_training:
-                        wrapped_model.train()
+                lambda_max_lanczos = _lanczos_lambda_max(
+                    wrapped_model,
+                    loader,
+                    device,
+                    params,
+                    dim=total_dim,
+                    num_iters=config.hessian_power_iters,
+                    max_batches=config.loss_eval_max_batches,
+                    known_classes=known_classes,
+                    reorth=True,
+                )
             flat_metrics["lambda_max_lanczos"] = lambda_max_lanczos
             logging.info("[FlatEval] Hessian lambda_max (lanczos)=%.6f", lambda_max_lanczos)
             # Save eigenvector (Hessian + Lanczos)
@@ -1267,17 +2056,9 @@ def evaluate_flatness_metrics(
             )
             flat_metrics["hessian_trace"] = trace_est
             logging.info("[FlatEval] Done Hessian trace=%.6f", trace_est)
-            h_paths = []
-            for key in ("eigvecs_hessian_power_path", "eigvecs_hessian_lanczos_path"):
-                if key in flat_metrics:
-                    h_paths.append(flat_metrics[key])
-            logging.info("[FlatEval] Done Hessian eval (metrics_json=%s, paths=%s)", metrics_json_path, h_paths)
-        else:
-            logging.info("[FlatEval] Skip Hessian eval (disabled)")
     
         
         if bool(getattr(config, "eval_ggn", False)):
-            logging.info("[FlatEval] Enable GGN eval")
             logging.info(
                 "[FlatEval] Start GGN/Fisher (iters=%d, trace_samples=%d)",
                 int(config.hessian_power_iters), int(config.hessian_trace_samples)
@@ -1385,16 +2166,8 @@ def evaluate_flatness_metrics(
                 "[FlatEval] Done GGN: power=%.6f, lanczos=%.6f, trace=%.6f (Fisher same)",
                 flat_metrics["ggn_lambda_max_power"], flat_metrics["ggn_lambda_max_lanczos"], flat_metrics["ggn_trace"]
             )
-            g_paths = []
-            for key in ("eigvecs_ggn_power_path", "eigvecs_ggn_lanczos_path"):
-                if key in flat_metrics:
-                    g_paths.append(flat_metrics[key])
-            logging.info("[FlatEval] Done GGN eval (metrics_json=%s, paths=%s)", metrics_json_path, g_paths)
-        else:
-            logging.info("[FlatEval] Skip GGN eval (disabled)")
     
         if bool(getattr(config, "eval_fisher", True)):
-            logging.info("[FlatEval] Enable empirical Fisher eval")
             logging.info("[FlatEval] Start Empirical Fisher (iters=%d)", int(config.hessian_power_iters))
             if want_vecs:
                 if not disable_power:
@@ -1489,16 +2262,8 @@ def evaluate_flatness_metrics(
                 "[FlatEval] Done Empirical Fisher: power=%.6f, lanczos=%.6f, trace=%.6f",
                 flat_metrics["emp_fisher_lambda_max_power"], flat_metrics["emp_fisher_lambda_max_lanczos"], flat_metrics["emp_fisher_trace"]
             )
-            ef_paths = []
-            for key in ("eigvecs_emp_fisher_power_path", "eigvecs_emp_fisher_lanczos_path"):
-                if key in flat_metrics:
-                    ef_paths.append(flat_metrics[key])
-            logging.info("[FlatEval] Done empirical Fisher eval (metrics_json=%s, paths=%s)", metrics_json_path, ef_paths)
-        else:
-            logging.info("[FlatEval] Skip empirical Fisher eval (disabled)")
     
         if bool(getattr(config, "curv_localization", False)):
-            logging.info("[FlatEval] Enable curvature localization eval")
             curv_substrs = getattr(config, "curv_param_name_substrings", None)
             if isinstance(curv_substrs, str):
                 if curv_substrs.lower() in {"none", "all", ""}:
@@ -1632,67 +2397,9 @@ def evaluate_flatness_metrics(
                     except Exception:
                         logging.exception("[FlatEval] Curvature qkv localization failed (tag=%s)", tag)
             curv_pending = None
-            logging.info("[FlatEval] Done curvature localization eval (metrics_json=%s)", metrics_json_path)
-        else:
-            logging.info("[FlatEval] Skip curvature localization eval (disabled)")
-
-        if bool(getattr(config, "curv_ts", False)):
-            logging.info("[FlatEval] Enable perturbation curvature term eval")
-            mvp_map = {
-                "hessian": _mvp_hessian,
-                "ggn": _mvp_ggn,
-                "emp_fisher": _mvp_emp_fisher,
-            }
-            try:
-                ts_metrics = _curv_ts_eval(
-                    wrapped_model,
-                    loader,
-                    device,
-                    params,
-                    total_dim,
-                    mvp_map,
-                    config,
-                    save_prefix=getattr(config, "save_prefix", "flatness"),
-                    known_classes=known_classes,
-                )
-                if ts_metrics:
-                    flat_metrics.update(ts_metrics)
-                logging.info("[FlatEval] Done perturbation curvature term eval (metrics_json=%s)", metrics_json_path)
-            except Exception:
-                logging.exception("[FlatEval] Perturbation curvature term eval failed")
-        else:
-            logging.info("[FlatEval] Skip perturbation curvature term eval (disabled)")
-
-        if bool(getattr(config, "curv_noise", False)):
-            logging.info("[FlatEval] Enable noise covariance alignment eval")
-            mvp_map = {
-                "hessian": _mvp_hessian,
-                "ggn": _mvp_ggn,
-                "emp_fisher": _mvp_emp_fisher,
-            }
-            try:
-                noise_metrics = _curv_noise_cov_eval(
-                    wrapped_model,
-                    loader,
-                    device,
-                    params,
-                    total_dim,
-                    mvp_map,
-                    config,
-                    save_prefix=getattr(config, "save_prefix", "flatness"),
-                    known_classes=known_classes,
-                )
-                if noise_metrics:
-                    flat_metrics.update(noise_metrics)
-                logging.info("[FlatEval] Done noise covariance alignment eval (metrics_json=%s)", metrics_json_path)
-            except Exception:
-                logging.exception("[FlatEval] Noise covariance alignment eval failed")
-        else:
-            logging.info("[FlatEval] Skip noise covariance alignment eval (disabled)")
 
         # -------- Delta-W projection (weight-space LoRA subspace) --------
         if bool(getattr(config, "delta_w_projection", False)):
-            logging.info("[FlatEval] Enable Delta-W projection eval")
             mvp_map = {
                 "hessian": _mvp_hessian,
                 "ggn": _mvp_ggn,
@@ -1715,50 +2422,10 @@ def evaluate_flatness_metrics(
                 )
                 if delta_metrics:
                     flat_metrics.update(delta_metrics)
-                delta_paths = []
-                if delta_metrics:
-                    delta_paths = [v for k, v in delta_metrics.items() if str(k).endswith("_path")]
-                logging.info("[FlatEval] Done Delta-W projection eval (metrics_json=%s, paths=%s)", metrics_json_path, delta_paths)
             except Exception:
                 logging.exception("[FlatEval] Delta-W projection failed")
-        else:
-            logging.info("[FlatEval] Skip Delta-W projection eval (disabled)")
-
-        if bool(getattr(config, "delta_w_full_projection", False)):
-            logging.info("[FlatEval] Enable Delta-W full projection eval")
-            mvp_map = {
-                "hessian": _mvp_hessian,
-                "ggn": _mvp_ggn,
-                "emp_fisher": _mvp_emp_fisher,
-            }
-            save_dir = getattr(config, "save_metrics_path", None)
-            prefix = getattr(config, "save_prefix", "flatness")
-            try:
-                full_metrics = _delta_w_full_projection_eval(
-                    wrapped_model,
-                    names_for_params,
-                    shapes_for_params,
-                    splits_for_params,
-                    total_dim,
-                    device,
-                    mvp_map,
-                    config,
-                    save_dir=save_dir,
-                    save_prefix=prefix,
-                )
-                if full_metrics:
-                    flat_metrics.update(full_metrics)
-                full_paths = []
-                if full_metrics:
-                    full_paths = [v for k, v in full_metrics.items() if str(k).endswith("_path")]
-                logging.info("[FlatEval] Done Delta-W full projection eval (metrics_json=%s, paths=%s)", metrics_json_path, full_paths)
-            except Exception:
-                logging.exception("[FlatEval] Delta-W full projection failed")
-        else:
-            logging.info("[FlatEval] Skip Delta-W full projection eval (disabled)")
 
         if bool(getattr(config, "w_delta_alignment", False)):
-            logging.info("[FlatEval] Enable W-DeltaW alignment eval")
             save_dir = getattr(config, "save_metrics_path", None)
             prefix = getattr(config, "save_prefix", "flatness")
             try:
@@ -1770,60 +2437,15 @@ def evaluate_flatness_metrics(
                 )
                 if w_metrics:
                     flat_metrics.update(w_metrics)
-                w_paths = []
-                if w_metrics:
-                    w_paths = [v for k, v in w_metrics.items() if str(k).endswith("_path")]
-                logging.info("[FlatEval] Done W-DeltaW alignment eval (metrics_json=%s, paths=%s)", metrics_json_path, w_paths)
             except Exception:
                 logging.exception("[FlatEval] W-DeltaW alignment failed")
-        else:
-            logging.info("[FlatEval] Skip W-DeltaW alignment eval (disabled)")
-
-        if bool(getattr(config, "mean_drift", False)):
-            logging.info("[FlatEval] Enable mean drift eval")
-            save_dir = getattr(config, "save_metrics_path", None)
-            prefix = getattr(config, "save_prefix", "flatness")
-            try:
-                drift_metrics = _mean_drift_eval(
-                    wrapped_model,
-                    config,
-                    save_dir=save_dir,
-                    save_prefix=prefix,
-                )
-                if drift_metrics:
-                    flat_metrics.update(drift_metrics)
-                logging.info("[FlatEval] Done mean drift eval (metrics_json=%s)", metrics_json_path)
-            except Exception:
-                logging.exception("[FlatEval] Mean drift eval failed")
-        else:
-            logging.info("[FlatEval] Skip mean drift eval (disabled)")
-
-        if bool(getattr(config, "lora_kl", False)):
-            logging.info("[FlatEval] Enable LoRA KL eval")
-            try:
-                kl_metrics = _lora_kl_eval(
-                    wrapped_model,
-                    loader,
-                    device,
-                    config,
-                    save_prefix=getattr(config, "save_prefix", "flatness"),
-                    known_classes=known_classes,
-                )
-                if kl_metrics:
-                    flat_metrics.update(kl_metrics)
-                logging.info("[FlatEval] Done LoRA KL eval (metrics_json=%s)", metrics_json_path)
-            except Exception:
-                logging.exception("[FlatEval] LoRA KL eval failed")
-        else:
-            logging.info("[FlatEval] Skip LoRA KL eval (disabled)")
 
         # Loss landscape slices (optional)
         # ---------- Loss landscape：由单一参数 loss_land_modes 控制 ----------
-        if bool(getattr(config, "loss_land_enabled", False)):
+        if False:
             do_1d = bool(getattr(config, "weight_loss_land_1d", False))
             do_2d = bool(getattr(config, "weight_loss_land_2d", False))
-            do_curv_1d = bool(getattr(config, "loss_land_curv_1d", False))
-            if do_1d or do_2d or do_curv_1d:
+            if do_1d or do_2d:
                 # radius策略
                 if bool(getattr(config, "loss_land_radius_from_rho", False)):
                     loss_radius = float(getattr(config, "loss_land_radius_scale", 1.5)) * float(getattr(config, "sharpness_radius", 0.05))
@@ -1835,227 +2457,7 @@ def evaluate_flatness_metrics(
                 basis       = str(getattr(config, "loss_land_basis", "random")).lower()
                 save_dir = getattr(config, "save_metrics_path", None)
                 prefix   = getattr(config, "save_prefix", "flatness")
-                rng_seed = getattr(config, "loss_land_seed", None)
 
-                # Curvature 1D slices (full vs lora) along max-eigen directions
-                if do_curv_1d:
-                    curv_backend = str(getattr(config, "loss_land_curv_backend", "emp_fisher")).lower()
-                    if curv_backend not in {"hessian", "ggn", "emp_fisher"}:
-                        curv_backend = "emp_fisher"
-                    curv_method = str(getattr(config, "loss_land_curv_method", "power")).lower()
-                    if curv_method not in {"power", "lanczos"}:
-                        curv_method = "power"
-                    curv_iters = int(
-                        getattr(config, "loss_land_curv_iters", None)
-                        or getattr(config, "hessian_power_iters", 5)
-                        or 5
-                    )
-                    curv_topk = int(getattr(config, "loss_land_curv_topk", 1))
-                    curv_points = int(getattr(config, "loss_land_curv_num_points", None) or loss_points)
-                    curv_max_batches = getattr(config, "loss_land_curv_max_batches", None)
-                    if curv_max_batches is None:
-                        curv_max_batches = loss_batches
-                    if curv_max_batches is None:
-                        curv_max_batches = getattr(config, "loss_eval_max_batches", None)
-                    curv_radius_full = getattr(config, "loss_land_curv_radius_full", None)
-                    if curv_radius_full is None:
-                        curv_radius_full = loss_radius
-                    curv_radius_lora = getattr(config, "loss_land_curv_radius_lora", None)
-                    if curv_radius_lora is None:
-                        curv_radius_lora = loss_radius
-                    curv_use_abs = bool(getattr(config, "loss_land_curv_use_abs_eig", False))
-                    curv_norm = bool(getattr(config, "loss_land_curv_normalize", False))
-
-                    def _collect_full_params_with_grad():
-                        include_frozen = bool(getattr(config, "loss_land_include_frozen", True))
-                        substrs_full = getattr(config, "loss_land_param_names", None)
-                        selected = []
-                        saved = []
-                        for n, p in wrapped_model.named_parameters():
-                            if (not include_frozen) and (not p.requires_grad):
-                                continue
-                            if (substrs_full is None) or any(s in n for s in substrs_full):
-                                if include_frozen and not p.requires_grad:
-                                    saved.append((p, bool(p.requires_grad)))
-                                    p.requires_grad_(True)
-                                selected.append(p)
-                        return selected, saved
-
-                    full_params, full_saved = _collect_full_params_with_grad()
-                    lora_params = params
-                    lora_substrs = getattr(config, "loss_land_curv_lora_param_names", None)
-                    if isinstance(lora_substrs, str):
-                        if lora_substrs.lower() in {"none", "all", ""}:
-                            lora_substrs = None
-                        else:
-                            lora_substrs = [lora_substrs]
-                    if lora_substrs is not None:
-                        lora_params = _select_params_by_name(
-                            wrapped_model, lora_substrs, include_frozen=False
-                        )
-
-                    if not lora_params or not full_params:
-                        logging.info("[FlatEval] Skip loss_land_curv_1d (empty params)")
-                    else:
-                        def _mvp_hessian_full(v: torch.Tensor) -> torch.Tensor:
-                            return _hessian_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                full_params,
-                                v,
-                                max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        def _mvp_hessian_lora(v: torch.Tensor) -> torch.Tensor:
-                            return _hessian_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                lora_params,
-                                v,
-                                max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        def _mvp_ggn_full(v: torch.Tensor) -> torch.Tensor:
-                            return _ggn_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                full_params,
-                                v,
-                                loss_eval_max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        def _mvp_ggn_lora(v: torch.Tensor) -> torch.Tensor:
-                            return _ggn_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                lora_params,
-                                v,
-                                loss_eval_max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        def _mvp_emp_fisher_full(v: torch.Tensor) -> torch.Tensor:
-                            return _empirical_fisher_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                full_params,
-                                v,
-                                max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        def _mvp_emp_fisher_lora(v: torch.Tensor) -> torch.Tensor:
-                            return _empirical_fisher_vector_product(
-                                wrapped_model,
-                                loader,
-                                device,
-                                lora_params,
-                                v,
-                                max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                            )
-
-                        mvp_full_map = {
-                            "hessian": _mvp_hessian_full,
-                            "ggn": _mvp_ggn_full,
-                            "emp_fisher": _mvp_emp_fisher_full,
-                        }
-                        mvp_lora_map = {
-                            "hessian": _mvp_hessian_lora,
-                            "ggn": _mvp_ggn_lora,
-                            "emp_fisher": _mvp_emp_fisher_lora,
-                        }
-
-                        try:
-                            crit = nn.CrossEntropyLoss(reduction="mean")
-                            curves = compute_full_vs_lora_curvature_1d(
-                                model=wrapped_model,
-                                loader=loader,
-                                device=device,
-                                params_full=full_params,
-                                params_lora=lora_params,
-                                mvp_full=mvp_full_map[curv_backend],
-                                mvp_lora=mvp_lora_map[curv_backend],
-                                curvature_method=curv_method,
-                                num_iters=curv_iters,
-                                topk=curv_topk,
-                                radius_full=float(curv_radius_full),
-                                radius_lora=float(curv_radius_lora),
-                                num_points=curv_points,
-                                max_batches=curv_max_batches,
-                                known_classes=known_classes,
-                                seed=int(rng_seed) if rng_seed is not None else None,
-                                tol=getattr(config, "eig_tol", None),
-                                patience=int(getattr(config, "eig_patience", 2)),
-                                use_abs_eig=curv_use_abs,
-                                normalize_dir=curv_norm,
-                                base_loss=None,
-                                criterion=crit,
-                            )
-                            if curves:
-                                if "full" in curves:
-                                    full_curve = curves["full"]
-                                    flat_metrics["lossland_curv1d_full_min"] = float(np.min(full_curve["delta_loss"]))
-                                    flat_metrics["lossland_curv1d_full_max"] = float(np.max(full_curve["delta_loss"]))
-                                    if "eigval" in full_curve and len(full_curve["eigval"]) > 0:
-                                        flat_metrics["lossland_curv1d_full_eig"] = float(full_curve["eigval"][0])
-                                if "lora" in curves:
-                                    lora_curve = curves["lora"]
-                                    flat_metrics["lossland_curv1d_lora_min"] = float(np.min(lora_curve["delta_loss"]))
-                                    flat_metrics["lossland_curv1d_lora_max"] = float(np.max(lora_curve["delta_loss"]))
-                                    if "eigval" in lora_curve and len(lora_curve["eigval"]) > 0:
-                                        flat_metrics["lossland_curv1d_lora_eig"] = float(lora_curve["eigval"][0])
-
-                                if save_dir:
-                                    os.makedirs(save_dir, exist_ok=True)
-                                    out_path = os.path.join(save_dir, f"{prefix}_lossland_curv1d.npz")
-                                    curve_base_loss = float(base_loss)
-                                    if "full" in curves and "base_loss" in curves["full"]:
-                                        curve_base_loss = float(curves["full"]["base_loss"])
-                                    elif "lora" in curves and "base_loss" in curves["lora"]:
-                                        curve_base_loss = float(curves["lora"]["base_loss"])
-                                    payload = {"base_loss": np.array([curve_base_loss], dtype=np.float64)}
-                                    if "full" in curves:
-                                        payload.update(
-                                            {
-                                                "x_full": curves["full"]["x"],
-                                                "loss_full": curves["full"]["loss"],
-                                                "delta_full": curves["full"]["delta_loss"],
-                                                "eigval_full": curves["full"]["eigval"],
-                                            }
-                                        )
-                                    if "lora" in curves:
-                                        payload.update(
-                                            {
-                                                "x_lora": curves["lora"]["x"],
-                                                "loss_lora": curves["lora"]["loss"],
-                                                "delta_lora": curves["lora"]["delta_loss"],
-                                                "eigval_lora": curves["lora"]["eigval"],
-                                            }
-                                        )
-                                    np.savez_compressed(out_path, **payload)
-                                    flat_metrics["lossland_curv1d_file"] = out_path
-                                logging.info(
-                                    "[FlatEval] Done loss_land_curv_1d (backend=%s, method=%s)",
-                                    curv_backend,
-                                    curv_method,
-                                )
-                        except Exception:
-                            logging.exception("[FlatEval] loss_land_curv_1d failed")
-                        finally:
-                            for _p, _old in full_saved:
-                                _p.requires_grad_(bool(_old))
-
-                
-                
                 # NEW(单一开关)：'lora' | 'full' | 'all'
                 mode = str(getattr(config, "loss_land_modes", "lora")).lower()
                 if mode not in {"lora", "full", "all"}:
@@ -2091,6 +2493,8 @@ def evaluate_flatness_metrics(
                     if len(vecs_power) >= 2:
                         v2_list = _unflatten_to_param_like(vecs_power[1].to(device), params)
                         dirs_eig_2d = [v1_list, v2_list]
+
+                rng_seed = getattr(config, "loss_land_seed", None)
 
                 for tag in tags:
                     if tag == "lora":
@@ -2289,7 +2693,6 @@ def evaluate_flatness_metrics(
         #
         # ---------------- Relative Flatness (layerwise) ----------------
         if getattr(config, "relative_flatness", False):
-            logging.info("[FlatEval] Enable relative flatness eval")
             scope = str(getattr(config, "rf_scope", "custom")).lower()
             rf_power_iters = int(getattr(config, "rf_power_iters", 0) or getattr(config, "hessian_power_iters", 0) or 0)
             rf_trace_samples = int(getattr(config, "rf_trace_samples", 0) or getattr(config, "hessian_trace_samples", 0) or 0)
@@ -2324,40 +2727,22 @@ def evaluate_flatness_metrics(
                     rf_max_batches,
                     known_classes,
                 ) if rf_trace_samples and rf_trace_samples > 0 else 0.0
-                if rf_power_iters and rf_power_iters > 0:
-                    def _mvp_layer(v: torch.Tensor) -> torch.Tensor:
-                        return _hessian_vector_product(
-                            wrapped_model,
-                            loader,
-                            device,
-                            layer_params,
-                            v,
-                            max_batches=rf_max_batches,
-                            known_classes=known_classes,
-                        )
-                    was_training = wrapped_model.training
-                    wrapped_model.eval()
-                    try:
-                        lam_layer = _power_iteration_lambda_max(
-                            _mvp_layer,
-                            dim_layer,
-                            int(max(0, rf_power_iters)),
-                            device,
-                        )
-                    finally:
-                        if was_training:
-                            wrapped_model.train()
-                else:
-                    lam_layer = 0.0
+                lam_layer = _power_iteration_lambda_max(
+                    wrapped_model,
+                    loader,
+                    device,
+                    layer_params,
+                    dim_layer,
+                    int(max(0, rf_power_iters)),
+                    rf_max_batches,
+                    known_classes,
+                ) if rf_power_iters and rf_power_iters > 0 else 0.0
 
                 flat_metrics[f"rf_weight_norm_{scope_tag}_{mode_used}"] = float(wn)
                 flat_metrics[f"rf_trace_{scope_tag}"] = float(tr_layer)
                 flat_metrics[f"rf_lambda_{scope_tag}"] = float(lam_layer)
                 flat_metrics[f"relative_flatness_trace_{scope_tag}"] = float(wn * tr_layer)
                 flat_metrics[f"relative_flatness_lambda_{scope_tag}"] = float(wn * lam_layer)
-            logging.info("[FlatEval] Done relative flatness eval (metrics_json=%s)", metrics_json_path)
-        else:
-            logging.info("[FlatEval] Skip relative flatness eval (disabled)")
 
         _restore_params(params, param_backup)
         wrapped_model.zero_grad(set_to_none=True)
@@ -2378,7 +2763,6 @@ def evaluate_flatness_metrics(
             scaled["ratio_unit"] = "%"
             scaled["ratio_scale"] = 100.0
             flat_metrics = scaled
-
         # Optional persistence
         if getattr(config, "save_metrics_path", None):
             os.makedirs(config.save_metrics_path, exist_ok=True)
@@ -2398,12 +2782,1104 @@ def evaluate_flatness_metrics(
                     _p.requires_grad_(bool(_old))
         except Exception:
             pass
-        _set_max_examples_per_batch(prev_max_examples)
+        _GLOBAL_MAX_EXAMPLES_PER_BATCH = prev_max_examples
 
 
 # ---------------------------------------------------------------------------
 # Optional CLI to evaluate flatness from a stored config/checkpoint
 # ---------------------------------------------------------------------------
+def _load_args(config_path: str) -> Dict:
+    with open(config_path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+def _projection_ratios(vecs: Optional[List[torch.Tensor]], mask: torch.Tensor) -> List[float]:
+    """Compute ||P_mask v||^2 / ||v||^2 for each vector."""
+    if vecs is None or len(vecs) == 0 or mask.numel() == 0:
+        return []
+    ratios: List[float] = []
+    for v in vecs:
+        device = v.device
+        mask_dev = mask.to(device=device, dtype=v.dtype)
+        v_use = v.to(device=device, dtype=v.dtype)
+        num = torch.dot(v_use * mask_dev, v_use * mask_dev).item()
+        den = torch.dot(v_use, v_use).item()
+        ratios.append(float(num / (den + 1e-12)))
+    return ratios
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+
+def _rayleigh_along_mask(
+    mv: Callable[[torch.Tensor], torch.Tensor],
+    mask: torch.Tensor,
+    num_samples: int,
+    device: torch.device,
+) -> List[float]:
+    """Sample Rayleigh quotients restricted to a masked subspace."""
+    if num_samples <= 0 or mask.numel() == 0:
+        return []
+    mask_dev = mask.to(device=device, dtype=torch.float32)
+    dim = mask_dev.numel()
+    if mask_dev.sum().item() == 0:
+        return []
+    vals: List[float] = []
+    for _ in range(num_samples):
+        v = torch.randn(dim, device=device)
+        v = v * mask_dev
+        nrm = v.norm()
+        if nrm.item() == 0.0:
+            continue
+        v = v / (nrm + 1e-12)
+        hv = mv(v)
+        vals.append(float(torch.dot(v, hv).item()))
+    return vals
+
+
+def _build_subspace_mask(
+    names: List[str],
+    splits: List[int],
+    substrs: Optional[List[str]],
+    *,
+    total_dim: Optional[int] = None,
+) -> torch.Tensor:
+    """Return a boolean mask over the flattened parameter vector."""
+    tot = int(total_dim) if total_dim is not None else int(sum(int(s) for s in splits))
+    if tot == 0:
+        return torch.zeros(0, dtype=torch.bool)
+    mask = torch.zeros(tot, dtype=torch.bool)
+    if substrs is None or len(substrs) == 0:
+        return mask
+    ptr = 0
+    for name, k in zip(names, splits):
+        k_int = int(k)
+        hit = any(s in name for s in substrs)
+        if hit and k_int > 0:
+            mask[ptr : ptr + k_int] = True
+        ptr += k_int
+    return mask
+
+
+def _normalize_ranges(ranges: Optional[List[List[int]]], max_dim: int) -> List[Tuple[int, int]]:
+    if not ranges:
+        return [(0, max_dim)]
+    out: List[Tuple[int, int]] = []
+    for rng in ranges:
+        if not rng or len(rng) < 2:
+            continue
+        start, end = int(rng[0]), int(rng[1])
+        start = max(0, min(start, max_dim))
+        end = max(0, min(end, max_dim))
+        if end > start:
+            out.append((start, end))
+    if not out:
+        out.append((0, max_dim))
+    return out
+
+
+def _infer_qkv_block_ranges(
+    shape: Tuple[int, ...],
+    tag: str,
+    split_dim: Optional[str] = None,
+) -> Tuple[Optional[List[List[int]]], Optional[List[List[int]]]]:
+    """Infer row/col ranges for qkv blocks when rows or cols are packed as [Q, K, V]."""
+    if len(shape) != 2:
+        return None, None
+    rows, cols = int(shape[0]), int(shape[1])
+    tag_key = str(tag or "").strip().lower()
+    tag_map = {"q": 0, "k": 1, "v": 2}
+    if tag_key not in tag_map:
+        return None, None
+    idx = tag_map[tag_key]
+    if split_dim is not None:
+        split_dim = str(split_dim).strip().lower()
+    if not split_dim:
+        if rows % 3 == 0:
+            split_dim = "row"
+        elif cols % 3 == 0:
+            split_dim = "col"
+        else:
+            return None, None
+    if split_dim == "row":
+        if rows % 3 != 0:
+            return None, None
+        span = rows // 3
+        return [[idx * span, (idx + 1) * span]], None
+    if split_dim == "col":
+        if cols % 3 != 0:
+            return None, None
+        span = cols // 3
+        return None, [[idx * span, (idx + 1) * span]]
+    return None, None
+
+
+def _build_qkv_block_mask(
+    names: List[str],
+    shapes: List[Tuple[int, ...]],
+    splits: List[int],
+    target_name: str,
+    qkv_tag: Optional[str],
+    row_ranges: Optional[List[List[int]]],
+    col_ranges: Optional[List[List[int]]],
+    *,
+    total_dim: int,
+    split_dim: Optional[str] = None,
+    block_index: Optional[int] = None,
+) -> torch.Tensor:
+    """Build a mask for a qkv weight block, optionally inferring ranges from q/k/v tag."""
+    if total_dim <= 0:
+        return torch.zeros(0, dtype=torch.bool)
+    if not target_name:
+        return torch.zeros(total_dim, dtype=torch.bool)
+
+    block_key = None
+    if block_index is not None:
+        block_key = f"blocks.{int(block_index)}."
+
+    target_shape: Optional[Tuple[int, int]] = None
+    for name, shape in zip(names, shapes):
+        if target_name not in name:
+            continue
+        if block_key is not None and block_key not in name:
+            continue
+        if len(shape) != 2:
+            continue
+        target_shape = (int(shape[0]), int(shape[1]))
+        break
+
+    if target_shape is None:
+        return torch.zeros(total_dim, dtype=torch.bool)
+
+    if row_ranges is None and col_ranges is None:
+        inferred_rows, inferred_cols = _infer_qkv_block_ranges(
+            target_shape,
+            qkv_tag or "",
+            split_dim=split_dim,
+        )
+        row_ranges = inferred_rows
+        col_ranges = inferred_cols
+        if row_ranges is None and col_ranges is None:
+            return torch.zeros(total_dim, dtype=torch.bool)
+
+    mask = torch.zeros(total_dim, dtype=torch.bool)
+    ptr = 0
+    for name, shape, k in zip(names, shapes, splits):
+        k_int = int(k)
+        if k_int <= 0:
+            ptr += k_int
+            continue
+        if target_name not in name:
+            ptr += k_int
+            continue
+        if block_key is not None and block_key not in name:
+            ptr += k_int
+            continue
+        if len(shape) != 2:
+            ptr += k_int
+            continue
+        rows, cols = int(shape[0]), int(shape[1])
+        row_spans = _normalize_ranges(row_ranges, rows)
+        col_spans = _normalize_ranges(col_ranges, cols)
+        block_mask = torch.zeros((rows, cols), dtype=torch.bool)
+        for rs, re in row_spans:
+            for cs, ce in col_spans:
+                block_mask[rs:re, cs:ce] = True
+        mask[ptr:ptr + k_int] = block_mask.reshape(-1)
+        break
+    return mask
+
+
+def _build_param_block_mask(
+    names: List[str],
+    shapes: List[Tuple[int, ...]],
+    splits: List[int],
+    target_name: str,
+    row_ranges: Optional[List[List[int]]],
+    col_ranges: Optional[List[List[int]]],
+    *,
+    total_dim: int,
+) -> torch.Tensor:
+    if total_dim <= 0:
+        return torch.zeros(0, dtype=torch.bool)
+    mask = torch.zeros(total_dim, dtype=torch.bool)
+    if not target_name:
+        return mask
+    ptr = 0
+    for name, shape, k in zip(names, shapes, splits):
+        k_int = int(k)
+        if k_int <= 0:
+            ptr += k_int
+            continue
+        if target_name not in name:
+            ptr += k_int
+            continue
+        if len(shape) != 2:
+            ptr += k_int
+            continue
+        rows, cols = int(shape[0]), int(shape[1])
+        row_spans = _normalize_ranges(row_ranges, rows)
+        col_spans = _normalize_ranges(col_ranges, cols)
+        block_mask = torch.zeros((rows, cols), dtype=torch.bool)
+        for rs, re in row_spans:
+            for cs, ce in col_spans:
+                block_mask[rs:re, cs:ce] = True
+        flat = block_mask.reshape(-1)
+        mask[ptr:ptr + k_int] = flat
+        break
+    return mask
+
+
+def _extract_param_block(
+    vec: torch.Tensor,
+    names: List[str],
+    shapes: List[Tuple[int, ...]],
+    splits: List[int],
+    target_name: str,
+    row_ranges: Optional[List[List[int]]],
+    col_ranges: Optional[List[List[int]]],
+) -> Optional[torch.Tensor]:
+    ptr = 0
+    for name, shape, k in zip(names, shapes, splits):
+        k_int = int(k)
+        if target_name not in name:
+            ptr += k_int
+            continue
+        if len(shape) != 2:
+            return None
+        rows, cols = int(shape[0]), int(shape[1])
+        row_spans = _normalize_ranges(row_ranges, rows)
+        col_spans = _normalize_ranges(col_ranges, cols)
+        full = vec[ptr:ptr + k_int].reshape(rows, cols)
+        if len(row_spans) == 1 and len(col_spans) == 1:
+            rs, re = row_spans[0]
+            cs, ce = col_spans[0]
+            return full[rs:re, cs:ce]
+        # Fallback: concatenate spans into a dense block
+        row_blocks = []
+        for rs, re in row_spans:
+            col_blocks = [full[rs:re, cs:ce] for cs, ce in col_spans]
+            row_blocks.append(torch.cat(col_blocks, dim=1))
+        return torch.cat(row_blocks, dim=0)
+    return None
+
+
+def _deflated_power_iteration_masked(
+    mv: callable,
+    dim: int,
+    mask: torch.Tensor,
+    device: torch.device,
+    num_iters: int,
+    *,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    patience: int = 2,
+    seed: Optional[int] = None,
+) -> Tuple[List[float], List[torch.Tensor]]:
+    if dim == 0 or topk <= 0:
+        return [], []
+    if seed is not None:
+        torch.manual_seed(int(seed))
+    mask = mask.to(device=device, dtype=torch.float32)
+    if mask.numel() != dim:
+        return [], []
+
+    eigvals: List[float] = []
+    eigvecs: List[torch.Tensor] = []
+
+    def _project_out(vec: torch.Tensor, basis: List[torch.Tensor]) -> torch.Tensor:
+        if not basis:
+            return vec
+        for b in basis:
+            vec = vec - torch.dot(vec, b) * b
+        return vec
+
+    for _ in range(max(1, int(topk))):
+        v = torch.randn(dim, device=device) * mask
+        v = _project_out(v, eigvecs)
+        v = v / (v.norm() + 1e-12)
+        prev = None
+        hit = 0
+        eig = 0.0
+        for _ in range(int(max(1, num_iters))):
+            w = mv(v * mask) * mask
+            w = _project_out(w, eigvecs)
+            nrm = w.norm()
+            if not torch.isfinite(nrm) or nrm.item() == 0.0:
+                eig = 0.0
+                break
+            eig_cur = float(torch.dot(v, w).item())
+            eig = eig_cur
+            v = w / (nrm + 1e-12)
+            if tol is not None and prev is not None:
+                rel = abs(eig - prev) / (abs(eig) + 1e-12)
+                if rel < tol:
+                    hit += 1
+                    if hit >= patience:
+                        break
+                else:
+                    hit = 0
+            prev = eig
+        eigvals.append(float(eig))
+        eigvecs.append(v)
+    return eigvals, eigvecs
+
+
+def _power_iteration_masked(
+    mv: callable,
+    dim: int,
+    mask: torch.Tensor,
+    device: torch.device,
+    num_iters: int,
+    *,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    patience: int = 2,
+    seed: Optional[int] = None,
+) -> Tuple[List[float], List[torch.Tensor]]:
+    return _deflated_power_iteration_masked(
+        mv,
+        dim,
+        mask,
+        device,
+        num_iters,
+        topk=topk,
+        tol=tol,
+        patience=patience,
+        seed=seed,
+    )
+
+
+def _lanczos_topk_generic(
+    mv: callable,
+    dim: int,
+    num_iters: int,
+    device: torch.device,
+    *,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    reorth: bool = True,
+    seed: Optional[int] = None,
+) -> Tuple[List[float], List[torch.Tensor]]:
+    m = int(max(0, num_iters))
+    if m == 0 or dim == 0 or topk <= 0:
+        return [], []
+    if seed is not None:
+        torch.manual_seed(int(seed))
+    v = torch.randn(dim, device=device)
+    v = v / (v.norm() + 1e-12)
+    v_prev = torch.zeros_like(v)
+    beta_prev = 0.0
+    alphas: List[float] = []
+    betas: List[float] = []
+    basis: List[torch.Tensor] = []
+    prev_ritz: Optional[float] = None
+    for it in range(m):
+        hv = mv(v)
+        alpha = torch.dot(v, hv).item()
+        alphas.append(alpha)
+        w = hv - alpha * v - beta_prev * v_prev
+        if reorth and basis:
+            for q in basis:
+                w = w - torch.dot(w, q) * q
+        beta = w.norm().item()
+        basis.append(v)
+        if it < m - 1:
+            betas.append(beta)
+        if beta <= 1e-12 or torch.isnan(torch.tensor(beta)):
+            break
+        v_prev = v
+        v = w / (beta + 1e-12)
+        beta_prev = beta
+        if tol is not None and it >= 1:
+            k = len(alphas)
+            T = torch.zeros((k, k), dtype=torch.float64, device=device)
+            for i in range(k):
+                T[i, i] = alphas[i]
+            for i in range(min(len(betas), k - 1)):
+                beta_val = betas[i]
+                T[i, i + 1] = beta_val
+                T[i + 1, i] = beta_val
+            cur_ritz = float(torch.linalg.eigvalsh(T.cpu()).max().item())
+            if prev_ritz is not None:
+                rel = abs(cur_ritz - prev_ritz) / (abs(cur_ritz) + 1e-12)
+                if rel < tol:
+                    prev_ritz = cur_ritz
+                    break
+            prev_ritz = cur_ritz
+
+    k = len(alphas)
+    if k == 0:
+        return [], []
+    T = torch.zeros((k, k), dtype=torch.float64, device=device)
+    for i in range(k):
+        T[i, i] = alphas[i]
+    for i in range(min(len(betas), k - 1)):
+        beta_val = betas[i]
+        T[i, i + 1] = beta_val
+        T[i + 1, i] = beta_val
+    evals, evecs = torch.linalg.eigh(T.cpu())
+    evals = evals.flip(0)
+    evecs = evecs.flip(1)
+    k_use = int(min(k, int(topk)))
+    evals = evals[:k_use]
+    evecs = evecs[:, :k_use]
+    Q = torch.stack(basis, dim=1)  # [dim, k]
+    eigvals: List[float] = []
+    eigvecs: List[torch.Tensor] = []
+    for i in range(k_use):
+        y = evecs[:, i].to(Q.device, dtype=Q.dtype)
+        vec = Q @ y
+        vec = vec / (vec.norm() + 1e-12)
+        eigvals.append(float(evals[i].item()))
+        eigvecs.append(vec)
+    return eigvals, eigvecs
+
+
+def _lanczos_topk_masked(
+    mv: callable,
+    dim: int,
+    mask: torch.Tensor,
+    device: torch.device,
+    num_iters: int,
+    *,
+    topk: int = 1,
+    tol: Optional[float] = None,
+    seed: Optional[int] = None,
+) -> Tuple[List[float], List[torch.Tensor]]:
+    if dim == 0 or topk <= 0:
+        return [], []
+    mask = mask.to(device=device, dtype=torch.float32)
+    if mask.numel() != dim:
+        return [], []
+    def mv_masked(v: torch.Tensor) -> torch.Tensor:
+        return mv(v * mask) * mask
+    return _lanczos_topk_generic(
+        mv_masked,
+        dim,
+        num_iters,
+        device,
+        topk=topk,
+        tol=tol,
+        reorth=True,
+        seed=seed,
+    )
+
+
+def _get_scale_value(scale_module: Any) -> float:
+    if isinstance(scale_module, torch.nn.ModuleList) and len(scale_module) > 0:
+        scale_module = scale_module[0]
+    param = getattr(scale_module, "param", None)
+    if param is not None:
+        try:
+            return float(param.detach().item())
+        except Exception:
+            return float(param)
+    return 1.0
+
+
+def _extract_lora_qv_weights(model: torch.nn.Module, block_index: int) -> Optional[Dict[str, torch.Tensor]]:
+    if block_index is None:
+        return None
+    backbone = getattr(model, "backbone", None)
+    if backbone is None:
+        return None
+    vit = getattr(backbone, "lora_vit", None) or getattr(backbone, "base_vit", None) or backbone
+    blocks = getattr(vit, "blocks", None)
+    if blocks is None or block_index < 0 or block_index >= len(blocks):
+        return None
+    qkv = getattr(getattr(blocks[block_index], "attn", None), "qkv", None)
+    if qkv is None:
+        return None
+
+    if hasattr(qkv, "linear_a_q") and hasattr(qkv, "linear_b_q"):
+        A_q = qkv.linear_a_q.weight
+        B_q = qkv.linear_b_q.weight
+        A_v = qkv.linear_a_v.weight
+        B_v = qkv.linear_b_v.weight
+    else:
+        task_id = getattr(qkv, "task_id", None)
+        saved_A = getattr(qkv, "saved_A", {})
+        saved_B = getattr(qkv, "saved_B", {})
+        t_layer_i = getattr(qkv, "t_layer_i", None)
+        if task_id is None or t_layer_i is None:
+            return None
+        key_a = f"saved_A_{task_id}"
+        key_b = f"saved_B_{task_id}"
+        if key_a not in saved_A or key_b not in saved_B:
+            return None
+        A_list = saved_A[key_a]
+        B_list = saved_B[key_b]
+        idx = int(t_layer_i) * 2
+        if idx + 1 >= len(A_list) or idx + 1 >= len(B_list):
+            return None
+        A_q = A_list[idx].weight
+        B_q = B_list[idx].weight
+        A_v = A_list[idx + 1].weight
+        B_v = B_list[idx + 1].weight
+
+    scale = _get_scale_value(getattr(qkv, "scaling_factor", None))
+    delta_q = (B_q @ A_q) * scale
+    delta_v = (B_v @ A_v) * scale
+    return {"q": delta_q, "v": delta_v}
+
+
+def _find_param_by_substring(
+    model: torch.nn.Module,
+    target_name: str,
+    block_index: Optional[int] = None,
+) -> Tuple[Optional[str], Optional[torch.nn.Parameter]]:
+    if not target_name:
+        return None, None
+    matches: List[Tuple[str, torch.nn.Parameter]] = []
+    for name, p in model.named_parameters():
+        if target_name in name:
+            matches.append((name, p))
+    if not matches:
+        return None, None
+    if block_index is not None:
+        block_key = f"blocks.{int(block_index)}."
+        for name, p in matches:
+            if block_key in name:
+                return name, p
+    return matches[0]
+
+
+def _slice_weight_block(
+    weight: torch.Tensor,
+    row_ranges: Optional[List[List[int]]],
+    col_ranges: Optional[List[List[int]]],
+) -> Optional[torch.Tensor]:
+    if weight.ndim != 2:
+        return None
+    rows, cols = int(weight.shape[0]), int(weight.shape[1])
+    row_spans = _normalize_ranges(row_ranges, rows)
+    col_spans = _normalize_ranges(col_ranges, cols)
+    row_blocks = []
+    for rs, re in row_spans:
+        row_blocks.append(weight[rs:re, :])
+    if not row_blocks:
+        return None
+    block = torch.cat(row_blocks, dim=0)
+    if len(col_spans) == 1 and col_spans[0] == (0, cols):
+        return block
+    col_blocks = []
+    for cs, ce in col_spans:
+        col_blocks.append(block[:, cs:ce])
+    if not col_blocks:
+        return None
+    return torch.cat(col_blocks, dim=1)
+
+
+def _random_svd_subspaces(
+    rows: int,
+    cols: int,
+    rank: int,
+    *,
+    seed: Optional[int] = None,
+    device: Optional[torch.device] = None,
+    dtype: Optional[torch.dtype] = None,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Random baseline via top-r singular vectors of a random matrix (paper-consistent)."""
+    rng_state = None
+    if seed is not None:
+        try:
+            rng_state = torch.random.get_rng_state()
+            torch.manual_seed(int(seed))
+        except Exception:
+            rng_state = None
+    try:
+        mat = torch.randn(rows, cols, device=device, dtype=dtype)
+        U, _, Vh = torch.linalg.svd(mat, full_matrices=False)
+        r = int(min(rank, U.shape[1], Vh.shape[0]))
+        return U[:, :r], Vh[:r, :].T
+    finally:
+        if rng_state is not None:
+            try:
+                torch.random.set_rng_state(rng_state)
+            except Exception:
+                pass
+
+
+def _random_orthonormal(
+    rows: int,
+    cols: int,
+    *,
+    seed: Optional[int] = None,
+    device: Optional[torch.device] = None,
+    dtype: Optional[torch.dtype] = None,
+) -> torch.Tensor:
+    """Return a random orthonormal basis via SVD of a random matrix."""
+    U, _ = _random_svd_subspaces(
+        rows,
+        cols,
+        rank=min(rows, cols),
+        seed=seed,
+        device=device,
+        dtype=dtype,
+    )
+    return U[:, :cols]
+
+
+def _delta_w_projection_eval(
+    wrapped_model: torch.nn.Module,
+    names: List[str],
+    shapes: List[Tuple[int, ...]],
+    splits: List[int],
+    total_dim: int,
+    device: torch.device,
+    mvp_map: Dict[str, callable],
+    config: FlatnessConfig,
+    *,
+    save_dir: Optional[str],
+    save_prefix: str,
+) -> Dict[str, Any]:
+    if not bool(getattr(config, "delta_w_projection", False)):
+        return {}
+    target_name = getattr(config, "delta_w_param_name", None)
+    if not target_name:
+        return {}
+    blocks = getattr(config, "delta_w_blocks", None) or []
+    if not blocks:
+        return {}
+    backend = str(getattr(config, "delta_w_backend", None) or getattr(config, "curv_mvp", "hessian")).lower()
+    mvp_fn = mvp_map.get(backend)
+    if mvp_fn is None:
+        return {}
+
+    block_index = getattr(config, "delta_w_block_index", None)
+    delta_w = _extract_lora_qv_weights(wrapped_model, block_index)
+    if delta_w is None:
+        return {}
+
+    lora_rank = getattr(config, "delta_w_rank", None)
+    if lora_rank is None:
+        try:
+            lora_rank = int(getattr(config, "args", {}).get("lora_rank", 0))
+        except Exception:
+            lora_rank = 0
+    lora_rank = int(lora_rank) if lora_rank else None
+
+    topk = int(getattr(config, "delta_w_topk", 5))
+    num_iters = int(getattr(config, "hessian_power_iters", 5))
+    tol = getattr(config, "eig_tol", None)
+    patience = int(getattr(config, "eig_patience", 2))
+    seed = getattr(config, "loss_land_seed", None)
+    eps = float(getattr(config, "delta_w_svd_eps", 1e-12))
+    eig_method = str(getattr(config, "delta_w_eig_method", "power")).lower()
+
+    metrics: Dict[str, Any] = {}
+    for block in blocks:
+        tag = str(block.get("tag", "")).strip()
+        row_ranges = block.get("row_ranges", None)
+        col_ranges = block.get("col_ranges", None)
+        if not tag:
+            continue
+        dw = delta_w.get(tag)
+        if dw is None:
+            continue
+
+        mask = _build_param_block_mask(
+            names,
+            shapes,
+            splits,
+            target_name,
+            row_ranges,
+            col_ranges,
+            total_dim=total_dim,
+        )
+        if mask.numel() == 0 or mask.sum().item() == 0:
+            continue
+
+        if eig_method == "lanczos":
+            eigvals, eigvecs = _lanczos_topk_masked(
+                mvp_fn,
+                total_dim,
+                mask,
+                device,
+                num_iters,
+                topk=topk,
+                tol=tol,
+                seed=seed,
+            )
+        else:
+            eigvals, eigvecs = _power_iteration_masked(
+                mvp_fn,
+                total_dim,
+                mask,
+                device,
+                num_iters,
+                topk=topk,
+                tol=tol,
+                patience=patience,
+                seed=seed,
+            )
+
+        try:
+            U, S, Vh = torch.linalg.svd(dw, full_matrices=False)
+        except Exception:
+            continue
+        r = int(min(U.shape[1], Vh.shape[0], lora_rank or U.shape[1]))
+        U_r = U[:, :r]
+        V_r = Vh[:r, :].T
+
+        ratios: List[float] = []
+        cores: List[torch.Tensor] = []
+        for v in eigvecs:
+            V = _extract_param_block(v, names, shapes, splits, target_name, row_ranges, col_ranges)
+            if V is None:
+                ratios.append(0.0)
+                cores.append(torch.zeros((U_r.shape[1], V_r.shape[1]), device=device))
+                continue
+            denom = float(V.norm().item() ** 2)
+            if denom <= eps:
+                ratios.append(0.0)
+                cores.append(torch.zeros((U_r.shape[1], V_r.shape[1]), device=device))
+                continue
+            tmp = U_r.T @ V @ V_r
+            proj = U_r @ tmp @ V_r.T
+            num = float(proj.norm().item() ** 2)
+            ratios.append(float(num / (denom + eps)))
+            cores.append(tmp)
+
+        metrics[f"delta_w_proj_{tag}_backend"] = backend
+        metrics[f"delta_w_proj_{tag}_eig_method"] = eig_method
+        metrics[f"delta_w_proj_{tag}_space"] = "delta_w_bilinear_subspace"
+        metrics[f"delta_w_proj_{tag}_note"] = "Projection onto U_r (·) V_r^T from ΔW SVD."
+        metrics[f"delta_w_proj_{tag}_eigvals"] = [float(x) for x in eigvals]
+        metrics[f"delta_w_proj_{tag}_ratios"] = [float(x) for x in ratios]
+        if ratios:
+            metrics[f"delta_w_proj_{tag}_ratio_top1"] = float(ratios[0])
+        if eigvals and ratios and len(eigvals) == len(ratios):
+            num = sum(float(l) * float(r) for l, r in zip(eigvals, ratios))
+            den = sum(float(l) for l in eigvals)
+            metrics[f"delta_w_proj_{tag}_ratio_weighted"] = float(num / (den + eps))
+
+        # Grassmann-style alignment (principal angles)
+        if cores:
+            try:
+                G = torch.stack([c.reshape(-1) for c in cores], dim=1)  # [r^2, k]
+                svals = torch.linalg.svdvals(G)
+                p = int(min(G.shape[0], G.shape[1]))
+                cos2 = (svals[:p] ** 2).detach().cpu().tolist()
+                k_p = float(sum(cos2))
+                metrics[f"delta_w_proj_{tag}_grassmann_cos2"] = [float(x) for x in cos2]
+                metrics[f"delta_w_proj_{tag}_grassmann_kp"] = k_p
+                metrics[f"delta_w_proj_{tag}_grassmann_ap"] = float(k_p / max(1, p))
+                metrics[f"delta_w_proj_{tag}_grassmann_dp"] = float(max(0.0, p - k_p) ** 0.5)
+            except Exception:
+                pass
+
+        # Random subspace baseline (same r)
+        rand_ratios: List[float] = []
+        rand_cores: List[torch.Tensor] = []
+        if r > 0:
+            seed_offset = sum(ord(c) for c in tag)
+            seed_rand = None if seed is None else int(seed) + seed_offset
+            U_rand, V_rand = _random_svd_subspaces(
+                U_r.shape[0],
+                V_r.shape[0],
+                r,
+                seed=seed_rand,
+                device=dw.device,
+                dtype=dw.dtype,
+            )
+            for v in eigvecs:
+                V = _extract_param_block(v, names, shapes, splits, target_name, row_ranges, col_ranges)
+                if V is None:
+                    rand_ratios.append(0.0)
+                    rand_cores.append(torch.zeros((r, r), device=device))
+                    continue
+                denom = float(V.norm().item() ** 2)
+                if denom <= eps:
+                    rand_ratios.append(0.0)
+                    rand_cores.append(torch.zeros((r, r), device=device))
+                    continue
+                tmp = U_rand.T @ V @ V_rand
+                proj = U_rand @ tmp @ V_rand.T
+                num = float(proj.norm().item() ** 2)
+                rand_ratios.append(float(num / (denom + eps)))
+                rand_cores.append(tmp)
+            metrics[f"delta_w_proj_{tag}_rand_ratios"] = [float(x) for x in rand_ratios]
+            if rand_ratios:
+                metrics[f"delta_w_proj_{tag}_rand_ratio_top1"] = float(rand_ratios[0])
+            if eigvals and rand_ratios and len(eigvals) == len(rand_ratios):
+                num = sum(float(l) * float(r) for l, r in zip(eigvals, rand_ratios))
+                den = sum(float(l) for l in eigvals)
+                metrics[f"delta_w_proj_{tag}_rand_ratio_weighted"] = float(num / (den + eps))
+            if rand_cores:
+                try:
+                    G_rand = torch.stack([c.reshape(-1) for c in rand_cores], dim=1)
+                    svals = torch.linalg.svdvals(G_rand)
+                    p = int(min(G_rand.shape[0], G_rand.shape[1]))
+                    cos2 = (svals[:p] ** 2).detach().cpu().tolist()
+                    k_p = float(sum(cos2))
+                    metrics[f"delta_w_proj_{tag}_rand_grassmann_cos2"] = [float(x) for x in cos2]
+                    metrics[f"delta_w_proj_{tag}_rand_grassmann_kp"] = k_p
+                    metrics[f"delta_w_proj_{tag}_rand_grassmann_ap"] = float(k_p / max(1, p))
+                    metrics[f"delta_w_proj_{tag}_rand_grassmann_dp"] = float(max(0.0, p - k_p) ** 0.5)
+                except Exception:
+                    pass
+
+        if bool(getattr(config, "delta_w_save_tensors", True)) and save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+            out_path = os.path.join(save_dir, f"{save_prefix}_delta_w_proj_{tag}.pt")
+            payload = {
+                "param_name": target_name,
+                "block_tag": tag,
+                "row_ranges": row_ranges,
+                "col_ranges": col_ranges,
+                "backend": backend,
+                "eigvals": [float(x) for x in eigvals],
+                "ratios": [float(x) for x in ratios],
+                "delta_w": dw.detach().cpu(),
+                "U_r": U_r.detach().cpu(),
+                "V_r": V_r.detach().cpu(),
+                "eigvecs": [v.detach().cpu() for v in eigvecs],
+                "core_mats": [c.detach().cpu() for c in cores],
+            }
+            if rand_cores:
+                payload["U_rand"] = U_rand.detach().cpu()
+                payload["V_rand"] = V_rand.detach().cpu()
+                payload["rand_ratios"] = [float(x) for x in rand_ratios]
+                payload["rand_core_mats"] = [c.detach().cpu() for c in rand_cores]
+            torch.save(payload, out_path)
+            metrics[f"delta_w_proj_{tag}_path"] = out_path
+
+    return metrics
+
+
+def _w_delta_alignment_eval(
+    wrapped_model: torch.nn.Module,
+    config: FlatnessConfig,
+    *,
+    save_dir: Optional[str],
+    save_prefix: str,
+) -> Dict[str, Any]:
+    if not bool(getattr(config, "w_delta_alignment", False)):
+        return {}
+    target_name = getattr(config, "w_delta_param_name", None) or getattr(config, "delta_w_param_name", None)
+    if not target_name:
+        return {}
+    blocks = getattr(config, "w_delta_blocks", None) or getattr(config, "delta_w_blocks", None) or []
+    if not blocks:
+        return {}
+
+    block_index = getattr(config, "w_delta_block_index", None)
+    if block_index is None:
+        block_index = getattr(config, "delta_w_block_index", None)
+    delta_w = _extract_lora_qv_weights(wrapped_model, block_index)
+    if delta_w is None:
+        return {}
+
+    _, weight_param = _find_param_by_substring(wrapped_model, target_name, block_index=block_index)
+    if weight_param is None:
+        return {}
+    w_full = weight_param.detach()
+    if w_full.ndim != 2:
+        return {}
+
+    rank = getattr(config, "w_delta_rank", None)
+    if rank is None:
+        rank = getattr(config, "delta_w_rank", None)
+    if rank is None:
+        try:
+            rank = int(getattr(config, "args", {}).get("lora_rank", 0))
+        except Exception:
+            rank = 0
+    rank = int(rank) if rank else None
+
+    seed = getattr(config, "w_delta_seed", 42)
+    eps = float(getattr(config, "w_delta_eps", 1e-12))
+
+    metrics: Dict[str, Any] = {}
+    for block in blocks:
+        tag = str(block.get("tag", "")).strip()
+        row_ranges = block.get("row_ranges", None)
+        col_ranges = block.get("col_ranges", None)
+        if not tag:
+            continue
+        dw = delta_w.get(tag)
+        if dw is None:
+            continue
+
+        w_block = _slice_weight_block(w_full, row_ranges, col_ranges)
+        if w_block is None:
+            continue
+        if w_block.shape != dw.shape:
+            continue
+
+        try:
+            U_d, S_d, Vh_d = torch.linalg.svd(dw, full_matrices=False)
+        except Exception:
+            continue
+        try:
+            U_w, S_w, Vh_w = torch.linalg.svd(w_block, full_matrices=False)
+        except Exception:
+            continue
+
+        r = int(min(U_d.shape[1], Vh_d.shape[0], U_w.shape[1], Vh_w.shape[0]))
+        if rank is not None:
+            r = int(min(r, rank))
+        if r <= 0:
+            continue
+
+        U_r = U_d[:, :r]
+        V_r = Vh_d[:r, :].T
+        U_w_r = U_w[:, :r]
+        V_w_r = Vh_w[:r, :].T
+
+        w_norm = float(w_block.norm().item())
+        delta_norm = float(dw.norm().item())
+        w_post = w_block + dw
+        w_post_norm = float(w_post.norm().item())
+
+        proj = U_r.T @ w_block @ V_r
+        proj_norm = float(proj.norm().item())
+        proj_ratio = float(proj_norm / (w_norm + eps))
+
+        w_self_norm = float(S_w[:r].norm().item())
+        w_self_ratio = float(w_self_norm / (w_norm + eps))
+
+        seed_offset = sum(ord(c) for c in tag)
+        seed_rand = (int(seed) + seed_offset) if seed is not None else None
+        U_rand, V_rand = _random_svd_subspaces(
+            w_block.shape[0],
+            w_block.shape[1],
+            r,
+            seed=seed_rand,
+            device=w_block.device,
+            dtype=w_block.dtype,
+        )
+        rand_proj = U_rand.T @ w_block @ V_rand
+        rand_norm = float(rand_proj.norm().item())
+        rand_ratio = float(rand_norm / (w_norm + eps))
+
+        amp = float(delta_norm / (proj_norm + eps))
+
+        phi_u = float((U_w_r.T @ U_r).pow(2).sum().item() / max(1, r))
+        phi_v = float((V_w_r.T @ V_r).pow(2).sum().item() / max(1, r))
+
+        post_proj_w = U_w_r.T @ w_post @ V_w_r
+        post_in_w_norm = float(post_proj_w.norm().item())
+        post_in_w_ratio = float(post_in_w_norm / (w_post_norm + eps))
+
+        metrics[f"w_delta_{tag}_rank"] = r
+        metrics[f"w_delta_{tag}_w_norm"] = w_norm
+        metrics[f"w_delta_{tag}_delta_norm"] = delta_norm
+        metrics[f"w_delta_{tag}_proj_norm"] = proj_norm
+        metrics[f"w_delta_{tag}_proj_ratio"] = proj_ratio
+        metrics[f"w_delta_{tag}_self_norm"] = w_self_norm
+        metrics[f"w_delta_{tag}_self_ratio"] = w_self_ratio
+        metrics[f"w_delta_{tag}_rand_norm"] = rand_norm
+        metrics[f"w_delta_{tag}_rand_ratio"] = rand_ratio
+        metrics[f"w_delta_{tag}_amp"] = amp
+        metrics[f"w_delta_{tag}_phi_u"] = phi_u
+        metrics[f"w_delta_{tag}_phi_v"] = phi_v
+        metrics[f"w_delta_{tag}_post_norm"] = w_post_norm
+        metrics[f"w_delta_{tag}_post_in_w_norm"] = post_in_w_norm
+        metrics[f"w_delta_{tag}_post_in_w_ratio"] = post_in_w_ratio
+
+        if bool(getattr(config, "w_delta_save_tensors", True)) and save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+            out_path = os.path.join(save_dir, f"{save_prefix}_w_delta_{tag}.pt")
+            payload = {
+                "param_name": target_name,
+                "block_tag": tag,
+                "row_ranges": row_ranges,
+                "col_ranges": col_ranges,
+                "rank": r,
+                "w_norm": w_norm,
+                "delta_norm": delta_norm,
+                "proj_norm": proj_norm,
+                "proj_ratio": proj_ratio,
+                "self_norm": w_self_norm,
+                "self_ratio": w_self_ratio,
+                "rand_norm": rand_norm,
+                "rand_ratio": rand_ratio,
+                "amp": amp,
+                "phi_u": phi_u,
+                "phi_v": phi_v,
+                "post_norm": w_post_norm,
+                "post_in_w_norm": post_in_w_norm,
+                "post_in_w_ratio": post_in_w_ratio,
+                "W": w_block.detach().cpu(),
+                "W_post": w_post.detach().cpu(),
+                "delta_w": dw.detach().cpu(),
+                "U_r": U_r.detach().cpu(),
+                "V_r": V_r.detach().cpu(),
+                "U_w_r": U_w_r.detach().cpu(),
+                "V_w_r": V_w_r.detach().cpu(),
+                "U_rand": U_rand.detach().cpu(),
+                "V_rand": V_rand.detach().cpu(),
+            }
+            torch.save(payload, out_path)
+            metrics[f"w_delta_{tag}_path"] = out_path
+
+    return metrics
+
+
+def _curvature_localization_metrics(
+    vecs: Optional[List[torch.Tensor]],
+    mask: torch.Tensor,
+    mv: Callable[[torch.Tensor], torch.Tensor],
+    device: torch.device,
+    *,
+    num_samples: int = 32,
+    basis_seed: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Projection ratios + Rayleigh stats for a given subspace mask."""
+    if mask.numel() == 0:
+        return {}
+    out: Dict[str, Any] = {}
+
+    ratios = _projection_ratios(vecs, mask)
+    if ratios:
+        out["curv_proj_ratio_space"] = "param_mask_coords"
+        out["curv_proj_ratio_note"] = "Parameter-coordinate mask subspace (LoRA param names)."
+        out["curv_proj_ratio_top1"] = float(ratios[0])
+        out["curv_proj_ratios"] = [float(r) for r in ratios]
+        cumsum: List[float] = []
+        total = 0.0
+        for r in ratios:
+            total += float(r)
+            cumsum.append(total)
+        out["curv_proj_ratio_cumsum"] = cumsum
+
+    rng_state = None
+    if basis_seed is not None:
+        try:
+            rng_state = torch.random.get_rng_state()
+            torch.manual_seed(int(basis_seed))
+        except Exception:
+            rng_state = None
+
+    try:
+        ray_sub = _rayleigh_along_mask(mv, mask, num_samples, device)
+        ray_orth = _rayleigh_along_mask(mv, ~mask.bool(), num_samples, device)
+    finally:
+        if rng_state is not None:
+            try:
+                torch.random.set_rng_state(rng_state)
+            except Exception:
+                pass
+
+    if ray_sub:
+        out["curv_rayleigh_sub_mean"] = float(np.mean(ray_sub))
+        out["curv_rayleigh_sub_std"] = float(np.std(ray_sub))
+    if ray_orth:
+        out["curv_rayleigh_orth_mean"] = float(np.mean(ray_orth))
+        out["curv_rayleigh_orth_std"] = float(np.std(ray_orth))
+    if ray_sub and ray_orth:
+        out["curv_rayleigh_gap"] = float(out["curv_rayleigh_sub_mean"] - out["curv_rayleigh_orth_mean"])
+    return out
+
+
+def _select_params_by_name(module: torch.nn.Module, substrs: Optional[List[str]], include_frozen: bool = False):
+    """按名字包含某些子串筛选需要参与二阶的参数；substrs=None 则退化为取所有 requires_grad=True 的参数。"""
+    picked = []
+    for n, p in module.named_parameters():
+        if (not include_frozen) and (not p.requires_grad):
+            continue
+        if substrs is None or any(s in n for s in substrs):
+            picked.append(p)
+    return picked
 
 
 def main():

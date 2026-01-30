@@ -68,32 +68,6 @@ def save_matrix(M, run_dir, run_stub, tag):
     logging.info("Saved %s to %s and %s", tag, npy_path, csv_path)
 
 
-def _resolve_task_indices(spec, nb_tasks):
-    if spec is None:
-        return None
-    if isinstance(spec, str):
-        spec = spec.strip().lower()
-        if spec in {"", "all"}:
-            return None
-        if spec in {"first_last", "first-last", "firstlast"}:
-            indices = [0, nb_tasks - 1]
-        else:
-            indices = [int(s) for s in spec.split(",") if s.strip() != ""]
-    elif isinstance(spec, (list, tuple, set)):
-        indices = [int(s) for s in spec]
-    else:
-        indices = [int(spec)]
-    resolved = []
-    for idx in indices:
-        if idx < 0:
-            idx = nb_tasks + idx
-        if 0 <= idx < nb_tasks:
-            resolved.append(idx)
-    if not resolved:
-        return []
-    return sorted(set(resolved))
-
-
 
 def print_args(args):
     for key, value in args.items():
@@ -124,9 +98,9 @@ def _train(args):
         if args["optimizer_type"]=="rwp" and args.get("rwp_range") =="full": 
             mode = "rwp_full" 
         elif args["optimizer_type"]=="rwp" and args.get("rwp_range") =="lora":
-            mode = "rwp_redo_SH"
+            mode = "rwp_redo"
         else: 
-            mode = "exp_ratio"
+            mode = "exp_joost3"
         logs_root = os.path.join("logs_inc_lora", str(args["model_name"]), opt_tag, str(args["dataset"]), str(args["seed"]), str(args["prefix"]), mode)
     else:
         opt_tag = f'{args["optimizer_type"]}_{args.get("rwp_range")}' if args["optimizer_type"]=="rwp" else str(args["optimizer_type"])
@@ -252,7 +226,6 @@ def _train(args):
     args["nb_tasks"] = nb_tasks
     
     model = factory.get_model(args["model_name"], args)
-    
 
     # Ensure the network/backbone is on-device for any pre-training evals
     net_obj = getattr(model, "_network", None)
@@ -264,12 +237,7 @@ def _train(args):
     else:
         net_obj.to(model._device)
 
-    for name, _param in net_obj.named_parameters():
-        logging.info("[LoRA] net_obj param name: %s", name)
-
     class_ranges = [data_manager.get_task_class_range(task_idx) for task_idx in range(nb_tasks)]
-    flat_eval_tasks = _resolve_task_indices(args.get("flat_eval_task_indices", None), nb_tasks)
-    feature_eval_tasks = _resolve_task_indices(args.get("feature_flat_task_indices", None), nb_tasks)
     
     # ---------------------------
 
@@ -372,8 +340,7 @@ def _train(args):
 
         # ============ Per-step FIRST-vs-CURRENT feature drift (CKA + prototype) ============
         # Compare current-step features/prototypes against FIRST-task references, and save per-step JSONs.
-        # task >= 1 and 
-        if (False): 
+        if task >= 1 and (False):
             try:
                 feature_dir = os.path.join(log_dir, "feature_flatness")
                 os.makedirs(feature_dir, exist_ok=True)
@@ -549,7 +516,7 @@ def _train(args):
         #先进行保存模型
         # Save the final trained model once (backbone + head)
         try:
-            if  False and (task == nb_tasks - 1) and bool(args.get("save_final_model", False)) :
+            if  (task == nb_tasks - 1) and bool(args.get("save_final_model", True)) :
                 net_to_save = getattr(model, "_network", None)
                 if net_to_save is not None:
                     if hasattr(net_to_save, "module"):
@@ -575,7 +542,7 @@ def _train(args):
         # 在最后一个任务时，为每个历史任务分别训练一个线性探针，并评估“最终模型”在该任务上的表现。
         # 不影响既有功能，且放在联合探针代码块之前。
         try:
-            if False and (task == nb_tasks - 1) and bool(args.get("linear_probe_softmax_per_task_eval", False)):
+            if (task == nb_tasks - 1) and bool(args.get("linear_probe_softmax_per_task_eval", False)):
                 net = getattr(model, "_network", model)
                 if hasattr(net, "module"):
                     net = net.module
@@ -737,7 +704,7 @@ def _train(args):
         # —— 将原有主体放进 try/finally，保证异常也会清理 ——  
         # task == nb_tasks - 1 and
         try:
-            if  False and (task == nb_tasks - 1) and args.get("linear_probe_softmax_joint_seen_eval", False):
+            if  (task == nb_tasks - 1) and args.get("linear_probe_softmax_joint_seen_eval", False):
                 
 
 
@@ -922,7 +889,7 @@ def _train(args):
 
 
         # ---- Save FIRST-step anchors & prototypes (for later comparisons) ----
-        if  False and task == 0 and (args.get("feature_cka_eval", False) or args.get("feature_proto_eval", False)) :
+        if task == 0 and (args.get("feature_cka_eval", False) or args.get("feature_proto_eval", False)):
             
 
             # 基本路径与标记
@@ -1045,14 +1012,8 @@ def _train(args):
 
 
 
-        do_flat_eval = bool(args.get("flat_eval", False)) and (
-            flat_eval_tasks is None or task in flat_eval_tasks
-        )
-        do_feature_eval = bool(args.get("feature_flat_eval", False)) and (
-            feature_eval_tasks is None or task in feature_eval_tasks
-        )
-        # Evaluate flatness/feature metrics per task (optional)
-        if do_flat_eval or do_feature_eval:
+        # 评估最后的结果 weight-loss feature-loss
+        if task == nb_tasks - 1:
 
             # ---- shared temp handles (visible to finally) ----
             train_loader = getattr(model, "train_loader", None)
@@ -1079,25 +1040,14 @@ def _train(args):
             save_prefix = f"{base_stub}_{step_tag}"
             is_main = bool(getattr(model, "_is_main_process", True))
 
-            start_seen = class_ranges[task][0]
+            start_seen = class_ranges[0][0]
             end_seen = class_ranges[task][1]
             num_classes =  end_seen - start_seen 
 
             try:
                 # ----------------- build the shared flat_loader once -----------------
                 if train_loader is not None:
-                    data_source = str(args.get("flat_eval_data_source", "train")).lower()
-                    if data_source not in {"train", "test"}:
-                        logging.warning(
-                            "[FlatEval] Unknown flat_eval_data_source=%s, fallback to test", data_source
-                        )
-                        data_source = "test"
-                    data_mode = "train" if data_source == "train" else "test"
-                    dataset_seen = data_manager.get_dataset(
-                        np.arange(start_seen, end_seen),
-                        source=data_source,
-                        mode=data_mode,
-                    )
+                    dataset_seen = data_manager.get_dataset(np.arange(start_seen, end_seen), source="test", mode="test")
                     loader_seen = DataLoader(
                         dataset_seen, 
                         batch_size=args.get("flat_eval_batch_size", 32), 
@@ -1106,20 +1056,20 @@ def _train(args):
 
                     flat_loader = fractional_loader(
                         loader=loader_seen,
-                        fraction=args.get("flat_eval_dataset_fraction", 0.1),
-                        seed=args.get("flat_eval_dataset_fraction_seed", args.get("seed", 42)),
+                        fraction=0.1,
+                        seed=args.get("seed", 42),
                         balanced=True,
                         batch_size=args.get("flat_eval_batch_size", 32)
                     )
 
                 # ================= weight-space flatness =================
-                if do_flat_eval and (flat_loader is not None):
+                if args.get("flat_eval", False) and (flat_loader is not None):
                     net.eval()  # switch to eval for metric extraction
 
                     flat_cfg = FlatnessConfig(
                         args=args,
                         fisher_rao=bool(args.get("fisher_rao", True)),
-                        relative_flatness=bool(args.get("relative_flatness", False)),
+                        relative_flatness=bool(args.get("relative_flatness", True)),
                         save_metrics_path=os.path.join(log_dir, "flatness"),
                         save_prefix=f"{os.path.basename(logfilename)}_t{task:02d}",
                     )
@@ -1130,12 +1080,11 @@ def _train(args):
                     #     if not _p.requires_grad:
                     #         _p.requires_grad_(True)
                     try:
-                        
                         flat_metrics = evaluate_flatness_metrics(
-                                net,
-                                flat_loader,
-                                device=model._device,
-                                config=flat_cfg,
+                            net,
+                            flat_loader,
+                            device=model._device,
+                            config=flat_cfg,
                         )
                     finally:
                         # 恢复原 requires_grad 设置
@@ -1145,7 +1094,7 @@ def _train(args):
                     logging.info("Flatness metrics (task %d): %s", task, flat_metrics)
 
                 # ================= feature-space flatness =================
-                if do_feature_eval and (flat_loader is not None):
+                if args.get("feature_flat_eval", False) and (flat_loader is not None):
                     device_override = getattr(model, "_device", None)
                     if isinstance(device_override, str):
                         device_override = torch.device(device_override)
@@ -1165,7 +1114,7 @@ def _train(args):
                     )
                     logging.info("Feature flatness metrics (task %d): %s", task, feature_metrics)
 
-                    if do_feature_eval and args.get("attention_probe_eval", False):
+                    if args.get("attention_probe_eval", False):
                         # Enhanced attention probe export (DINO-style + optional Grad-CAM)
                         import time
                         from torch.utils.data import Subset
@@ -1419,7 +1368,7 @@ def _train(args):
                             probe_dataset = None
 
                     # ---- atomic write of feature metrics ----
-                    if do_feature_eval and is_main:
+                    if args.get("feature_flat_eval", False) and is_main:
                         final_path = os.path.join(feature_dir, f"{save_prefix}_feature_flatness.json")
                         tmp_path = final_path + ".tmp"
                         with open(tmp_path, "w", encoding="utf-8") as fh:
@@ -1453,7 +1402,7 @@ def _train(args):
        
 
         # ===================== Last-step FIRST-vs-LAST comparison =====================
-        if False and task == nb_tasks - 1 and (args.get("feature_cka_eval", False) or args.get("feature_proto_eval", False)):
+        if task == nb_tasks - 1 and (args.get("feature_cka_eval", False) or args.get("feature_proto_eval", False)):
             # -------- paths & tags --------
             feature_dir = os.path.join(log_dir, "feature_flatness")
             os.makedirs(feature_dir, exist_ok=True)
@@ -1486,7 +1435,7 @@ def _train(args):
                 # ---------------------------------------------------------
                 # 1) CKA: t00 vs tT  （仅当首步锚点存在；末步锚点不存在时现场抽取）
                 # ---------------------------------------------------------
-                if False and args.get("feature_cka_eval", False):
+                if args.get("feature_cka_eval", False):
                     if os.path.exists(anchor_first_path):
                         first = torch.load(anchor_first_path, map_location="cpu")
                         X0 = first.get("features", None)
@@ -1558,7 +1507,7 @@ def _train(args):
                 # ---------------------------------------------------------
                 # 2) Prototype drift: t00 vs tT  （仅当首步原型存在；末步原型不存在时现场抽取）
                 # ---------------------------------------------------------
-                if False and args.get("feature_proto_eval", False):
+                if args.get("feature_proto_eval", False):
                     if os.path.exists(proto_first_path):
                         first = torch.load(proto_first_path, map_location="cpu")
                         prot0 = first.get("prototypes", None) or {}
@@ -1908,28 +1857,28 @@ def _train(args):
 
 
         # Tiny-ImageNet-A
-        # if bool(args.get("ood_imagener_a", False)):
-        #     ood_args_c = copy.deepcopy(args)
-        #     ood_args_c["dataset"] = "imageneta"
-        #     dm_c = DataManager("imageneta", class_shuffle_ood, args["seed"], 200, 0, ood_args_c)
-        #     loader_c = _build_ood_loader(dm_c, ood_bs, ood_workers)
-        #     acc_c = model.evaluate_full_dataset(loader_c)
-        #     # Linear probe on OOD (final vs base)
-        #     lp_final, lp_base = _ood_linear_probe(dm_c, tag="Tiny-ImageNet-A")
-        #     ood_results["imageneta"] = {
-        #         "top1": float(acc_c.get("top1", 0.0)),
-        #         # "top5": float(acc_c.get("top5", 0.0)),
-        #         "lp_softmax_final": float(lp_final) if lp_final == lp_final else 0.0,
-        #         "lp_softmax_base": float(lp_base) if lp_base == lp_base else 0.0,
-        #     }
-        #     logging.info(
-        #         "[OOD][Tiny-ImageNet-A] top1=%.2f  | LP(final)=%.2f | LP(base)=%.2f",
-        #         ood_results["imageneta"]["top1"], 
-        #         ood_results["imageneta"].get("lp_softmax_final", float("nan")),
-        #         ood_results["imageneta"].get("lp_softmax_base", float("nan"))
-        #     )
-        #     # Persist into unified metrics json
-        #     _write_final_metrics(metrics_book_path, "imageneta", final_metrics=ood_results["imageneta"], final_matrix=None)
+        if bool(args.get("ood_imagener_a", False)):
+            ood_args_c = copy.deepcopy(args)
+            ood_args_c["dataset"] = "imageneta"
+            dm_c = DataManager("imageneta", class_shuffle_ood, args["seed"], 200, 0, ood_args_c)
+            loader_c = _build_ood_loader(dm_c, ood_bs, ood_workers)
+            acc_c = model.evaluate_full_dataset(loader_c)
+            # Linear probe on OOD (final vs base)
+            lp_final, lp_base = _ood_linear_probe(dm_c, tag="Tiny-ImageNet-A")
+            ood_results["imageneta"] = {
+                "top1": float(acc_c.get("top1", 0.0)),
+                # "top5": float(acc_c.get("top5", 0.0)),
+                "lp_softmax_final": float(lp_final) if lp_final == lp_final else 0.0,
+                "lp_softmax_base": float(lp_base) if lp_base == lp_base else 0.0,
+            }
+            logging.info(
+                "[OOD][Tiny-ImageNet-A] top1=%.2f  | LP(final)=%.2f | LP(base)=%.2f",
+                ood_results["imageneta"]["top1"], 
+                ood_results["imageneta"].get("lp_softmax_final", float("nan")),
+                ood_results["imageneta"].get("lp_softmax_base", float("nan"))
+            )
+            # Persist into unified metrics json
+            _write_final_metrics(metrics_book_path, "imageneta", final_metrics=ood_results["imageneta"], final_matrix=None)
 
 
 

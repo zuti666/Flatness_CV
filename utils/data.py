@@ -1,7 +1,11 @@
 import numpy as np
 from torchvision import datasets, transforms
 from utils.toolkit import split_images_labels
-
+import re
+from typing import Optional, Callable, Any
+import os
+from PIL import Image
+import yaml
 
 class iData(object):
     train_trsf = []
@@ -256,6 +260,152 @@ class iImageNetA(iData):
         self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
 
 
+class iImageNetC(iData):
+    """ImageNet-C reorganized to ImageFolder layout (ImageNet-R style).
+
+    Expected directory (created by scripts/prepare_imagenet_c_split.py):
+        data/imagenet-c-r/train/<wnid>/*.JPEG
+        data/imagenet-c-r/test/<wnid>/*.JPEG
+
+    Default assumes 200 classes to align with ImageNet-R subset.
+    """
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.use_path = True
+
+        if args is not None and args.get("model_name", "") == "coda_prompt":
+            self.train_trsf = build_transform_coda_prompt(True, args)
+            self.test_trsf = build_transform_coda_prompt(False, args)
+        else:
+            self.train_trsf = build_transform(True, args)
+            self.test_trsf = build_transform(False, args)
+        self.common_trsf = [
+            # transforms.ToTensor(),
+        ]
+
+        # Default to 200 classes to match ImageNet-R style; will be reset
+        # dynamically after reading data to the detected class count.
+        self.class_order = np.arange(200).tolist()
+
+    def download_data(self):
+        train_dir = None #"data/tiny-imagenetc_123_01-CL/train"
+        test_dir = None#"data/tiny-imagenetc_123_01-CL/test"
+
+        train_dset = datasets.ImageFolder(train_dir)
+        test_dset = datasets.ImageFolder(test_dir)
+
+        self.train_data, self.train_targets = split_images_labels(train_dset.imgs)
+        self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
+
+        # If class count differs from default 200 (e.g., using all classes),
+        # update class_order accordingly to keep consistency downstream.
+        num_classes = len(train_dset.classes)
+        self.class_order = np.arange(num_classes).tolist()
+
+
+
+
+
+class iTinyImageNetC(iData):
+    """Tiny-ImageNet-C reorganized to ImageFolder layout.
+
+    Expected directory (created by scripts/prepare_tiny_imagenet_c_split.py):
+        data/tiny-imagenet-c-r/train/<wnid>/*.JPEG
+        data/tiny-imagenet-c-r/test/<wnid>/*.JPEG
+    """
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.use_path = True
+
+        if args is not None and args.get("model_name", "") == "coda_prompt":
+            self.train_trsf = build_transform_coda_prompt(True, args)
+            self.test_trsf = build_transform_coda_prompt(False, args)
+        else:
+            self.train_trsf = build_transform(True, args)
+            self.test_trsf = build_transform(False, args)
+        self.common_trsf = []
+
+        self.class_order = np.arange(200).tolist()
+
+    def download_data(self):
+        # train_dir = "data/tiny-imagenetc-allcorruptions-CL/train"
+        # test_dir = "data/tiny-imagenetc-allcorruptions-CL/test"
+        train_dir = "data/tiny-imagenetc_1_noise_CL/train"
+        test_dir = "data/tiny-imagenetc_1_noise_CL/test"
+
+        train_dset = datasets.ImageFolder(train_dir,
+                                        #   is_valid_file=keep_tiny_imagenet_c_cl_s123_id05,
+                                        #   allow_empty=True,
+                                          transform=self.train_trsf)
+        test_dset = datasets.ImageFolder(test_dir,
+                                        #  is_valid_file=keep_tiny_imagenet_c_cl_s123_id05,
+                                        #  allow_empty=True,
+                                          transform=self.train_trsf)
+
+        self.train_data, self.train_targets = split_images_labels(train_dset.imgs)
+        self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
+
+        num_classes = len(train_dset.classes)
+        self.class_order = np.arange(num_classes).tolist()
+
+
+class iTinyImageNetP(iData):
+    """Tiny-ImageNet-P prepared to ImageFolder layout.
+
+    Expected directory (created by scripts/prepare_tiny_imagenet_p_split.py):
+        data/tiny-imagenet-p-r/train/<wnid>/<corruption__test_xxxx>/fXXXX.jpg
+        data/tiny-imagenet-p-r/test/<wnid>/<corruption__test_xxxx>/fXXXX.jpg
+
+    We flatten subfolders by ImageFolder which indexes leaf images; thus using
+    nested folders under each class is fine.
+    """
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.use_path = True
+
+        if args is not None and args.get("model_name", "") == "coda_prompt":
+            self.train_trsf = build_transform_coda_prompt(True, args)
+            self.test_trsf = build_transform_coda_prompt(False, args)
+        else:
+            self.train_trsf = build_transform(True, args)
+            self.test_trsf = build_transform(False, args)
+        self.common_trsf = []
+
+        self.class_order = np.arange(200).tolist()
+
+    def download_data(self):
+        train_dir = "data/tiny_imagenerp_noise_CL/train"
+        test_dir = "data/tiny_imagenerp_noise_CL/test"
+
+        # train_dset = datasets.ImageFolder(train_dir)
+        # test_dset = datasets.ImageFolder(test_dir)
+
+        # 关键：在构造阶段用 is_valid_file 过滤，且允许空类
+        train_dset = datasets.ImageFolder(
+            train_dir,
+            # is_valid_file=keep_every_k_file_TinyImageNetP,
+            # allow_empty=True,
+            transform=self.train_trsf,
+        )
+        test_dset = datasets.ImageFolder(
+            test_dir,
+            # is_valid_file=keep_every_k_file_TinyImageNetP,
+            # allow_empty=True,
+            transform=self.test_trsf,
+        )
+
+        self.train_data, self.train_targets = split_images_labels(train_dset.imgs)
+        self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
+
+        num_classes = len(train_dset.classes)
+        self.class_order = np.arange(num_classes).tolist()
+
+
+
+
 
 class CUB(iData):
     use_path = True
@@ -343,3 +493,48 @@ class vtab(iData):
 
         self.train_data, self.train_targets = split_images_labels(train_dset.imgs)
         self.test_data, self.test_targets = split_images_labels(test_dset.imgs)
+
+
+
+class iDomainNet(iData):
+
+    use_path = True
+    train_trsf = [
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+    ]
+    test_trsf = [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+    ]
+    common_trsf = [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.0, 0.0, 0.0], std=[1.0, 1.0, 1.0]),
+    ]
+
+    def __init__(self, args):
+        self.args = args
+        class_order = np.arange(345).tolist()
+        self.class_order = class_order
+        self.domain_names = ["clipart", "infograph", "painting", "quickdraw", "real", "sketch", ]
+
+    def download_data(self):
+        # load splits from config file
+        train_data_config = yaml.load(open('./data/DomainNet/splits/domainnet_train.yaml', 'r'), Loader=yaml.Loader)
+        test_data_config = yaml.load(open('./data/DomainNet/splits/domainnet_test.yaml', 'r'), Loader=yaml.Loader)
+        self.train_data = np.array(train_data_config['data'])
+        self.train_targets = np.array(train_data_config['targets'])
+        self.test_data = np.array(test_data_config['data'])
+        self.test_targets = np.array(test_data_config['targets'])
+
+
+def jpg_image_to_array(image_path):
+    """
+    Loads JPEG image into 3D Numpy array of shape 
+    (width, height, channels)
+    """
+    with Image.open(image_path) as image:      
+        image = image.convert('RGB')
+        im_arr = np.fromstring(image.tobytes(), dtype=np.uint8)
+        im_arr = im_arr.reshape((image.size[1], image.size[0], 3))                                   
+    return im_arr

@@ -250,26 +250,24 @@ def run_evaluation(cfg: dict, args: argparse.Namespace) -> None:
 
         if flat_eval:
             try:
+                dataset_fraction = cfg_eval.get("flat_eval_dataset_fraction", getattr(args, "flat_eval_dataset_fraction", None))
+                dataset_fraction_seed = cfg_eval.get("flat_eval_dataset_fraction_seed", getattr(args, "flat_eval_dataset_fraction_seed", None))
+                if dataset_fraction_seed is None:
+                    base_seed = cfg_eval.get("seed", getattr(args, "seed", None))
+                    if isinstance(base_seed, (list, tuple)) and base_seed:
+                        dataset_fraction_seed = base_seed[0]
+                    elif isinstance(base_seed, int):
+                        dataset_fraction_seed = base_seed
                 flat_cfg = FlatnessConfig(
-                    rho=cfg_eval.get("flat_eval_rho", getattr(args, "flat_rho", 0.05)),
-                    num_random_samples=cfg_eval.get(
-                        "flat_eval_num_samples", getattr(args, "flat_samples", 10)
-                    ),
-                    gaussian_std=cfg_eval.get(
-                        "flat_eval_gaussian_std", getattr(args, "flat_gaussian_std", None)
-                    ),
-                    max_batches=cfg_eval.get(
-                        "flat_eval_max_batches", getattr(args, "flat_max_batches", 1)
-                    ),
-                    power_iters=cfg_eval.get(
-                        "flat_eval_power_iters", getattr(args, "flat_power_iters", 5)
-                    ),
-                    trace_samples=cfg_eval.get(
-                        "flat_eval_trace_samples", getattr(args, "flat_trace_samples", 5)
-                    ),
-                    grad_batches=cfg_eval.get(
-                        "flat_eval_grad_batches", getattr(args, "flat_grad_batches", 1)
-                    ),
+                    sharpness_radius=cfg_eval.get("flat_eval_sharpness_radius", cfg_eval.get("flat_eval_rho", getattr(args, "flat_rho", 0.05))),
+                    esh_num_samples=cfg_eval.get("flat_eval_esh_samples", cfg_eval.get("flat_eval_num_samples", getattr(args, "flat_samples", 10))),
+                    esh_gaussian_std=cfg_eval.get("flat_eval_esh_gaussian_std", cfg_eval.get("flat_eval_gaussian_std", getattr(args, "flat_gaussian_std", None))),
+                    loss_eval_max_batches=cfg_eval.get("flat_eval_loss_max_batches", cfg_eval.get("flat_eval_max_batches", getattr(args, "flat_max_batches", 1))),
+                    hessian_power_iters=cfg_eval.get("flat_eval_hessian_power_iters", cfg_eval.get("flat_eval_power_iters", getattr(args, "flat_power_iters", 5))),
+                    hessian_trace_samples=cfg_eval.get("flat_eval_hessian_trace_samples", cfg_eval.get("flat_eval_trace_samples", getattr(args, "flat_trace_samples", 5))),
+                    first_order_grad_batches=cfg_eval.get("flat_eval_first_order_grad_batches", cfg_eval.get("flat_eval_grad_batches", getattr(args, "flat_grad_batches", 1))),
+                    dataset_fraction=dataset_fraction,
+                    dataset_fraction_seed=dataset_fraction_seed,
                 )
                 hvp_context = contextlib.nullcontext()
                 if sdp_kernel is not None and torch.cuda.is_available():

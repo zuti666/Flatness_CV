@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import logging
 from tqdm import tqdm
 from torch import optim
 from torch.nn import functional as F
@@ -15,6 +16,7 @@ from backbone.lora import LoRA_ViT_timm
 from types import SimpleNamespace
 
 num_workers = 8
+logger = logging.getLogger(__name__)
 
 
 class Learner(LoraBaseLearner):
@@ -245,6 +247,8 @@ class Learner(LoraBaseLearner):
             cur_task_index=0,
             learn_alpha=False,
         )
+        for name, _param in model.named_parameters():
+            logger.info("[LoRA] param name: %s", name)
         model.out_dim = 768
         return model
 

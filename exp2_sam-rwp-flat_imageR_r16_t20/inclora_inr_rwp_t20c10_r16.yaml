@@ -1,4 +1,4 @@
-prefix: "inclora_inr_rwp_imagenetr_t20_rank16"
+prefix: "inclora_inr_rwp_imagenetr_t20_rank16_1993_SH"
 
 memory_size: 0
 memory_per_class: 0
@@ -14,8 +14,7 @@ increment: 10    # Classes added per subsequent task
 nb_tasks: 20
 total_sessions: 20 
 
-seed:
-  -1993
+seed: [1993]
   # - 521
   # - 1993
   # - 1024
@@ -27,7 +26,7 @@ backbone_type: "vit_base_patch16_224"
 
 # GPU used for training
 device:
-  - "3"
+  - "5"
 
 #---------- Method --------
 model_name: "inclora"
@@ -79,7 +78,13 @@ probe_fit_train_batch_size: 128
 
 
 #-------------- #  Weight Flatness ------------------
-flat_eval: false
+flat_eval: true
+
+flat_eval_sharpness: true
+flat_eval_hessian: false
+flat_eval_GGN: true 
+flat_eval_fisher: true
+
 flat_eval_batch_size: 32
 flat_eval_dataset_fraction: 0.1  #  10% of TestDataset for flatness/lossland 
 # First and zero order Sharpness definition
