@@ -1,114 +1,82 @@
-# Data (optional, keep if generated locally)
-data/
+# Core tracking intent:
+#   Track source/training/evaluation code.
+#   Ignore data, logs, checkpoints, large artifacts, cached builds, and local training configs.
 
-# Logs and run artifacts
-# experiment outputs
-logs/
-**/logs/
-*.log
-output/
+# --------------------
+# Data / datasets
+# --------------------
+data/
+cache/
+
+# --------------------
+# Run artifacts (logs, outputs, checkpoints)
+# --------------------
+logs*/
+logs_inc*/
+logs_inc_lora*/
+logs_all*/
+outputs_logs/
+runs/
 outputs/
 results/
-checkpoints/
 **/checkpoints/
-*.ckpt
+*.log
+*.csv
+summaries_analyse/
 
-
-# Model weights and large binaries
+# --------------------
+# Model weights / large binaries
+# --------------------
 *.pt
 *.pth
 *.onnx
 *.bin
+*.ckpt
+*.h5
 *.safetensors
 
-# Python caches
+# --------------------
+# Local training configs / experiment bundles
+# --------------------
+config_exps/
+exps*/
+scripts/
+
+# --------------------
+# Python caches / build
+# --------------------
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .cache/
 .ipynb_checkpoints/
-
-# Notebooks and docs (optional)
-*.ipynb
-*.pdf
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-
-# Build artifacts
 dist/
 build/
 *.egg-info/
 .eggs/
 
-# IDE/editor settings
+# --------------------
+# Notebooks / docs
+# --------------------
+*.ipynb
+*.pdf
+
+# --------------------
+# Env / IDE
+# --------------------
 .idea/
 .vscode/
+.venv/
+venv/
+env/
+ENV/
 *.swp
 *.swo
-
-# OS files
 .DS_Store
 
-# experiment outputs
-exp*/
-# But keep these two experiment folders (and everything inside)
-!exp_1_sam-sgd_imageR_r16_t20_seed_1024/
-!exp_1_sam-sgd_imageR_r16_t20_seed_1024/**
-
-!exp2_sam-rwp-flat_imageR_r16_t20/
-!exp2_sam-rwp-flat_imageR_r16_t20/
-exp2_sam-rwp-flat_imageR_r16_t20/**
-
-
-!exp4_ablation_length/
-!exp4_ablation_length/**
-
-
-logs_all/
-logs_inc/
-logs_inc_lora/
-summaries/
-*.csv
-logs*/
-
-# experiments setting 
-scripts*/
-Result_analyse/
-# allow this specific script (and its parent dirs)
-!scripts/
-!scripts/exp1_script/
-!scripts/exp1_script/run_q1_seed.sh
-!scripts/exp2_script_rwp_imager_16_cosine/
-!scripts/exp2_script_rwp_imager_16_cosine/run_exp2.sh
-!scripts/exp4_script/
-!scripts/exp4_script/run_imagenet-r_length_r16_l40_cosine_1993.sh
-
-# config/output collections (keep only minimal hand-picked exps/)
-exps_all/
-exps_inc/
-exps_inc_lora/
-exps_test/
-
-# caches
-__pycache__/
-*.pyc
-cache/
-data/
-
-# large artifacts
-*.pt
-*.pth
-*.ckpt
-*.h5
-
-# temp/backup variants
+# --------------------
+# Temporary / backup files
+# --------------------
 *_upload.py
 *_origin.py
-
-# papers/materials
-relatedPaper/
