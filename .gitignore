@@ -22,7 +22,12 @@ results/
 **/checkpoints/
 *.log
 *.csv
+*.png
+*.pdf
+*.xlsx
 summaries_analyse/
+relatedPaper/
+result_analyse_tool/
 
 # --------------------
 # Model weights / large binaries
