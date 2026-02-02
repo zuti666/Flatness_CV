@@ -49,7 +49,71 @@ The settings are in `exp4_ablation_length/`. Edit the seed, dataset, LoRA method
 
 ### Evaluation
 
-Evaluation utilities are in `eval_flat/eval_flatness_weight_Loss.py`. You can switch on/off specific metrics by editing the config files used in your experiment.
+## Evaluation & Metrics (quick map)
+
+Below are the main metrics, formulas, and the functions to call. All evaluators live in
+`evaluation_sharpness` (flatness/curvature) or `evaluation_performance` (accuracy/probe).
+
+- **Cross-task accuracy matrices (CNN/NME)**
+  - Function: `trainer.py` → `log_matrix` / `compute_sequence_metrics`
+  - Data: R[i,j] = acc on task j after learning task i (lower triangle)
+
+- **Flatness / Sharpness (weight space)**
+  - File: `evaluation_sharpness/eval_flatness_weight_Loss.py`
+  - Entry: `evaluate_flatness_metrics(model, loader, config, params_override=None)`
+  - Key formulas:
+    - Grad norm (Sh¹): \(\|\nabla_w L\|\)
+    - Stochastic sharpness (E-Sh): \(\mathbb{E}_{\epsilon\sim\mathcal{N}(0,\sigma^2 I)}[L(w+\epsilon)-L(w)]\)
+    - Hessian/GGN/Fisher λ_max, trace via MVP + power/Lanczos
+    - Loss landscape: 1D/2D slices \(L(w+\alpha d)\)
+
+- **Feature-space flatness (EFM)**
+  - File: `evaluation_sharpness/eval_flat_feature.py`
+  - Entry: `evaluate_feature_metrics(network, loader, config)`
+  - Formula: EFM \(E_f = E_y[g_y g_y^T]\) with \(g_y = W_y - \sum_c p_c W_c\)
+  - Metrics: trace, spectral radius, Frobenius norm, effective rank, top eigenvalues.
+  - First-vs-last comparison: `compare_first_last_features(...)` (CKA + prototype drift).
+
+- **Curvature localization / delta-W analyses**
+  - File: `evaluation_sharpness/curv_localization.py`
+  - Functions: `_curvature_localization_metrics`, `_delta_w_projection_eval`, `_delta_w_full_projection_eval`, `_w_delta_alignment_eval`
+  - Idea: project eigenvectors onto LoRA subspace or QKV blocks; measure Rayleigh stats / alignment.
+
+- **Loss landscape utilities**
+  - File: `evaluation_sharpness/loss_landscape.py`
+  - Functions: `_loss_landscape_1d`, `_loss_landscape_2d`, `compute_full_vs_lora_curvature_1d`
+
+- **Linear probe evaluations**
+  - File: `evaluation_performance/probe.py`
+  - Functions: `fit_linear_probe_softmax_head`, `evaluate_linear_probe_softmax_with_head`
+  - Used in `src/trainer.py` for per-task and joint-seen probes.
+
+- **Optimizers (perturbation-based)**
+  - Package: `optimer_PerturabtionType`
+  - Files: `optimer_sam.py`, `ARWP_cos.py`, `gam.py`, `c_flat.py`, `util.py`
+  - Example formula (SAM): \(\epsilon = \rho \frac{g}{\|g\|}\), update on \(w+\epsilon\).
+  - Example formula (RWP): \(\tilde w = w + \epsilon,\ \epsilon\sim\mathcal{N}(0,\sigma\|w\|)\); optional Fisher scaling.
+
+## How to run
+```bash
+export PYTHONPATH="$(pwd):$(pwd)/src:${PYTHONPATH:-}"
+export LD_LIBRARY_PATH="/disk0/users/liying/miniconda3/lib:${LD_LIBRARY_PATH:-}"  # fix PIL/libstdc++
+python -m src.main --config config_exps/exp_weight/your_cfg.yaml --mode inc \
+  --override outputs_root=outputs_logs
+```
+
+- Flatness hooks toggle via config flags: `flat_eval`, `feature_flat_eval`, `attention_probe_eval`, etc.
+- Use `params_override` in `evaluate_flatness_metrics` to restrict evaluation to LoRA or selected params.
+
+## File map (core)
+- Training entry: `src/main.py`, trainers `src/trainer.py`, `src/trainer_allData.py`
+- Accuracy metrics: `evaluation_performance/metrics.py`
+- Probes: `evaluation_performance/probe.py`
+- Flatness/curvature: `evaluation_sharpness/*`
+- Optimizers: `optimer_PerturabtionType/*`
+```
+
+
 
 ## Methods Overview
 
