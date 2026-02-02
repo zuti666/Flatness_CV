@@ -4,15 +4,15 @@ def get_model(model_name, args):
         from models.simplecil import Learner
     # loraBased
     elif name == "sdlora":
-        from loraCL.sdlora import Learner
+        from models_LoRAbasedCL.sdlora import Learner
     elif name == "seqlora":
-        from loraCL.seqlora import Learner
+        from models_LoRAbasedCL.seqlora import Learner
     elif name == "inclora":
-        from loraCL.inclora import Learner
+        from models_LoRAbasedCL.inclora import Learner
     elif name == "olora":
-        from loraCL.olora import Learner
+        from models_LoRAbasedCL.olora import Learner
     elif name == "inflora":
-        from loraCL.inflora import Learner
+        from models_LoRAbasedCL.inflora import Learner
 
 
     elif name == "finetune":

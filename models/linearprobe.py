@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from optimer.util import enable_running_stats, disable_running_stats, generate_pertubation
+from optimer_PerturabtionType.util import enable_running_stats, disable_running_stats, generate_pertubation
 
 from models.baseLearner import BaseLearner
 from utils.inc_net import IncrementalNet

@@ -530,7 +530,7 @@ class BaseLearner(object):
         print(f"_build_optimizer: {self._optimizer_type}")
 
         if self._optimizer_type == "sam":
-            from optimer.optimer_sam import SAM
+            from optimer_PerturabtionType.optimer_sam import SAM
 
             print("init optimer-SAM")
             return SAM(
@@ -544,7 +544,7 @@ class BaseLearner(object):
             )
 
         elif self._optimizer_type == "cflat":
-            from optimer.c_flat import C_Flat
+            from optimer_PerturabtionType.c_flat import C_Flat
 
             base_opt = optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
             return C_Flat(
@@ -561,7 +561,7 @@ class BaseLearner(object):
         
         elif self._optimizer_type == "gam":
             # Gradient-Ascent Mask (GAM) optimizer; prefer finetune-initialized settings.
-            from optimer.gam import GAM
+            from optimer_PerturabtionType.gam import GAM
 
             pre = getattr(self, "_gam_args", None)
             if pre is not None:
@@ -611,7 +611,7 @@ class BaseLearner(object):
 
         elif self._optimizer_type == "arwp":
             # Random Weight Perturbation optimizer (ARWP)
-            from optimer.ARWP_cos import ARWP
+            from optimer_PerturabtionType.ARWP_cos import ARWP
             base_name = str(self.args.get("optimizer", "sgd")).lower()
             if base_name == "adam":
                 base_opt_cls = optim.Adam

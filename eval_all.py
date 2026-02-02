@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from utils.config import load_config
 from utils import factory
 from utils.data_manager import DataManager
-from eval_flat.loss_landscape import compute_loss_landscape_v1
+from evaluation_sharpness.loss_landscape import compute_loss_landscape_v1
 
 
 def _parse_override_pairs(pairs) -> Dict[str, object]:
