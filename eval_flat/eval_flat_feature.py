@@ -1,1 +1,1 @@
-from evaluation_sharpness.eval_flat_feature import *  # noqa
+from evaluation_feature.eval_flat_feature import *  # noqa

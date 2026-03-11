@@ -12,6 +12,15 @@ from backbone.lora import LoRA_ViT_timm
 def get_backbone(args, pretrained=False):
     name = args["backbone_type"].lower()
     method_name = str(args.get("model_name", "")).lower()
+    if (name == "pretrained_vit_b16_224" or name == "vit_base_patch16_224") and method_name in {
+        "ewclora_youyue_github"
+    }:
+        from backbone.net_ewclora import EWC_net
+
+        model = EWC_net(args)
+        print("ewclora special backbone version")
+        return model
+
     ## Lora version
     if (name == "pretrained_vit_b16_224" or name == "vit_base_patch16_224") and ("lora" in method_name):
         model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
@@ -362,6 +371,10 @@ class IncrementalNet(BaseNet):
         del self.fc
         self.fc = fc
 
+        # EWCLoRA backbones keep their own per-task classifier pool.
+        if getattr(self.backbone, "is_ewc_net", False):
+            self.backbone.update_fc(nb_classes)
+
     def weight_align(self, increment):
         weights = self.fc.weight.data
         newnorm = torch.norm(weights[-increment:, :], p=2, dim=1)
@@ -408,20 +421,37 @@ class IncrementalNet(BaseNet):
             bias = torch.load(bias_path, map_location="cpu")
             self.fc.bias.data.copy_(bias.to(self.fc.bias.device))
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         if self.model_type == 'cnn':
             x = self.backbone(x)
             out = self.fc(x["features"])
             out.update(x)
         else:
-            x = self.backbone(x)
-            out = self.fc(x)
-            out.update({"features": x})
+            feats_or_out = self.backbone(x, **kwargs) if kwargs else self.backbone(x)
+            if isinstance(feats_or_out, dict):
+                out = feats_or_out
+            else:
+                out = self.fc(feats_or_out)
+                out.update({"features": feats_or_out})
 
         if hasattr(self, "gradcam") and self.gradcam:
             out["gradcam_gradients"] = self._gradcam_gradients
             out["gradcam_activations"] = self._gradcam_activations
         return out
+
+    def interface(self, x, **kwargs):
+        if hasattr(self.backbone, "interface"):
+            return self.backbone.interface(x, **kwargs)
+        outputs = self.forward(x, **kwargs)
+        return outputs["logits"]
+
+    def extract_features(self, x, **kwargs):
+        if hasattr(self.backbone, "extract_features"):
+            return self.backbone.extract_features(x, **kwargs)
+        feats_or_out = self.backbone(x, **kwargs) if kwargs else self.backbone(x)
+        if isinstance(feats_or_out, dict):
+            return feats_or_out.get("features", feats_or_out.get("logits"))
+        return feats_or_out
 
     def unset_gradcam_hook(self):
         self._gradcam_hooks[0].remove()
@@ -1577,4 +1607,3 @@ class SiNet_BEFORE(nn.Module):
         self.eval()
 
         return self
-

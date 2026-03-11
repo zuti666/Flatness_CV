@@ -159,6 +159,15 @@ class _LoRA_qkv_timm_train(nn.Module):
         self.t_layer_i = t_layer_i
         self.rank = rank
         self.eval = eval1
+        self._register_delta_hook = False
+        self.delta_w_q_new_grad = None
+        self.delta_w_v_new_grad = None
+
+    def save_grad(self, name):
+        def hook(grad):
+            setattr(self, f"{name}_grad", grad)
+
+        return hook
 
     def forward(self, x):
 
@@ -200,8 +209,19 @@ class _LoRA_qkv_timm_train(nn.Module):
                 new_q += self.scaling_factor_prev[i]( w_b_linear_q(w_a_linear_q(x))/ (torch.norm(w_b_linear_q.weight)* torch.norm(w_a_linear_q.weight) )  )
                 new_v += self.scaling_factor_prev[i]( w_b_linear_v(w_a_linear_v(x))/ (torch.norm(w_b_linear_v.weight)* torch.norm(w_a_linear_v.weight) )  )
 
-        new_q += self.scaling_factor[0]( self.linear_b_q(self.linear_a_q(x)) )
-        new_v += self.scaling_factor[0]( self.linear_b_v(self.linear_a_v(x)) )
+        delta_w_q_new = self.linear_b_q.weight @ self.linear_a_q.weight
+        delta_w_v_new = self.linear_b_v.weight @ self.linear_a_v.weight
+        cur_q = x @ delta_w_q_new.t()
+        cur_v = x @ delta_w_v_new.t()
+
+        if self._register_delta_hook:
+            self.delta_w_q_new_grad = None
+            self.delta_w_v_new_grad = None
+            delta_w_q_new.register_hook(self.save_grad("delta_w_q_new"))
+            delta_w_v_new.register_hook(self.save_grad("delta_w_v_new"))
+
+        new_q += self.scaling_factor[0](cur_q)
+        new_v += self.scaling_factor[0](cur_v)
         qkv = self.qkv(x) 
         qkv[:, :, : self.dim] += new_q
         qkv[:, :, -self.dim :] += new_v

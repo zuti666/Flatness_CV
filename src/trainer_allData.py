@@ -18,6 +18,7 @@ from eval_flat.param_utils import _select_params_by_name
 from eval_flat.eval_flat_feature import FeatureFlatnessConfig, evaluate_feature_metrics
 from backbone.lora import LoRA_ViT_timm
 from utils.random_reproduce import json_safe
+from utils.metrics_book import metrics_json_path, write_final_metrics
 
 def _to_float_metric(x):
     import numpy as np
@@ -86,28 +87,7 @@ def _train(args: Dict[str, Any]):
     )
 
     # === 统一评估结果保存（与 trainer.py 对齐） ===
-    def _metrics_book_path(_log_dir: str, _logfilename: str) -> str:
-        return os.path.join(_log_dir, f"{os.path.basename(_logfilename)}_cl_metrics.json")
-
-    def _write_final_metrics(json_path: str, section: str, final_metrics: dict, final_matrix=None):
-        os.makedirs(os.path.dirname(json_path), exist_ok=True)
-        J = {}
-        if os.path.exists(json_path):
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    J = json.load(f)
-            except Exception:
-                J = {}
-        S = J.setdefault(section, {})
-        S["final"] = final_metrics
-        if final_matrix is not None:
-            S.setdefault("matrices", {})["final"] = np.asarray(final_matrix, dtype=float).tolist()
-        tmp = json_path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(J, f, indent=2, ensure_ascii=False, default=json_safe)
-        os.replace(tmp, json_path)
-
-    metrics_book_path = _metrics_book_path(log_dir, logfilename)
+    metrics_book_path = metrics_json_path(log_dir, logfilename)
 
     # ---------------------------
     # 1) Env & data/model
@@ -959,7 +939,7 @@ def _train(args: Dict[str, Any]):
             ood_results["imagenetr"] = {"top1": float(acc_c.get("top1", 0.0)), "top5": float(acc_c.get("top5", 0.0))}
             logging.info("[OOD][Tiny-ImageNet-R] top1=%.2f | top5=%.2f", ood_results["imagenetr"]["top1"], ood_results["imagenetr"]["top5"])
             # Persist into unified metrics json
-            _write_final_metrics(metrics_book_path, "imagenetr", final_metrics=ood_results["imagenetr"], final_matrix=None)
+            write_final_metrics(metrics_book_path, "imagenetr", final_metrics=ood_results["imagenetr"], final_matrix=None, json_safe=json_safe)
 
 
         # Tiny-ImageNet-C
@@ -972,7 +952,7 @@ def _train(args: Dict[str, Any]):
             ood_results["tiny_imagenetc"] = {"top1": float(acc_c.get("top1", 0.0)), "top5": float(acc_c.get("top5", 0.0))}
             logging.info("[OOD][Tiny-ImageNet-R] top1=%.2f | top5=%.2f", ood_results["tiny_imagenetc"]["top1"], ood_results["tiny_imagenetc"]["top5"])
             # Persist into unified metrics json
-            _write_final_metrics(metrics_book_path, "tiny_imagenetc", final_metrics=ood_results["tiny_imagenetc"], final_matrix=None)
+            write_final_metrics(metrics_book_path, "tiny_imagenetc", final_metrics=ood_results["tiny_imagenetc"], final_matrix=None, json_safe=json_safe)
 
         # Tiny-ImageNet-P
         if bool(args.get("ood_imagenet_p", True)):
@@ -984,7 +964,7 @@ def _train(args: Dict[str, Any]):
             ood_results["tiny_imagenetp"] = {"top1": float(acc_p.get("top1", 0.0)), "top5": float(acc_p.get("top5", 0.0))}
             logging.info("[OOD][Tiny-ImageNet-P-R] top1=%.2f | top5=%.2f", ood_results["tiny_imagenetp"]["top1"], ood_results["tiny_imagenetp"]["top5"])
             # Persist into unified metrics json
-            _write_final_metrics(metrics_book_path, "ood_tiny_tiny_imagenetp", final_metrics=ood_results["tiny_imagenetp"], final_matrix=None)
+            write_final_metrics(metrics_book_path, "ood_tiny_tiny_imagenetp", final_metrics=ood_results["tiny_imagenetp"], final_matrix=None, json_safe=json_safe)
     
     
     

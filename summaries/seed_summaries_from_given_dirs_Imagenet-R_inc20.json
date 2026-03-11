@@ -1,0 +1,1024 @@
+{
+  "rows": [
+    {
+      "Method": "ogd",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "exps8_3_ogd_noise_ogd_sgd_gpu0",
+      "Increment": "20",
+      "FAA": 23.582,
+      "AAA": 40.73709090909091,
+      "BWT": -61.296666666666674,
+      "NME_FAA": 67.776,
+      "NME_AAA": 71.51781818181817,
+      "NME_BWT": -14.400000000000002,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    },
+    {
+      "Method": "ogd_rwp_gaussian",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "exps8_3_ogd_noise_ogd_rwp_gaussian_sgd_gpu0",
+      "Increment": "20",
+      "FAA": 36.669000000000004,
+      "AAA": 46.52654545454545,
+      "BWT": -44.86888888888889,
+      "NME_FAA": 68.15599999999999,
+      "NME_AAA": 71.49818181818183,
+      "NME_BWT": -13.415555555555555,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    },
+    {
+      "Method": "ogd_rwp_fisher",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "exps8_3_ogd_noise_ogd_rwp_fisher_sgd_gpu1",
+      "Increment": "20",
+      "FAA": 35.414,
+      "AAA": 48.980363636363634,
+      "BWT": -47.92333333333333,
+      "NME_FAA": 68.708,
+      "NME_AAA": 72.96999999999998,
+      "NME_BWT": -14.02888888888889,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    },
+    {
+      "Method": "ogd_rwp_fisher_2",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "exps8_3_ogd_noise_ogd_rwp_fisher_2_sgd_gpu2",
+      "Increment": "20",
+      "FAA": 29.918,
+      "AAA": 44.35690909090909,
+      "BWT": -55.01555555555555,
+      "NME_FAA": 67.85,
+      "NME_AAA": 72.65436363636363,
+      "NME_BWT": -15.06777777777778,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    }
+  ],
+  "avg_by_method_opt": {
+    "Method": [
+      "ogd",
+      "ogd_rwp_fisher",
+      "ogd_rwp_fisher_2",
+      "ogd_rwp_gaussian"
+    ],
+    "Optimizer": [
+      "sgd",
+      "sgd",
+      "sgd",
+      "sgd"
+    ],
+    "FAA": [
+      23.582,
+      35.414,
+      29.918,
+      36.669000000000004
+    ],
+    "AAA": [
+      40.73709090909091,
+      48.980363636363634,
+      44.35690909090909,
+      46.52654545454545
+    ],
+    "BWT": [
+      -61.296666666666674,
+      -47.92333333333333,
+      -55.01555555555555,
+      -44.86888888888889
+    ],
+    "NME_FAA": [
+      67.776,
+      68.708,
+      67.85,
+      68.15599999999999
+    ],
+    "NME_AAA": [
+      71.51781818181817,
+      72.96999999999998,
+      72.65436363636363,
+      71.49818181818183
+    ],
+    "NME_BWT": [
+      -14.400000000000002,
+      -14.02888888888889,
+      -15.06777777777778,
+      -13.415555555555555
+    ],
+    "LP_LA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_base_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_final": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_base": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "base_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "first_order_sharpness": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh1_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh0_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rho(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "frobenius_norm(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "num_samples(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "effective_rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "anisotropy_index(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top1": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top5_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top10_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_tail_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_n_classes": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_stab_seen_first": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_n_pairs": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ]
+  },
+  "std_by_method_opt": {
+    "Method": [
+      "ogd",
+      "ogd_rwp_fisher",
+      "ogd_rwp_fisher_2",
+      "ogd_rwp_gaussian"
+    ],
+    "Optimizer": [
+      "sgd",
+      "sgd",
+      "sgd",
+      "sgd"
+    ],
+    "FAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "BWT": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "NME_FAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "NME_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "NME_BWT": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_LA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_base_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_final": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_base": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "base_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "first_order_sharpness": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh1_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh0_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rho(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "frobenius_norm(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "num_samples(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "effective_rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "anisotropy_index(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top1": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top5_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top10_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_tail_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_n_classes": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_stab_seen_first": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_n_pairs": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ]
+  }
+}

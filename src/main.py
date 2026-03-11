@@ -40,6 +40,12 @@ def _parse_override_pairs(pairs) -> Dict[str, object]:
             return False
         if lower in {"null", "none"}:
             return None
+        # allow JSON-style list/dict literals
+        if value.startswith("[") or value.startswith("{"):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                pass
         try:
             if value.startswith("[") or value.startswith("{"):
                 return json.loads(value)

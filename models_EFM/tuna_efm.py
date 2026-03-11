@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import TUNANet
 # from models.base import BaseLearner
-from models.baseLearner import BaseLearner
+from models_CL.baseLearner import BaseLearner
 from utils.toolkit import tensor2numpy, target2onehot
 from torch.distributions.multivariate_normal import MultivariateNormal
 from models_EFM.efm_trust import EFMTrustRegionHelper

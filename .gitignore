@@ -85,3 +85,5 @@ ENV/
 # --------------------
 *_upload.py
 *_origin.py
+!models_LoRAbasedCL/GeoLoRA_origin.py
+!backbone/install.sh

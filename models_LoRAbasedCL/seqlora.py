@@ -106,6 +106,8 @@ class Learner(LoraBaseLearner):
 
     def incremental_train(self, data_manager):
         self._refresh_distributed_context()
+        # Keep a handle for downstream components (e.g., InfoBudget old-train loader)
+        self.data_manager = data_manager
 
         self._cur_task += 1
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
@@ -129,7 +131,8 @@ class Learner(LoraBaseLearner):
         )
 
         self._train(self.train_loader, self.test_loader)
-        # self.build_rehearsal_memory(data_manager, self.samples_per_class)
+        if self._memory_size > 0 or self._memory_per_class:
+            self.build_rehearsal_memory(data_manager, self.samples_per_class)
         self._network = self._unwrap_network()
 
         # Compute class-means over all seen classes for NME evaluation (Class-IL)

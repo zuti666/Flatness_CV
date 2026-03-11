@@ -28,6 +28,7 @@ class GAM(torch.optim.Optimizer):
         self.grad_rho_scheduler = grad_rho_scheduler
         self.grad_norm_rho_scheduler = grad_norm_rho_scheduler
         self.update_rho_t()
+        self._direction_projector = None
 
     def get_grad_reduce(self, grad_reduce: str):
         if grad_reduce.lower() == 'mean':
@@ -50,6 +51,10 @@ class GAM(torch.optim.Optimizer):
 
         if self.grad_norm_rho_scheduler is not None:
             self.grad_norm_rho = self.grad_norm_rho_scheduler.step()
+
+    def set_direction_projector(self, projector):
+        """Attach a callback that can modify gradients before optimizer step."""
+        self._direction_projector = projector
 
     @torch.no_grad()
     def perturb_weights(self, perturb_idx: int):
@@ -247,6 +252,9 @@ class GAM(torch.optim.Optimizer):
 
             # decompose and get new update direction
             self.gradient_decompose(args=self.args)
+
+            if callable(self._direction_projector):
+                self._direction_projector(self.param_groups)
 
             # unperturb
             self.unperturb(perturb_key="e_w_1_2")
