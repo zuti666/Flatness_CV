@@ -334,3 +334,48 @@ W_t 对任务 t 过拟合，其 Fisher 高度偏向任务 t，无法正确衡量
 #### Fix W3 applied: momentum 从 args 读取
 
 ### Status: → Round 2 (implementing fixes, waiting for experiment results)
+
+---
+
+# OGD+Fisher — Auto Review Loop (Round 4)
+**Paper:** Drift-Diffusion Controlled Continual Learning (Mypaper/Mypaepr.tex)
+**Started:** 2026-03-12
+
+## Round 4 (2026-03-12) — Post-Experiment-Update Review
+
+### Context
+Since Round 3 (score 6/10), major changes:
+- New experimental results (exps8-12): best method G2 (OGD+Fisher, std=7e-3) = 68.35% AAA vs SAM 64.34%
+- Paper experiments section rewritten with Tables 1 & 2
+- 15-run multi-seed exps13 launched (seeds 1993, 42, 2048, currently RUNNING)
+
+### Assessment (NeurIPS-level, claude-opus-4-6)
+- **Score: 5/10**
+- **Verdict: Not Ready**
+
+### Critical Weaknesses (ranked)
+| # | Severity | Issue | Fix |
+|---|----------|-------|-----|
+| W1 | BLOCKING | Abstract numbers wrong (from old GAM variant, not current method) | Rewrite abstract with correct numbers |
+| W2 | BLOCKING | Missing SOTA baselines (EWC, L2P, DualPrompt) | Add EWC + note on prompt-based scope |
+| W3 | HIGH | Single-seed results, no error bars | exps13 running (3 seeds) |
+| W4 | HIGH | Gaussian fair comparison (std=7e-3, task0) is PENDING | exps13 running |
+| W5 | MEDIUM-HIGH | 2-task theory vs 10-task experiments gap undiscussed | Add theory-practice gap paragraph |
+| W6 | MEDIUM | start_task=0 heuristic not acknowledged | Add honest framing paragraph |
+| W7 | MEDIUM | OGD < Finetune unexplained | Add dirs sweep explanation |
+
+### Actions Taken in Round 4
+- [x] W1: Rewrote abstract with correct numbers (OGD=50.01%, Ours=68.35%, +18.3pts, +4.0 over SAM)
+- [x] W5: Added "Theory--practice gap" paragraph in Experiments section
+- [x] W6: Added "Practical design note: noise start task" paragraph
+- [x] W7: Expanded OGD vs Finetune analysis with dirs explanation
+- [x] W2 (partial): Added baseline description paragraph; noted prompt-based scope exclusion
+- [ ] W3: exps13 RUNNING — 3 seeds, will fill table when done
+- [ ] W4: exps13 gaussian RUNNING — will fill Table 2 when done
+- [ ] W2 (full): EWC experiments not yet run; prompt-based comparison deferred
+
+### Status
+→ Continuing — score 5/10, threshold not met
+→ Waiting for exps13 results to fill W3 + W4
+→ Round 5 should be run after exps13 completes
+

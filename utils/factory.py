@@ -10,6 +10,10 @@ def get_model(model_name, args):
         from models_CL.EWC import Learner
     elif name == "ewcon":
         from models_CL.EWCon import Learner
+    elif name in {"ewcon_rwp_gaussian", "ewcon_rwp_gauss"}:
+        from models_CL.EWCon_RWP_Gaussian import Learner
+    elif name in {"ewcon_rwp_fisher", "ewcon_fisher"}:
+        from models_CL.EWCon_RWP_Fisher import Learner
     elif name in {"fo_so", "fo_so_noise", "ogd_noiseinject", "ogd_noise_inject"}:
         from models_CL.OGD_noiseInject import Learner
     elif name in {"ogd_noiseinject_gaussian", "ogd_noise_inject_gaussian", "fo_so_noise_gaussian"}:
