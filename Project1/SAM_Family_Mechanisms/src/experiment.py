@@ -177,6 +177,9 @@ def resolved_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     config["dimension"] = _exact_int(config["dimension"], "dimension")
     config["lambda_min"] = _finite_float(config["lambda_min"], "lambda_min")
     config["lambda_max"] = _finite_float(config["lambda_max"], "lambda_max")
+    for field in ("rho_scales", "inner_steps", "path_protocols"):
+        if not isinstance(config.get(field), (list, tuple)):
+            raise ValueError(f"{field} must be a list")
     config["rho_scales"] = [
         _finite_float(value, f"rho_scales[{index}]")
         for index, value in enumerate(config["rho_scales"])
@@ -259,22 +262,47 @@ def _record_objects(traces: list[OperatorTrace]) -> list[dict[str, Any]]:
                 "method": trace.method,
                 "object_kind": object_kind,
                 "is_update": True,
-                "correction": trace.correction,
+                "is_correction": True,
+                "vector": trace.correction,
+                "quality_perturbation": None if trace.method == "gam" else trace.perturbation,
+                "quality_perturbation_kind": None if trace.method == "gam" else (
+                    "path_endpoint"
+                    if trace.method in {"multistep_sam", "lookbehind"}
+                    else "zero_perturbation"
+                    if trace.method == "sgd"
+                    else "sam_gradient_perturbation"
+                ),
                 "trace": trace,
             }
         )
         if trace.method == "gam":
-            if trace.probe_increment is None:
-                raise RuntimeError("GAM trace is missing probe_increment")
-            records.append(
-                {
-                    "key": "gam_probe_increment",
-                    "method": "gam",
-                    "object_kind": "probe_increment",
-                    "is_update": False,
-                    "correction": trace.probe_increment,
-                    "trace": trace,
-                }
+            if trace.probe_direction is None or trace.probe_increment is None:
+                raise RuntimeError("GAM trace is missing probe objects")
+            records.extend(
+                [
+                    {
+                        "key": "gam_probe_direction",
+                        "method": "gam",
+                        "object_kind": "probe_direction",
+                        "is_update": False,
+                        "is_correction": False,
+                        "vector": trace.probe_direction,
+                        "quality_perturbation": trace.perturbation,
+                        "quality_perturbation_kind": "gam_probe_perturbation",
+                        "trace": trace,
+                    },
+                    {
+                        "key": "gam_probe_increment",
+                        "method": "gam",
+                        "object_kind": "probe_increment",
+                        "is_update": False,
+                        "is_correction": False,
+                        "vector": trace.probe_increment,
+                        "quality_perturbation": None,
+                        "quality_perturbation_kind": None,
+                        "trace": trace,
+                    },
+                ]
             )
     return records
 
@@ -287,17 +315,25 @@ def _summary_rows(
     weights: Array,
     gradient: Array,
     eigenvectors: Array,
+    rho_scale: float,
+    rho: float,
 ) -> list[dict[str, Any]]:
     traces_by_key = {trace.key: trace for trace in traces}
     summaries = []
     for record in records:
         trace: OperatorTrace = record["trace"]
-        correction: Array = record["correction"]
+        vector: Array = record["vector"]
         is_update = bool(record["is_update"])
+        is_correction = bool(record["is_correction"])
         path = path_metrics(trace)
-        fit = nested_hessian_fit(correction, hessian, gradient, max_order=3)
-        curvature = signed_curvature_metrics(correction, hessian)
-        correction_norm = float(np.linalg.norm(correction))
+        fit = nested_hessian_fit(vector, hessian, gradient, max_order=3)
+        curvature = signed_curvature_metrics(vector, hessian)
+        object_norm = float(np.linalg.norm(vector))
+        correction_norm = object_norm if is_correction else None
+        quality_perturbation = record["quality_perturbation"]
+        paired_path_rho_step = None
+        if trace.method == "matched_sam":
+            paired_path_rho_step = float(trace.metadata["rho_step"])
         row: dict[str, Any] = {
             "key": record["key"],
             "method": record["method"],
@@ -305,18 +341,26 @@ def _summary_rows(
             "is_update": is_update,
             "protocol": trace.protocol,
             "inner_steps": trace.inner_steps,
+            "rho_scale": float(rho_scale),
+            "rho": float(rho),
             "rho_step": trace.rho_step,
-            "oracle_radius": comparison_radii[trace.key] if is_update else None,
+            "paired_path_rho_step": paired_path_rho_step,
+            "oracle_radius": comparison_radii[trace.key] if quality_perturbation is not None else None,
             "gradient_evaluations": trace.gradient_evaluations,
             "hvp_evaluations": trace.hvp_evaluations,
             "backward_equivalents": trace.backward_equivalents,
             "gradient_norm": float(np.linalg.norm(gradient)),
             "direction_norm": float(np.linalg.norm(trace.direction)) if is_update else None,
+            "object_norm": object_norm,
             "correction_norm": correction_norm,
-            "correction_gradient_ratio": correction_norm / float(np.linalg.norm(gradient)),
-            "top_energy_1": top_subspace_energy(correction, eigenvectors, 1),
-            "top_energy_5": top_subspace_energy(correction, eigenvectors, 5),
-            "top_energy_10": top_subspace_energy(correction, eigenvectors, 10),
+            "correction_gradient_ratio": (
+                correction_norm / float(np.linalg.norm(gradient))
+                if correction_norm is not None
+                else None
+            ),
+            "top_energy_1": top_subspace_energy(vector, eigenvectors, 1),
+            "top_energy_5": top_subspace_energy(vector, eigenvectors, 5),
+            "top_energy_10": top_subspace_energy(vector, eigenvectors, 10),
             **curvature,
             **fit,
             "q0": None,
@@ -325,13 +369,14 @@ def _summary_rows(
             "q0_denominator": None,
             "q1_numerator": None,
             "q1_denominator": None,
-            "quality_perturbation_kind": None,
-            "endpoint_radius": path["endpoint_radius"] if is_update else float(np.linalg.norm(trace.perturbation)),
+            "quality_perturbation_kind": record["quality_perturbation_kind"],
+            "associated_perturbation_radius": float(np.linalg.norm(trace.perturbation)),
+            "endpoint_radius": path["endpoint_radius"] if is_update else None,
             "path_radius": path["path_radius"] if is_update else None,
-            "path_budget": comparison_radii[trace.key] if is_update else None,
+            "path_budget": comparison_radii[trace.key] if (is_update or quality_perturbation is not None) else None,
             "path_misalign": path["path_misalign"] if is_update else None,
             "last_average_difference": path["last_average_difference"] if is_update else None,
-            "path_novelty": path_novelty(correction, hessian, gradient),
+            "path_novelty": path_novelty(vector, hessian, gradient),
             "matched_direction_cosine": None,
             "matched_correction_cosine": None,
             "direction_gradient_cosine": None,
@@ -339,19 +384,11 @@ def _summary_rows(
             "positive_curvature_exposure": None,
             "safe_descent": None,
         }
-        if is_update:
-            if trace.method == "gam":
-                row["quality_perturbation_kind"] = "gam_probe_perturbation"
-            elif trace.method in {"multistep_sam", "lookbehind"}:
-                row["quality_perturbation_kind"] = "path_endpoint"
-            elif trace.method == "sgd":
-                row["quality_perturbation_kind"] = "zero_perturbation"
-            else:
-                row["quality_perturbation_kind"] = "sam_gradient_perturbation"
+        if quality_perturbation is not None:
             quality = inner_problem_quality(
                 hessian,
                 weights,
-                trace.perturbation,
+                quality_perturbation,
                 comparison_radii[trace.key],
             )
             for name in (
@@ -363,6 +400,7 @@ def _summary_rows(
                 "q1_denominator",
             ):
                 row[name] = quality[name]
+        if is_update:
             row.update(descent_metrics(trace.direction, gradient, hessian))
 
         if trace.method == "lookbehind" and is_update:
@@ -379,15 +417,17 @@ def _spectral_rows(
     eigenvalues: Array,
     eigenvectors: Array,
     gradient: Array,
+    rho_scale: float,
+    rho: float,
 ) -> list[dict[str, Any]]:
     rows = []
     for record in records:
         trace: OperatorTrace = record["trace"]
-        correction = np.asarray(record["correction"], dtype=np.float64)
-        correction_projections = eigenvectors.T @ correction
+        vector = np.asarray(record["vector"], dtype=np.float64)
+        correction_projections = eigenvectors.T @ vector
         ghat_projections = eigenvectors.T @ unit(gradient)
-        gains = spectral_gain(correction, gradient, eigenvectors)
-        correction_is_zero = float(np.linalg.norm(correction)) <= 1e-30
+        gains = spectral_gain(vector, gradient, eigenvectors)
+        correction_is_zero = float(np.linalg.norm(vector)) <= 1e-30
         for index, (eigenvalue, gain, correction_projection, ghat_projection) in enumerate(
             zip(eigenvalues, gains, correction_projections, ghat_projections), start=1
         ):
@@ -399,6 +439,8 @@ def _spectral_rows(
                     "is_update": bool(record["is_update"]),
                     "protocol": trace.protocol,
                     "inner_steps": trace.inner_steps,
+                    "rho_scale": float(rho_scale),
+                    "rho": float(rho),
                     "eigen_index": index,
                     "eigenvalue": float(eigenvalue),
                     "correction_projection": float(correction_projection),
@@ -411,6 +453,27 @@ def _spectral_rows(
 
 def _safe_key(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_")
+
+
+def _code_fingerprint() -> dict[str, Any]:
+    package_root = Path(__file__).resolve().parents[1]
+    relative_paths = [
+        "run_quadratic.py",
+        "src/operators.py",
+        "src/diagnostics.py",
+        "src/experiment.py",
+        "src/plotting.py",
+    ]
+    files = {}
+    aggregate = hashlib.sha256()
+    for relative in relative_paths:
+        content = (package_root / relative).read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        files[relative] = digest
+        aggregate.update(relative.encode("utf-8"))
+        aggregate.update(b"\0")
+        aggregate.update(content)
+    return {"sha256": aggregate.hexdigest(), "files": files}
 
 
 def _array_payload(
@@ -455,7 +518,9 @@ def _json_safe(value: Any) -> Any:
         return [_json_safe(item) for item in value.tolist()]
     if isinstance(value, (np.floating, float)):
         number = float(value)
-        return number if np.isfinite(number) else None
+        if not np.isfinite(number):
+            raise ValueError(f"Defined metric is non-finite: {number!r}")
+        return number
     if isinstance(value, (np.integer, int)) and not isinstance(value, bool):
         return int(value)
     if isinstance(value, (np.bool_, bool)):
@@ -477,7 +542,11 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> Non
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
-            writer.writerow({field: row.get(field) for field in fields})
+            selected = {field: row.get(field) for field in fields}
+            for field, value in selected.items():
+                if isinstance(value, (float, np.floating)) and not np.isfinite(float(value)):
+                    raise ValueError(f"Non-finite CSV value for {field}: {value!r}")
+            writer.writerow(selected)
 
 
 def run_quadratic_experiment(
@@ -495,6 +564,8 @@ def run_quadratic_experiment(
     eigenvalues, eigenvectors = eigensystem_descending(hessian)
     traces, comparison_radii = build_traces(hessian, weights, config)
     records = _record_objects(traces)
+    rho_scale = float(config["primary_rho_scale"])
+    rho = rho_scale * float(np.linalg.norm(weights))
     summaries = _summary_rows(
         records,
         traces,
@@ -503,13 +574,16 @@ def run_quadratic_experiment(
         weights,
         gradient,
         eigenvectors,
+        rho_scale,
+        rho,
     )
-    spectrum = _spectral_rows(records, eigenvalues, eigenvectors, gradient)
+    spectrum = _spectral_rows(
+        records, eigenvalues, eigenvectors, gradient, rho_scale, rho
+    )
     hvp_rows = hvp_scan(hessian, weights, config["rho_scales"])
 
     sam = next(trace for trace in traces if trace.key == "sam")
     gam = next(trace for trace in traces if trace.key == "gam")
-    rho = float(config["primary_rho_scale"]) * float(np.linalg.norm(weights))
     sam_truth = rho * (hessian @ unit(gradient))
     gam_probe_truth = rho * (hessian @ hessian @ unit(gradient)) / float(
         np.linalg.norm(hessian @ unit(gradient))
@@ -548,6 +622,7 @@ def run_quadratic_experiment(
         "schema_version": "1.0",
         "experiment_id": config["experiment_id"],
         "implementation_status": "E001_implemented",
+        "code_fingerprint": _code_fingerprint(),
         "config": config,
         "runtime": {
             "dtype": "float64",
@@ -566,6 +641,17 @@ def run_quadratic_experiment(
                 "accounting": "algorithmic equivalent; E001 itself uses analytic NumPy operators",
             }
             for trace in traces
+        ],
+        "objects": [
+            {
+                "key": record["key"],
+                "method": record["method"],
+                "object_kind": record["object_kind"],
+                "is_update": record["is_update"],
+                "is_correction": record["is_correction"],
+                "quality_perturbation_kind": record["quality_perturbation_kind"],
+            }
+            for record in records
         ],
         "definitions": {
             "gradient": "g = H w",
@@ -623,6 +709,8 @@ def run_quadratic_experiment(
             "is_update",
             "protocol",
             "inner_steps",
+            "rho_scale",
+            "rho",
             "eigen_index",
             "eigenvalue",
             "correction_projection",
