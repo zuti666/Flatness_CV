@@ -1,0 +1,40 @@
+% Combined LLM results: FAA across three NLP task orders
+% Source logs: Order-1_8 / Order-2_8 / Order-3_8 Main_Result sheets
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Final Average Accuracy (FAA, \%) across three NLP task orders for T5-large and T5-small.
+  Values are extracted from the final task row in the \texttt{Main\_Result} sheet of each source Excel log.
+  Task orders: o1 = DBpedia $\rightarrow$ Amazon $\rightarrow$ Yahoo $\rightarrow$ AGNews;
+  o2 = DBpedia $\rightarrow$ Amazon $\rightarrow$ AGNews $\rightarrow$ Yahoo;
+  o3 = Yahoo $\rightarrow$ Amazon $\rightarrow$ AGNews $\rightarrow$ DBpedia.
+}
+\label{tab:combine_llm_detailed}
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{0.95}
+\small
+\begin{tabular}{@{}l l l r r r r@{}}
+\toprule
+\textbf{Model} & \textbf{Method} & \textbf{Opt.} & \textbf{o1} & \textbf{o2} & \textbf{o3} & \textbf{Avg} \\
+\midrule
+\multirow{6}{*}{\textbf{T5-large}} & SeqLoRA & Adam & 56.40 & 66.24 & 69.88 & 64.17 \\
+ & SeqLoRA & SAM & 65.43 & 68.09 & 73.35 & 68.96 \\
+\addlinespace[2pt]
+ & IncLoRA & Adam & 48.01 & 77.39 & 70.37 & 65.26 \\
+ & IncLoRA & SAM & 71.00 & 69.99 & 73.27 & 71.42 \\
+\addlinespace[2pt]
+ & OLoRA & Adam & 77.59 & 76.50 & 77.55 & 77.21 \\
+ & OLoRA & SAM & 78.51 & 78.60 & 76.26 & 77.79 \\
+\addlinespace[2pt]
+\multirow{6}{*}{\textbf{T5-small}} & SeqLoRA & Adam & 34.32 & 44.26 & 50.22 & 42.93 \\
+ & SeqLoRA & SAM & 43.07 & 49.61 & 50.12 & 47.60 \\
+\addlinespace[2pt]
+ & IncLoRA & Adam & 48.01 & 57.84 & 55.46 & 53.77 \\
+ & IncLoRA & SAM & 50.92 & 56.99 & 45.56 & 51.16 \\
+\addlinespace[2pt]
+ & OLoRA & Adam & 62.45 & 61.68 & 57.36 & 60.50 \\
+ & OLoRA & SAM & 61.67 & 62.88 & 58.11 & 60.89 \\
+\bottomrule
+\end{tabular}
+\end{table*}

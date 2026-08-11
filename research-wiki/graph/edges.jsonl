@@ -1,0 +1,30 @@
+{"from": "paper:foret2021_sam", "to": "paper:li2024_flatlora", "type": "extends", "note": "Flat-LoRA adapts SAM to LoRA fine-tuning"}
+{"from": "paper:foret2021_sam", "to": "paper:bisla2022_rwp", "type": "extends", "note": "RWP is a variant of SAM"}
+{"from": "paper:foret2021_sam", "to": "paper:zhang2023_gam", "type": "extends", "note": "GAM extends SAM to first-order flatness"}
+{"from": "paper:li2024_flatlora", "to": "paper:foret2021_sam", "type": "extends"}
+{"from": "paper:li2024_flatlora", "to": "idea:001", "type": "addresses_gap", "note": "Flat-LoRA claims full-param perturbation needed — our idea contests this"}
+{"from": "paper:pentina2014_pacbayes_cl", "to": "idea:001", "type": "inspired_by"}
+{"from": "paper:nguyen2025_pacbayes_cumulative", "to": "paper:pentina2014_pacbayes_cl", "type": "extends"}
+{"from": "idea:001", "to": "paper:li2024_flatlora", "type": "addresses_gap", "note": "Directly contradicts Flat-LoRA's full-perturbation recommendation"}
+{"from": "idea:001", "to": "paper:foret2021_sam", "type": "inspired_by"}
+{"from": "idea:001", "to": "paper:pentina2014_pacbayes_cl", "type": "inspired_by"}
+{"from": "idea:001", "to": "gap:G1", "type": "addresses_gap"}
+{"from": "idea:001", "to": "gap:G2", "type": "addresses_gap"}
+{"from": "exp:E001", "to": "claim:C1", "type": "supports"}
+{"from": "exp:E001", "to": "claim:C2", "type": "supports"}
+{"from": "exp:E001", "to": "claim:C3", "type": "supports"}
+{"from": "exp:E002", "to": "claim:C4", "type": "supports"}
+{"from": "exp:E002", "to": "claim:C5", "type": "supports"}
+{"from": "idea:001", "to": "claim:C1", "type": "tested_by"}
+{"from": "idea:001", "to": "claim:C2", "type": "tested_by"}
+{"from": "idea:001", "to": "claim:C3", "type": "tested_by"}
+{"from": "paper:zhang2023_gam", "to": "gap:G3", "type": "addresses_gap"}
+{"from": "paper:neural_thickets2026", "to": "gap:G4", "type": "addresses_gap"}
+{"from": "paper:li2025_sam_scaleinvariant", "to": "paper:foret2021_sam", "type": "extends"}
+{"from": "idea:002", "to": "idea:001", "type": "inspired_by", "note": "forgetting-sharpness theorem motivates the method"}
+{"from": "idea:002", "to": "paper:foret2021_sam", "type": "inspired_by"}
+{"from": "idea:002", "to": "paper:zhang2023_gam", "type": "inspired_by", "note": "AS^1 = GAM applied to adapter subspace"}
+{"from": "idea:002", "to": "gap:G1", "type": "addresses_gap", "note": "practical method realizing the theory"}
+{"from": "idea:002", "to": "gap:G2", "type": "addresses_gap"}
+{"from": "paper:ewc_lora_iclr2026", "to": "idea:002", "type": "addresses_gap", "note": "closest competitor — Fisher without flatness"}
+{"from": "paper:fr_lora_cikm2025", "to": "idea:002", "type": "addresses_gap", "note": "Fisher-LoRA CL competitor (NLP)"}

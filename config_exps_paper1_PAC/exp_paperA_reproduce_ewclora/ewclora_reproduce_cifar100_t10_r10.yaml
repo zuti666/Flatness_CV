@@ -1,0 +1,74 @@
+# Reproduce: EWC-LoRA (Zheng et al., ICLR 2026) on CIFAR-100
+# Paper Table 2: See paper for exact numbers
+# Source: configs/ewclora/cifar100.json in low-rank-cl repo
+#   optimizer: Adam, epochs: 20, rank: 10, lr: 0.0005, wd: 0.0
+#   batch_size: 128, shuffle: False, lambda: 1e7, gamma: 1.0
+#   10 tasks x 10 classes (100 classes total)
+#
+# Implementation note vs paper (low-rank-cl):
+#   Paper merges LoRA into backbone after each task (accumulate_and_reset_lora).
+#   Our SeqLoRA does NOT merge; instead uses delta_reference snapshot to compute
+#   drift penalty F*(DeltaW - DeltaW_ref)^2. Mathematically equivalent intent,
+#   but optimizer momentum carries over across tasks in our version.
+prefix: reproduce_ewclora_cifar100_t10_r10
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+dataset: "cifar224"   # iCIFAR224: uses build_transform -> RandomResizedCrop(224), suitable for ViT
+class_shuffle: false
+init_cls: 10
+increment: 10
+nb_tasks: 10
+total_sessions: 10
+
+seed:
+  - 0
+  - 1993
+  - 42
+
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+device:
+  - "0"
+
+model_name: "ewclora_youyue_fitarchitecture"
+lora_rank: 10
+
+ewc_lambda: 1.0e+07
+ewc_gamma: 1.0
+ewc_eta: 0.0
+ewc_max_batches: 200
+
+batch_size: 128
+optimizer: "adam"
+optimizer_type: "sgd"
+
+scheduler: "cosine"
+init_epoch: 20
+init_lr: 0.0005
+init_momentum: 0
+init_weight_decay: 0.0
+
+epochs: 20
+lrate: 0.0005
+momentum: 0
+weight_decay: 0.0
+
+linear_probe_eval_num_workers: 0
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+probe_train_mode: train
+probe_test_mode: test
+probe_fit_epochs: 20
+probe_fit_lr: 0.015
+probe_fit_moment: 0
+probe_fit_wd: 0.0005
+probe_fit_train_batch_size: 128
+
+flat_eval: false
+feature_flat_eval: false
+feature_cka_eval: false
+feature_proto_eval: false
+attention_probe_eval: false

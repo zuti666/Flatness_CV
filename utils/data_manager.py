@@ -3,22 +3,36 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset,Subset
 from torchvision import transforms
-from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, objectnet, omnibenchmark, vtab, iImageNetC, iTinyImageNetC, iTinyImageNetP,iDomainNet
+from torchvision.transforms.functional import pil_to_tensor
+from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000, iCIFAR224, iImageNetR,iImageNetA,CUB, Cars196, objectnet, omnibenchmark, vtab, iImageNetC, iTinyImageNetC, iTinyImageNetP,iDomainNet,iAircraft,iFlowers102,iOxfordPet
 import torch, math, json, os
 from typing import Optional, List, Dict, Tuple
 from torch.utils.data import DataLoader
+
+try:
+    from torchvision.io import ImageReadMode, read_image
+except Exception:  # pragma: no cover - optional torchvision image backend
+    ImageReadMode = None
+    read_image = None
+
 class DataManager(object):
     def __init__(self, dataset_name, shuffle, seed, init_cls, increment, args):
-        self.args = args
+        self.args = dict(args) if isinstance(args, dict) else args
+        if isinstance(self.args, dict):
+            self.args.setdefault("data_root", "/data/140-0/datasets")
         self.dataset_name = dataset_name
         self._setup_data(dataset_name, shuffle, seed)
         assert init_cls <= len(self._class_order), "No enough classes."
-        self._increments = [init_cls]
-        while sum(self._increments) + increment < len(self._class_order):
-            self._increments.append(increment)
-        offset = len(self._class_order) - sum(self._increments)
-        if offset > 0:
-            self._increments.append(offset)
+        if self._task_splits is not None:
+            # iData provided explicit per-task splits (e.g. iHet5Datasets); use them directly.
+            self._increments = list(self._task_splits)
+        else:
+            self._increments = [init_cls]
+            while sum(self._increments) + increment < len(self._class_order):
+                self._increments.append(increment)
+            offset = len(self._class_order) - sum(self._increments)
+            if offset > 0:
+                self._increments.append(offset)
             
     @property
     def nb_tasks(self):
@@ -83,9 +97,13 @@ class DataManager(object):
         data, targets = np.concatenate(data), np.concatenate(targets)
 
         if ret_data:
-            return data, targets, DummyDataset(data, targets, trsf, self.use_path)
+            return data, targets, DummyDataset(
+                data, targets, trsf, self.use_path, loader_mode=self.loader_mode
+            )
         else:
-            return DummyDataset(data, targets, trsf, self.use_path)
+            return DummyDataset(
+                data, targets, trsf, self.use_path, loader_mode=self.loader_mode
+            )
 
     def get_dataset_with_split(
         self, indices, source, mode, appendent=None, val_samples_per_class=0
@@ -140,8 +158,10 @@ class DataManager(object):
         val_data, val_targets = np.concatenate(val_data), np.concatenate(val_targets)
 
         return DummyDataset(
-            train_data, train_targets, trsf, self.use_path
-        ), DummyDataset(val_data, val_targets, trsf, self.use_path)
+            train_data, train_targets, trsf, self.use_path, loader_mode=self.loader_mode
+        ), DummyDataset(
+            val_data, val_targets, trsf, self.use_path, loader_mode=self.loader_mode
+        )
 
     def _setup_data(self, dataset_name, shuffle, seed):
         idata = _get_idata(dataset_name, self.args)
@@ -151,6 +171,8 @@ class DataManager(object):
         self._train_data, self._train_targets = idata.train_data, idata.train_targets
         self._test_data, self._test_targets = idata.test_data, idata.test_targets
         self.use_path = idata.use_path
+        self.loader_mode = getattr(idata, "loader_mode", "pil")
+        self.loader_options = dict(getattr(idata, "loader_options", {}) or {})
 
         # Transforms
         self._train_trsf = idata.train_trsf
@@ -158,8 +180,28 @@ class DataManager(object):
         self._common_trsf = idata.common_trsf
 
         # Order
-        order = [i for i in range(len(np.unique(self._train_targets)))]
-        if shuffle:
+        num_classes = len(np.unique(self._train_targets))
+        order = [i for i in range(num_classes)]
+        configured_order = (
+            self.args.get("class_order", None) if isinstance(self.args, dict) else None
+        )
+        if configured_order is not None:
+            if shuffle:
+                raise ValueError("Explicit class_order requires class_shuffle/shuffle=false")
+            if isinstance(configured_order, str):
+                text = configured_order.strip()
+                configured_order = (
+                    json.loads(text)
+                    if text.startswith("[")
+                    else [int(value.strip()) for value in text.split(",") if value.strip()]
+                )
+            order = [int(value) for value in configured_order]
+            if len(order) != num_classes or sorted(order) != list(range(num_classes)):
+                raise ValueError(
+                    "class_order must be a complete permutation of "
+                    f"0..{num_classes - 1}; received {len(order)} entries"
+                )
+        elif shuffle:
             np.random.seed(seed)
             order = np.random.permutation(len(order)).tolist()
         else:
@@ -167,11 +209,35 @@ class DataManager(object):
         self._class_order = order
         logging.info(self._class_order)
 
+        # Expose per-task class counts if iData provides them (e.g. iHet5Datasets)
+        self._task_splits = getattr(idata, "task_splits", None)
+
         # Map indices
         self._train_targets = _map_new_class_index(
             self._train_targets, self._class_order
         )
         self._test_targets = _map_new_class_index(self._test_targets, self._class_order)
+
+    def get_dataloader_kwargs(self, num_workers, **overrides):
+        kwargs = dict(overrides)
+
+        pin_memory_default = bool(self.loader_options.get("pin_memory", False) and torch.cuda.is_available())
+        if "pin_memory" not in kwargs:
+            kwargs["pin_memory"] = pin_memory_default
+
+        if num_workers > 0 and "persistent_workers" not in kwargs:
+            kwargs["persistent_workers"] = bool(self.loader_options.get("persistent_workers", False))
+
+        return kwargs
+
+    def build_dataloader(self, dataset, *, batch_size, shuffle, num_workers, **kwargs):
+        loader_kwargs = {
+            "batch_size": batch_size,
+            "shuffle": shuffle,
+            "num_workers": num_workers,
+        }
+        loader_kwargs.update(self.get_dataloader_kwargs(num_workers, **kwargs))
+        return DataLoader(dataset, **loader_kwargs)
 
     def _select(self, x, y, low_range, high_range):
         idxes = np.where(np.logical_and(y >= low_range, y < high_range))[0]
@@ -196,19 +262,23 @@ class DataManager(object):
 
 
 class DummyDataset(Dataset):
-    def __init__(self, images, labels, trsf, use_path=False):
+    def __init__(self, images, labels, trsf, use_path=False, loader_mode="pil"):
         assert len(images) == len(labels), "Data size error!"
         self.images = images
         self.labels = labels
         self.trsf = trsf
         self.use_path = use_path
+        self.loader_mode = loader_mode
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
         if self.use_path:
-            image = self.trsf(pil_loader(self.images[idx]))
+            if self.loader_mode == "torchvision_tensor":
+                image = self.trsf(torchvision_tensor_loader(self.images[idx]))
+            else:
+                image = self.trsf(pil_loader(self.images[idx]))
         else:
             image = self.trsf(Image.fromarray(self.images[idx]))
         label = self.labels[idx]
@@ -222,7 +292,8 @@ def fractional_loader(
     fraction: Optional[float]=0.1,
     seed: Optional[int] = None,
     balanced: bool = True,
-    batch_size: Optional[int] = None
+    batch_size: Optional[int] = None,
+    shuffle: bool = True,
 ):
     """Return a DataLoader restricted to a random subset of the original dataset."""
     
@@ -308,7 +379,7 @@ def fractional_loader(
 
     dl_kwargs = {
         "batch_size": batch_size,
-        "shuffle": True,
+        "shuffle": bool(shuffle),
         "num_workers": loader.num_workers,
         "pin_memory": loader.pin_memory,
         "drop_last": loader.drop_last,
@@ -384,13 +455,16 @@ def _map_new_class_index(y, order):
 def _get_idata(dataset_name, args=None):
     name = dataset_name.lower()
     if name == "cifar10":
-        return iCIFAR10()
+        return iCIFAR10(args)
+    elif name in {"cifar10_224", "cifar10-224", "cifar10vit"}:
+        from utils.data import iCIFAR10_224
+        return iCIFAR10_224(args)
     elif name == "cifar100":
-        return iCIFAR100()
+        return iCIFAR100(args)
     elif name == "imagenet1000":
-        return iImageNet1000()
+        return iImageNet1000(args)
     elif name == "imagenet100":
-        return iImageNet100()
+        return iImageNet100(args)
     elif name == "cifar224":
         return iCIFAR224(args)
     elif name == "imagenetr":
@@ -402,16 +476,26 @@ def _get_idata(dataset_name, args=None):
     elif name == "tiny_imagenetp":
         return iTinyImageNetP(args)
     elif name == "imageneta":
-        return iImageNetA()
-    elif name == "cub":
-        return CUB()
+        return iImageNetA(args)
+    elif name in {"cub", "cub200", "cub-200", "cub_200", "cub200-2011", "cub-200-2011", "cub_200_2011"}:
+        return CUB(args)
+    elif name in {"cars196", "cars-196", "cars"}:
+        return Cars196(args)
     elif name == "objectnet":
-        return objectnet()
+        return objectnet(args)
     elif name == "omnibenchmark":
-        return omnibenchmark()
+        return omnibenchmark(args)
     elif name == "vtab":
-        return vtab()
-
+        return vtab(args)
+    elif name in {"flowers102", "flowers"}:
+        return iFlowers102(args)
+    elif name in {"pets", "oxfordpet", "oxford-iiit-pet"}:
+        return iOxfordPet(args)
+    elif name in {"aircraft", "fgvc-aircraft"}:
+        return iAircraft(args)
+    elif name in {"het5", "5datasets", "het_5datasets"}:
+        from utils.data import iHet5Datasets
+        return iHet5Datasets(args)
     else:
         raise NotImplementedError("Unknown dataset {}.".format(dataset_name))
 
@@ -425,6 +509,12 @@ def pil_loader(path):
     with open(path, "rb") as f:
         img = Image.open(f)
         return img.convert("RGB")
+
+
+def torchvision_tensor_loader(path):
+    if read_image is not None and ImageReadMode is not None:
+        return read_image(path, mode=ImageReadMode.RGB)
+    return pil_to_tensor(pil_loader(path))
 
 
 def accimage_loader(path):

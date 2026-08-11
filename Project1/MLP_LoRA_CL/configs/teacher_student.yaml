@@ -1,0 +1,63 @@
+experiment_name: controlled_teacher_student
+device: cuda
+output_root: outputs
+
+data:
+  name: teacher_student
+  num_tasks: 2
+  rotation_span: 0
+  train_subset: 2048
+  test_subset: 1024
+  num_workers: 0
+  teacher:
+    target_rank: 4
+    principal_angle_degrees: 45
+    update_strength: 2.0
+    seed: 917
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: softplus
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  mode: random
+  checkpoint: checkpoints/unused_teacher_base.pt
+  seed: 3407
+
+training:
+  epochs_per_task: 8
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.05
+  momentum: 0.0
+  weight_decay: 0.0
+  sam_rho: 0.03
+  gam_radius: 0.01
+  gam_weight: 0.03
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 64
+  pathwise: true
+  path_granularity: step
+  hessian_lanczos_steps: 24
+  geometry_enabled: true
+  geometry_immediate_only: true
+  ggn_damping: 0.01
+  safe_relative_threshold: 0.01
+  ggn_overlap_top_k: 16
+
+grid:
+  parameterizations: [dense, random_subspace, fixed_lora_tangent, factor_lora, balanced_lora]
+  ranks: [4]
+  lifecycles: [persistent]
+  optimizers: [sgd, sam, gam_fd]
+  target_ranks: [4]
+  principal_angles: [0, 45, 90]
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

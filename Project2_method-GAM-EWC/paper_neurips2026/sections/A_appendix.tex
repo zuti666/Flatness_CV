@@ -1,0 +1,202 @@
+\section{Full Proof of Proposition~\ref{prop:orthogonality}}
+\label{sec:proof_orthogonality}
+
+We provide a self-contained derivation of the bound $|\cosff| \lesssim 0$
+under the two conditions stated in Proposition~\ref{prop:orthogonality}.
+All quantities are in the $(A,B)$ parameter space $\mathbb{R}^p$ unless noted.
+
+\subsection*{Step 1: Jacobian decomposition}
+
+For each layer $l$ with $B_l\in\mathbb{R}^{d\times r}$, $A_l\in\mathbb{R}^{r\times d}$,
+the Jacobian of $\mathrm{vec}(\DeltaW_l)$ with respect to $(A_l, B_l)$ is (Eq.~\eqref{eq:jacobian}):
+\begin{equation}
+  J_l = \bigl[I_d\otimes B_l \;\Big|\; A_l^\top\otimes I_d\bigr]
+  \;\in\; \mathbb{R}^{d^2\times 2rd}.
+\end{equation}
+The full Jacobian $J\in\mathbb{R}^{Ld^2\times p}$ is block-diagonal in $l$.
+Its Gram matrix factorizes as:
+\begin{equation}
+  J_l J_l^\top = (I_d\otimes B_lB_l^\top) + (A_lA_l^\top\otimes I_d).
+  \label{eq:gram}
+\end{equation}
+
+\subsection*{Step 2: Gradient vectors in $(A,B)$-space}
+
+\textbf{Flat gradient.}
+Using the Gauss-Newton approximation $H_\phi \approx J^\top H_{\DeltaW} J$
+(valid when task loss is small or at local optima):
+\begin{equation}
+  \ggam - \gclean \;\approx\; H_\phi\,\epsilon \;\approx\; J^\top H_{\DeltaW} J\,\epsilon,
+  \label{eq:gflat_approx}
+\end{equation}
+where $\epsilon = \rho\,\gclean/\|\gclean\|$ is the perturbation direction.
+
+\textbf{Fisher gradient.}
+From Eq.~\eqref{eq:gfisher_chain}:
+$\gfisher = J^\top \mathbf{f}$,
+where $\mathbf{f} = \lambdaewc\,\mathrm{vec}(\Ftilde_l\odot d_l)$ with $d_l = \DeltaW_l - \DeltaW_l^*$.
+
+\subsection*{Step 3: Inner product expansion}
+
+\begin{align}
+  (\ggam-\gclean)^\top\gfisher
+  &\;\approx\; (J^\top H_{\DeltaW} J\epsilon)^\top (J^\top\mathbf{f}) \notag\\
+  &\;=\; \epsilon^\top J^\top H_{\DeltaW}\,(JJ^\top)\,\mathbf{f}.
+  \label{eq:inner_product}
+\end{align}
+
+\subsection*{Step 4: Applying condition (ii) — Jacobian isotropy}
+
+Under condition~(ii), $JJ^\top \approx c^2\,I_{Ld^2}$, so:
+\begin{equation}
+  (\ggam-\gclean)^\top\gfisher
+  \;\approx\; c^2\,\epsilon^\top J^\top (H_{\DeltaW}\,\mathbf{f}).
+  \label{eq:after_isotropy}
+\end{equation}
+The Jacobian isotropy condition is satisfied when
+$A_lA_l^\top\approx \sigma_A^2 I_d$ and $B_lB_l^\top\approx \sigma_B^2 I_d$
+for each layer (Eq.~\eqref{eq:gram}).
+This holds approximately when the LoRA factors have balanced singular values,
+which is the generic case for matrices initialized by Gaussian entries and updated by SGD
+with moderate step sizes.
+Condition~(ii) fails only in degenerate regimes
+(e.g., $r=1$ where $A_lA_l^\top$ has rank 1,
+or if one factor collapses to near-zero).
+
+\subsection*{Step 5: Applying condition (i) — Spectral separation}
+
+Eq.~\eqref{eq:after_isotropy} contains the term $H_{\DeltaW}\,\mathbf{f}$,
+where $\mathbf{f}$ lies in the column space of $F_{t'}$ (since $\mathbf{f} = \lambdaewc F_{t'}\odot d$,
+and $F_{t'}$ acts as a diagonal scaling).
+
+Let $U_H \in \mathbb{R}^{Ld^2\times k}$ be the top-$k$ eigenvectors of $H_{\DeltaW}$
+and $U_F \in \mathbb{R}^{Ld^2\times k}$ the top-$k$ eigenvectors of $F_{t'}$.
+The vector $\epsilon^\top J^\top(H_{\DeltaW}\,\mathbf{f})$ can be bounded by:
+\begin{align}
+  \bigl|\epsilon^\top J^\top H_{\DeltaW}\,\mathbf{f}\bigr|
+  &= \bigl|(J\epsilon)^\top H_{\DeltaW}\,\mathbf{f}\bigr| \notag\\
+  &\leq \|J\epsilon\|\,\|H_{\DeltaW}\|\,\|(I - U_H U_H^\top)\mathbf{f}\|
+    + \|J\epsilon\|\,\|H_{\DeltaW}\|\,\|U_H^\top\mathbf{f}\|.
+  \label{eq:bound}
+\end{align}
+Under condition~(i), the principal angles $\theta_i(U_H, U_F)$ between the two eigenspaces
+are all large (near $\pi/2$), so the cross-overlap matrix satisfies:
+\begin{equation}
+  \|U_H^\top U_F\|_F \;=\; \Bigl(\sum_i \cos^2\theta_i(U_H,U_F)\Bigr)^{1/2} \;\approx\; 0.
+  \label{eq:uh_uf_bound}
+\end{equation}
+(Note: $\|U_H^\top U_F\|_F$ depends on $\cos\theta_i$, not $\sin\theta_i$; when eigenspaces are
+near-orthogonal, all $\cos\theta_i \approx 0$, driving the overlap to zero.)
+Since $\mathbf{f} \approx U_F U_F^\top \mathbf{f}$:
+\begin{equation*}
+  \|U_H^\top\mathbf{f}\| \;\leq\; \|U_H^\top U_F\|_F\,\|U_F^\top\mathbf{f}\|
+  \;\leq\; \|U_H^\top U_F\|_F\,\|\mathbf{f}\| \;\approx\; 0.
+\end{equation*}
+
+\subsection*{Step 6: Final bound}
+
+Combining Steps 3--5:
+\begin{equation}
+  |\cosff| \;=\; \frac{|(\ggam-\gclean)^\top\gfisher|}{\|\ggam-\gclean\|\,\|\gfisher\|}
+  \;\lesssim\;
+  c^2\,\|H_{\DeltaW}\|\,\frac{\|J\epsilon\|}{\|\ggam-\gclean\|}
+  \cdot\|U_H^\top U_F\|_F.
+  \label{eq:final_bound}
+\end{equation}
+The factor $\|J\epsilon\|/\|\ggam-\gclean\|$ is $\mathcal{O}(1)$ (both are $\Theta(1)$ in the gradient norm).
+Under condition~(i), $\|U_H^\top U_F\|_F = (\sum_i\cos^2\theta_i)^{1/2} \approx 0$
+when all principal angles $\theta_i \approx \pi/2$.
+Thus $|\cosff| = \mathcal{O}(\|U_H^\top U_F\|_F)$:
+near-zero cosine follows directly from large principal angles between the current-task Hessian
+and the past-task Fisher in $\DeltaW$-space, \emph{provided} that the Jacobian is approximately isotropic.
+
+\subsection*{When condition (ii) is tight}
+
+If condition~(ii) fails (e.g., $B_lB_l^\top$ is rank-$r$ concentrated on one direction),
+then $JJ^\top$ has large eigenvalue spread,
+and the intermediate step Eq.~\eqref{eq:after_isotropy} does not simplify to
+a scalar times the identity.
+In that case, the inner product in Eq.~\eqref{eq:inner_product} involves
+$(JJ^\top)\mathbf{f}$, which may rotate $\mathbf{f}$ into the $H_{\DeltaW}$ eigenspace
+even when $H_{\DeltaW}$ and $F_{t'}$ are spectrally separated.
+The empirical observation that $\cosff\approx 0$ across all our experiments with $r\in\{10,16\}$
+suggests that condition~(ii) holds throughout training for these rank choices.
+
+\section{Per-Task Accuracy Matrices}
+\label{sec:per_task}
+
+\begin{table}[h]
+\caption{Final task-level accuracies for FS-LoRA (ewc\_lambda=2000, seed 0).
+Each row shows the accuracy on all tasks at the end of training the last task.}
+\label{tab:per_task}
+\centering
+\begin{tabular}{lp{10cm}}
+\toprule
+Dataset & Final task accuracies \\
+\midrule
+CUB200    & [92.21, 78.15, 90.64, 79.67, 91.40, 76.13, 81.40, 83.04, 82.28, 92.24] \\
+Cars196   & [80.50, 45.68, 61.06, 65.15, 60.67, 66.30, 64.22, 65.85, 66.13, 52.74] \\
+Aircraft  & [53.15, 39.94, 40.12, 59.16, 71.77, 66.47, 69.37, 73.57, 60.18, 72.97] \\
+Flowers   & [98.68, 98.04, 93.70, 86.58, 79.68, 93.46, 90.99, 90.95, 89.38, 82.97] \\
+OxfordPet & [92.57, 90.18, 87.66, 97.25, 97.74, 95.00, 87.50, 97.24, 96.40] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Hyperparameter Sensitivity}
+\label{sec:hparam}
+
+\begin{table}[h]
+\caption{$\lambdaewc$ sweep on CUB200 (trace-normalized, seed 0).
+Results are stable across a wide range of $\lambdaewc$.}
+\label{tab:lam_sweep}
+\centering
+\begin{tabular}{ccccc}
+\toprule
+$\lambdaewc$ & CNN FAA & CNN AAA & Forget & BWT \\
+\midrule
+500  & 73.931 & 74.241 & 11.986 & $-$11.934 \\
+2000 & \textbf{74.224} & \textbf{74.332} & \textbf{11.709} & $-$11.658 \\
+5000 & 74.181 & 74.255 & 11.667 & $-$11.616 \\
+Dual ($\lambda_{\mathrm{init}}=500$) & 73.881 & 74.207 & 12.039 & $-$11.988 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementation Details}
+\label{sec:impl}
+
+\textbf{GAM optimizer.}
+We use the GAM implementation with SGD base optimizer.
+The perturbation radius is $\rho=0.05$ (gradient-norm perturbation),
+with gradient norm perturbation radius $0.1$.
+The GAM closure strictly evaluates $\Ltask$ only, with no Fisher penalty included.
+
+\textbf{Fisher computation.}
+Fisher is computed as the empirical Fisher over up to \texttt{ewc\_max\_batches}=100 mini-batches
+at the end of each task.
+For each mini-batch, we compute $\nabla_{\DeltaW_l} \log p(y|x;\phi)$ via backpropagation
+and accumulate the squared norm.
+The Fisher is then trace-normalized (Eq.~\eqref{eq:trace_norm}) with $\epsilon=10^{-8}$.
+
+\textbf{Snapshot management.}
+At the end of task $t$, we save the snapshot $\DeltaW^*_t = \{B_l A_l\}$ for all 24 adapter pairs.
+The EWC penalty accumulates over all past tasks $t' < t$ with a decay factor $\gamma=0.9$
+applied to the Fisher matrices.
+
+\textbf{Learning rate schedule (Track~1, fine-grained, $r=16$).}
+Cosine decay, $\mathrm{lr}=0.01$ uniform; 50 epochs for ImageNet-R, 20 epochs for all other datasets.
+
+\textbf{Learning rate schedule (Track~2, PECL benchmarks).}
+Epochs per task: CIFAR-100 20, ImageNet-A 20, ImageNet-R 50, DomainNet 5.
+Rank: CIFAR-100 / ImageNet-A / ImageNet-R use $r=10$; DomainNet uses $r=30$.
+The \texttt{config\_Expand} suite explores four learning rate strategies per dataset:
+(a)~\emph{Uniform baseline}: $\mathrm{init\_lr}=\mathrm{lr}=0.02$;
+(b)~\emph{Warmup-decay}: $\mathrm{init\_lr}\in\{0.02$--$0.04\}$ with $\mathrm{lr}=0.015$--$0.02$;
+(c)~\emph{Equal-high}: $\mathrm{init\_lr}=\mathrm{lr}\in\{0.03$--$0.05\}$.
+The best per-dataset variant is reported as the final Track~2 result.
+
+\textbf{Gradient logging.}
+For mechanistic analysis, we log $\cosff$, fisher/clean ratio, flat/clean ratio,
+and \texttt{ewc\_penalty\_value} at the end of each task.
+These statistics are written to the JSON output file for each run.

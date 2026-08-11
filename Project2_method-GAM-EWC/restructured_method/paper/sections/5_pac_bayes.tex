@@ -1,0 +1,75 @@
+\section{Sequential Hierarchical PAC-Bayes for Continual Learning}
+\label{sec:pac-cl}
+
+\subsection{Why Classical Hierarchical PAC-Bayes Is Insufficient}
+\label{sec:why-new}
+
+The PAC-Bayesian framework~\citep{mcallesterPACBayesianModelAveraging1999,mcallesterPACBayesianStochasticModel2003} places probability measures over the hypothesis space.
+Starting from a prior $P \in \mathcal{M}(\mathcal{H})$, the learner observes data $S$ and outputs a posterior $Q(\cdot \mid P, S)$.
+Classical PAC-Bayes bounds control the generalization gap by the empirical risk plus a complexity term scaling with $\mathrm{KL}(Q \| P)$ and the sample size.
+
+Hierarchical PAC-Bayes bounds for meta- and lifelong learning~\citep{pentinaPACBayesianBoundLifelong2014,JMLR:v24:22-1254} introduce a hyperposterior over task priors and thus capture two-level complexity.
+However, they assume tasks are drawn i.i.d.\ from a \emph{fixed} hyperprior, so the resulting bound is order-invariant: it does not distinguish the first task from the last, and it cannot account for sequential drift in the inductive bias.
+
+Continual learning is inherently non-i.i.d.\ at the task level.
+Common CL mechanisms make the prior sequence nonstationary: curvature-based regularization updates the effective prior through Fisher or Hessian summaries~\citep{EWC2017,SI2017}; scope-allocation strategies modify which parameters remain trainable over time~\citep{HAT2018,Supermasks2020,pmlr-v97-houlsby19a}.
+In LoRA-based PECL, the admissible subspace $\mathcal{W}_{\Delta,t}$ itself changes with each task, introducing a natural notion of drift between successive priors.
+This non-stationarity calls for a bound whose complexity term explicitly accounts for sequential hyperposterior drift.
+
+\subsection{Time-Varying Hyperposterior Bound}
+\label{sec:time-varying-bound}
+
+We model the sequential evolution of the inductive bias by treating the task prior as a \emph{random} object drawn from a time-varying hyperposterior.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures_TRML/multitask5.pdf}
+\caption{
+\textbf{(Left)} In multi-task learning, task priors are drawn from a single time-invariant hyperdistribution; there is no sequential drift.
+\textbf{(Right)} In continual learning, the hyperposterior is updated over time, inducing a history-dependent cumulative drift across tasks.
+}
+\label{fig:showPAC3}
+\end{figure}
+
+Let $\mathcal{F}_{t-1} = \sigma(S_1, \ldots, S_{t-1})$ denote the information available before task $t$.
+We model continual learning as a hyperposterior process $\{\mathcal{P}_t\}_{t=0}^T$ where $\mathcal{P}_{t-1}$ is $\mathcal{F}_{t-1}$-measurable.
+This yields a pathwise generalization bound with an explicit hyperposterior drift penalty.
+
+Define the hierarchical test and empirical risks
+\begin{align*}
+\mathcal{L}_t &= \mathbb{E}_{P_t \sim \mathcal{P}_{t-1}} \mathbb{E}_{W_t \sim Q_t(\cdot \mid P_t, S_t)} L_{\mathcal{D}_t}(W_t), \\
+\hat{\mathcal{L}}_t &= \mathbb{E}_{P_t \sim \mathcal{P}_{t-1}} \mathbb{E}_{W_t \sim Q_t(\cdot \mid P_t, S_t)} \hat{L}_{S_t}(W_t).
+\end{align*}
+
+\begin{theorem}[PAC-Bayes with time-varying hyperposterior]
+\label{thm:pathwise_pac}
+For any $\delta \in (0,1]$, with probability at least $1 - \delta$ over $S_{1:T}$,
+\begin{equation*}
+\resizebox{\linewidth}{!}{$
+\frac{1}{T}\sum_{t=1}^T \mathcal{L}_t
+\leq
+\frac{1}{T}\sum_{t=1}^T \hat{\mathcal{L}}_t
++
+\sqrt{
+\frac{
+\displaystyle\sum_{t=1}^T
+\mathbb{E}_{P_t \sim \mathcal{P}_{t-1}}
+\mathrm{KL}(Q_t \| P_t)
++
+\sum_{t=1}^T
+\mathrm{KL}(\mathcal{P}_t \| \mathcal{P}_{t-1})
++ \log\tfrac{1}{\delta}
+}{2\displaystyle\sum_{t=1}^T (m_t - 1)}
+}.
+$}
+\end{equation*}
+\end{theorem}
+
+The proof is provided in Appendix~\ref{proof:theorem all}.
+
+\textbf{Interpretation.}
+The complexity penalty decomposes into two terms.
+The \emph{within-task adaptation term} $\mathbb{E}_{P_t \sim \mathcal{P}_{t-1}}\mathrm{KL}(Q_t \| P_t)$ quantifies how much the learner must deviate from the task prior to fit $S_t$.
+The \emph{hyperposterior drift term} $\mathrm{KL}(\mathcal{P}_t \| \mathcal{P}_{t-1})$ quantifies how much the task-prior generation mechanism changes as new tasks are incorporated.
+This drift is intrinsic to continual learning and absent in the i.i.d.\ task formulation of~\citet{pentinaPACBayesianBoundLifelong2014}, which is recovered as a special case when $\mathcal{P}_t = \mathcal{P}_{t-1}$ for all $t$.
+The bound therefore penalizes both within-task complexity and sequential belief update costs.

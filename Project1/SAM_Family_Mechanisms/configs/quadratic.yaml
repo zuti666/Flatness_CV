@@ -1,0 +1,15 @@
+{
+  "experiment_id": "E001_quadratic_operator",
+  "seed": 3407,
+  "dimension": 20,
+  "lambda_min": 0.1,
+  "lambda_max": 10.0,
+  "rho_scales": [0.0001, 0.001, 0.01, 0.1],
+  "primary_rho_scale": 0.01,
+  "inner_steps": [2, 5],
+  "path_protocols": ["fixed_step", "fixed_budget"],
+  "dtype": "float64",
+  "epsilon": 1e-15,
+  "output_dir": "outputs/quadratic_operator",
+  "make_plots": true
+}

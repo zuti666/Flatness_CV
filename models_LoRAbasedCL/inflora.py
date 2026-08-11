@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import timm
 from tqdm import tqdm
 from torch import optim
 from optimer_PerturabtionType.util import enable_running_stats, disable_running_stats, generate_pertubation
@@ -14,7 +15,7 @@ from copy import deepcopy
 from utils.inc_net import SiNet
 from backbone.lora import LoRA_ViT_timm
 import torch.nn as nn
-
+from types import SimpleNamespace
 
 
 # class Attention_LoRA(nn.Module):
@@ -143,9 +144,9 @@ class Learner(LoraBaseLearner):
         #         if isinstance(module, Attention_LoRA):
         #             module.init_param()
 
-        self.total_sessions = args.get("total_sessions",None)
+        self.total_sessions = args.get("total_sessions", None)
         if self.total_sessions is None:
-            self._total_classes =  int(200/int(args.get("increment",10)))
+            self.total_sessions = int(200 / int(args.get("increment", 10)))
         
         
         self._optimizer_type = args.get("optimizer_type", "sgd").lower()
@@ -154,6 +155,8 @@ class Learner(LoraBaseLearner):
         if self._optimizer_type == "sam":
             self._sam_rho = float(args.get("sam_rho", 0.05))
             self._sam_adaptive = bool(args.get("sam_adaptive", False))
+        elif self._is_flatlora_optimizer():
+            self._init_flatlora_state(args)
         elif self._optimizer_type == "cflat":
             self._cflat_rho = float(args.get("cflat_rho", 0.2))
             self._cflat_lambda = float(args.get("cflat_lambda", 0.2))
@@ -211,8 +214,8 @@ class Learner(LoraBaseLearner):
         self.feature_list: list[np.ndarray] = []    # per-layer basis (D x k)
         self.project_type: list[str] = []           # 'remove' or 'retain'
         self.feature_mat: list[torch.Tensor] = []   # per-layer projection matrix (D x D)
-        self.lamb = float(args.get("lamb", 0.5))
-        self.lame = float(args.get("lame", 0.9))
+        self.lamb = float(args.get("lamb", 0.7))
+        self.lame = float(args.get("lame", 0.99))
         
        
 
@@ -222,8 +225,35 @@ class Learner(LoraBaseLearner):
             torch.cuda.empty_cache()
 
     def _build_eval_backbone(self, task_idx):
-        # SiNet handles eval within itself
-        return None
+        return self._build_inflora_backbone(task_idx=task_idx, eval_mode=True)
+
+    def _build_inflora_backbone(self, task_idx: int | None = None, eval_mode: bool = False):
+        """Rebuild task-specific LoRA backbone so saved task snapshots are reloaded correctly."""
+        rank = int(self.args.get("lora_rank", 10))
+        if rank <= 0:
+            raise ValueError(f"lora_rank must be > 0, got {rank}")
+
+        backbone_type = self.args.get("backbone_type", "vit_base_patch16_224").lower()
+        save_dir = self.args.get("filepath", "./")
+        cur_task_index = self._cur_task if task_idx is None else int(task_idx)
+
+        if "resnet" in backbone_type:
+            raise NotImplementedError("InfLoRA currently expects a ViT LoRA backbone in this repository.")
+
+        vit = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
+        model = LoRA_ViT_timm(
+            vit_model=vit.eval(),
+            r=rank,
+            num_classes=0,
+            index=False,
+            increment=self.args["increment"],
+            filepath=save_dir,
+            cur_task_index=cur_task_index,
+            learn_alpha=False,
+            eval=eval_mode,
+        )
+        model.out_dim = 768
+        return model
 
     def incremental_train(self, data_manager):
         self._refresh_distributed_context()
@@ -291,19 +321,22 @@ class Learner(LoraBaseLearner):
         self.all_keys.append(centers)
 
     def _train(self, train_loader, test_loader):
+        network = self._unwrap_network()
+        network.backbone = self._build_inflora_backbone()
+        network.backbone.to(self._device)
+        self._network = network
+
         # Move model to device
         self._prepare_network()
+        net_for_logic = self._unwrap_network()
 
         # Freeze all params first; we will reopen specific ones below
-        try:
-            cur_idx = max(0, int(getattr(self._network, 'numtask', 1)) - 1)
-        except Exception:
-            cur_idx = 0
+        cur_idx = max(0, int(getattr(net_for_logic, 'numtask', 1)) - 1)
         for _, p in self._network.named_parameters():
             p.requires_grad_(False)
 
         # Choose path by backbone type
-        lora_backbone = getattr(self._network, 'backbone', None)
+        lora_backbone = getattr(net_for_logic, 'backbone', None)
         if isinstance(lora_backbone, LoRA_ViT_timm):
             # 1) collect covariance per LoRA-attached layer via qkv pre-hooks
             covs = self._collect_cov_via_hooks(lora_backbone, train_loader)
@@ -399,12 +432,22 @@ class Learner(LoraBaseLearner):
                     Uf = torch.tensor(self.feature_list[p] @ self.feature_list[p].T, dtype=torch.float32)
                     self.feature_mat.append(Uf)
 
+        save_dir = self.args.get("filepath", "./")
+        base_net = self._unwrap_network()
+        backbone = getattr(base_net, "backbone", None)
+        if hasattr(backbone, "save_lora_parameters"):
+            backbone.save_lora_parameters(save_dir, self._cur_task)
+        if hasattr(base_net, "save_fc"):
+            base_net.save_fc(save_dir, self._cur_task)
+
     # NOTE: Deprecated duplicate; use the typed version above.
     # def clustering(self, dataloader):
     #     pass
 
 
     def _init_train(self, train_loader, test_loader, optimizer, scheduler):
+        if self._is_flatlora_optimizer():
+            self._reset_flatlora_schedule(len(train_loader) * max(int(self.args["init_epoch"]), 1))
         prog_bar = tqdm(range(self.args["init_epoch"]), disable=not self._is_main_process)
         for _, epoch in enumerate(prog_bar):
             self._network.train()
@@ -436,6 +479,15 @@ class Learner(LoraBaseLearner):
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
                     logits = outputs["logits"].detach()
+                elif self._is_flatlora_optimizer():
+                    def flatlora_loss():
+                        outputs = self._network(inputs)
+                        logits = outputs["logits"]
+                        loss = F.cross_entropy(logits, targets)
+                        return logits, loss
+
+                    logits, loss_value = self._flatlora_step(optimizer, flatlora_loss)
+                    losses += loss_value
                 elif self._optimizer_type == "arwp":
                     if getattr(self, "_rwp_std_follow_lr", False):
                         try:
@@ -548,6 +600,8 @@ class Learner(LoraBaseLearner):
                 prog_bar.set_description(desc)
 
     def _update_representation(self, train_loader, test_loader, optimizer, scheduler):
+        if self._is_flatlora_optimizer():
+            self._reset_flatlora_schedule(len(train_loader) * max(int(self.args["epochs"]), 1))
         prog_bar = tqdm(range(self.args["epochs"]), disable=not self._is_main_process)
         for _, epoch in enumerate(prog_bar):
             self._network.train()
@@ -583,6 +637,20 @@ class Learner(LoraBaseLearner):
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
                     logits = outputs["logits"].detach()
+                elif self._is_flatlora_optimizer():
+                    def flatlora_loss():
+                        outputs = self._network(inputs)
+                        logits_all = outputs["logits"]
+                        cur_logits = (
+                            logits_all
+                            if logits_all.size(1) == new_class_count
+                            else logits_all[:, self._known_classes :]
+                        )
+                        loss = F.cross_entropy(cur_logits, fake_targets)
+                        return logits_all, loss
+
+                    logits, loss_value = self._flatlora_step(optimizer, flatlora_loss)
+                    losses += loss_value
                 elif self._optimizer_type == "arwp":
                     if getattr(self, "_rwp_std_follow_lr", False):
                         try:
@@ -828,7 +896,7 @@ class Learner(LoraBaseLearner):
         for i in range(len(self.feature_list)):
             if self.project_type[i] == 'remove' and (self.feature_list[i].shape[1] > (self.feature_list[i].shape[0] / 2)):
                 feature = self.feature_list[i]
-                U, S, V = np.linalg.svd(feature, full_matrices=False)
+                U, S, V = np.linalg.svd(feature)
                 new_feature = U[:, feature.shape[1]:]
                 self.feature_list[i] = new_feature
                 self.project_type[i] = 'retain'

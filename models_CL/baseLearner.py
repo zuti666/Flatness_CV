@@ -121,7 +121,19 @@ class BaseLearner(object):
                     total_classes = 1
             inc = max(int(total_classes), 1)
 
-        grouped = accuracy(y_pred.T[0], y_true, self._known_classes, init_cls, inc)
+        # Build per-task boundaries from task_increments when available
+        task_increments = self.args.get("task_increments", None)
+        task_boundaries = None
+        if task_increments is not None:
+            boundaries = []
+            lo = 0
+            for sz in task_increments:
+                boundaries.append((lo, lo + sz))
+                lo += sz
+            task_boundaries = boundaries
+
+        grouped = accuracy(y_pred.T[0], y_true, self._known_classes, init_cls, inc,
+                           task_boundaries=task_boundaries)
         ret["grouped"] = grouped
         ret["top1"] = grouped["total"]
         ret["top{}".format(self.topk)] = np.around(
@@ -633,7 +645,29 @@ class BaseLearner(object):
                     grad_gamma=float(getattr(self, "_gam_gamma", 0.1)),
                 )
 
-            base_opt = optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
+            base_name = str(
+                self.args.get("gam_base_optimizer", self.args.get("optimizer", "sgd"))
+            ).lower()
+            if base_name == "adam":
+                beta1 = float(self.args.get("adam_beta1", self.args.get("beta1", 0.9)))
+                beta2 = float(self.args.get("adam_beta2", self.args.get("beta2", 0.999)))
+                base_opt = optim.Adam(
+                    params,
+                    lr=lr,
+                    betas=(beta1, beta2),
+                    weight_decay=weight_decay,
+                )
+            elif base_name == "adamw":
+                beta1 = float(self.args.get("adam_beta1", self.args.get("beta1", 0.9)))
+                beta2 = float(self.args.get("adam_beta2", self.args.get("beta2", 0.999)))
+                base_opt = optim.AdamW(
+                    params,
+                    lr=lr,
+                    betas=(beta1, beta2),
+                    weight_decay=weight_decay,
+                )
+            else:
+                base_opt = optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
             opt = GAM(
                 params,
                 base_optimizer=base_opt,
@@ -679,12 +713,51 @@ class BaseLearner(object):
             if opt_name == "adamw":
                 return optim.AdamW(params, lr=lr, weight_decay=weight_decay)
             return optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
-        
+        elif self._optimizer_type in {
+            "flatlora",
+            "flatlora_full",
+            "faltlora",
+            "faltlora_full",
+            "mergegam",
+            "mergegam_lora",
+            "sam_factor",
+            "sam_full",
+            "sam_delta",
+            "sam_all",
+            "sam_random",
+            "sam_frozen",
+            "random_factor",
+            "random_full",
+            "random_delta",
+            "random_all",
+            "random_frozen",
+        }:
+            opt_name = str(self.args.get("optimizer", "sgd")).lower()
+            if opt_name == "adam":
+                return optim.Adam(params, lr=lr, weight_decay=weight_decay)
+            if opt_name == "adamw":
+                return optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+            return optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
+
         if self._optimizer_type == "adam":
-            return optim.Adam(params)
+            beta1 = float(self.args.get("adam_beta1", self.args.get("beta1", 0.9)))
+            beta2 = float(self.args.get("adam_beta2", self.args.get("beta2", 0.999)))
+            return optim.Adam(
+                params,
+                lr=lr,
+                betas=(beta1, beta2),
+                weight_decay=weight_decay,
+            )
 
         if self._optimizer_type == "adamw":
-            return optim.AdamW(params)
+            beta1 = float(self.args.get("adam_beta1", self.args.get("beta1", 0.9)))
+            beta2 = float(self.args.get("adam_beta2", self.args.get("beta2", 0.999)))
+            return optim.AdamW(
+                params,
+                lr=lr,
+                betas=(beta1, beta2),
+                weight_decay=weight_decay,
+            )
         
         if self._optimizer_type == "sgd":
             return optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)

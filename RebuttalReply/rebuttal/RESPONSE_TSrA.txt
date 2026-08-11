@@ -1,0 +1,39 @@
+Thank you for your review. We address each weakness and question directly.
+
+---
+
+W1 (Motivation - practical importance of perturbation scope)
+> "I am not convinced that practitioners would use full-parameter perturbation when applying SAM to LoRA. To my knowledge, this corresponds to a specific and somewhat unnatural implementation, since frozen parameters typically do not produce gradients. Therefore, the practical importance of the problem studied in this paper appears limited, which is the main weakness of the work."
+
+Thank you for raising this point. In SAM-like methods, perturbation scope and update scope are separate choices: a full-scope variant uses epsilon_full proportional to grad_{W_t^froz + Delta W_t} Lhat but still updates only Delta W_t; an adapter-scope variant uses epsilon_Delta proportional to grad_{Delta W_t} Lhat. Flat-LoRA explicitly advocates the first view, so the baseline is not a strawman but a published alternative design. Our question is which notion of flatness is correct under frozen-backbone PECL. Theorem 4.4 shows both the KL and sharpness terms are supported on W_{Delta,t}, and Table 2 shows the consequence: full-scope hurts (-2.00 to -6.84) while adapter-scope helps (+0.05 to +0.86).
+
+---
+
+W2 (Theoretical novelty) / Q1 (Novel proof techniques)
+> W2: "The PAC-Bayes bound largely builds on prior work, and I did not see major technical challenges in the derivation."
+> Q1: "Does this paper use novel proof techniques? What are the main technical challenges in the theoretical derivations?"
+
+Our claim is more specific: the novelty lies in the sequential filtration-adapted construction and the PECL-specific subspace reduction. Continual learning requires a prior P_t that is F_{t-1}-measurable and history-dependent, so the proof must separate within-task adaptation E[KL(Q_t||P_t)] from cross-task drift KL(P_t||P_{t-1}). After obtaining this sequential bound, Lemmas 4.2-4.3 and Theorem 4.4 then reduce both the KL and smoothed empirical terms exactly to W_{Delta,t}.
+
+For the specific "where does the technical difference appear?" question, the accounting is in Appendix B.1. Theorem 3.1 inherits the classical McAllester factor log(m/delta)=log m + log(1/delta), which comes from KL inversion in the single-task proof. In contrast, our Appendix B.1 does not use KL inversion: Step 1 applies Donsker-Varadhan at the model level (Eqs. (2)-(4)), Step 2 applies Donsker-Varadhan at the hyper level (Eqs. (5)-(7)), and Step 3 forms one nonnegative supermartingale from the conditional MGF bound (Eq. (8)). The only high-probability step is Markov on M_T, yielding Eq. (9), so the tail term is only log(1/delta). Sample size enters through sum_t (lambda omega_t)^2/[8(m_t-1)] and, after omega_t=(m_t-1)/B_T and optimizing lambda, gives the denominator 2 sum_t (m_t-1) in Eqs. (10)-(11), with no log m term. We will add this accounting explicitly to Appendix B.1.
+
+---
+
+W3 (No new method)
+> "The paper does not introduce a new method, but mainly validates the effectiveness of combining LoRA with different variants of SAM."
+
+Our contribution is not a new optimizer but a PECL-specific answer to which notion of flatness is meaningful under low-rank constrained updates. In full fine-tuning, full-parameter sharpness is natural because the optimizer can move in any direction. In frozen-backbone PECL, updates are confined to W_{Delta,t}, so perturbations in W_{Delta,t}^perp probe unrealizable directions. This is why Theorem 4.4 and the scope ordering in Table 2 are PECL-specific rather than a restatement of "SAM helps."
+
+---
+
+W4 (Experimental scope) / Q2 (Larger scale and diverse settings)
+> W4: "Experiments are conducted only in a single setting (ViT on ImageNet), and the scope and scale of evaluation are relatively limited."
+> Q2: "Could the authors provide experimental results at a larger scale and under more diverse settings?"
+
+We have now completed supplementary experiments on five fine-grained vision datasets and on T5-small/T5-large (full tables at [ANON_LINK]).
+
+ViT-B/16 on five fine-grained datasets (Aircraft, Cars196, CUB200, Flowers, OxfordPet): adapter-scope SAM outperforms SGD consistently across all five methods — +3.0 pp avg (SeqLoRA), +3.4 pp (IncLoRA), +3.4 pp (OLoRA), +4.4 pp (InfLoRA), +4.6 pp (SDLoRA). The adapter-scope advantage is maintained across all datasets.
+
+T5-small/T5-large across three task orders further show the conclusion is not tied to ViT. The stronger signal appears on T5-large, where average FAA improves by +4.8 pp (SeqLoRA), +6.2 pp (IncLoRA), and +0.6 pp (OLoRA); full T5-small/T5-large tables are in the supplement.
+
+We will narrow the claim accordingly: the structural mechanism is supported for frozen-backbone PECL across diverse vision datasets and NLP model scales, but we do not claim universality across all PEFT settings.

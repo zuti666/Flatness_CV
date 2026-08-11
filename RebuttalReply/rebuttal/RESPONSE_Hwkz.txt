@@ -1,0 +1,48 @@
+
+---
+
+W1 (Motivation not convincing)
+> "Applying AS(1) perturbation only to the LoRA adapter appears to be the standard way of using SAM, and this practice does not seem to introduce the claimed perturbation misalignment issue. Moreover, the empirical results presented in the paper suggest that this default strategy is already the most effective."
+
+The misalignment we refer to is not within adapter-only AS(1), but between full-scope sharpness and the admissible LoRA update space in frozen-backbone PECL. Adapter-scoped AS(1) is the strongest strategy in our experiments, but no prior work provides a PECL-specific criterion explaining why this is the correct sharpness notion.
+
+The motivation comes from a genuine tension between settings. Prior work on LoRA with sharpness is developed in the standard fine-tuning setting: Flat-LoRA [2] explicitly argues that LoRA fine-tuning can still induce sharpness in the full parameter space, motivating flatness at the full-model level. In PECL, however, updates are structurally confined to the admissible LoRA subspace across tasks, so the relevant sharpness object is no longer obvious — should it be the full-model quantity or the subspace-restricted one?
+
+Theorem 4.4 provides that criterion. Once the PAC-Bayesian bound is specialized to frozen-backbone PECL, both the KL-complexity term and the sharpness-dependent empirical loss reduce to perturbations supported on $W_{\Delta,t}$. This yields a falsifiable prediction rather than a post-hoc explanation: full-scope perturbations probe curvature in frozen directions that do not enter the PECL bound, so they should degrade performance regardless of dataset or architecture. Table 2 confirms this, with full-scope perturbations consistently hurting by −2.00 to −6.84. Within the correct scope, perturbation geometry still matters; Table 1 and Fig. 4 show RS(0) < AS(0) < AS(1), consistent with progressively better curvature alignment.
+
+Supplementary experiments confirm this is not benchmark-specific: across five fine-grained datasets, AS(0) consistently improves over SGD (+3.0 to +4.6 pp avg), while AS(1) is best on 5/5 datasets for SeqLoRA and IncLoRA and 4/5 for OLoRA, InfLoRA, and SDLoRA.
+
+Our contribution is therefore not the recipe-level observation that "adapter-only SAM works," but a PECL-grounded criterion that identifies the correct sharpness object under frozen-backbone adaptation — and predicts, from first principles, why full-scope perturbations degrade performance.
+
+---
+
+W2 (Missing related work: PAC-Bayesian analysis for CL)
+> "The paper should discuss prior work that applies PAC-Bayesian analysis to continual learning, such as [1] A PAC-Bayesian bound for Lifelong Learning. ICML 2014. and [2] PAC-Bayes bounds for cumulative loss in Continual Learning. ICLR 2026."
+
+Thank you. We will make these connections explicit in the revision.
+
+Paper [3] assumes tasks are sampled i.i.d. from a fixed hyperdistribution, so task order does not matter. Our framework instead uses a filtration-adapted hyperposterior process {P_t} with drift KL(P_t||P_{t-1}) to capture history-dependent bias change; Section 4.1 recovers that bound when this drift is zero. Paper [4] is concurrent and studies a different objective. It uses the flat chain P_t = Q_{t-1} and bounds cumulative plasticity loss. Our bound instead separates within-task adaptation E[KL(Q_t||P_t)] from cross-task drift KL(P_t||P_{t-1}), targets trajectory-averaged test risk, and then specializes to PECL by reducing the analysis to W_{Delta,t}.
+
+---
+
+W3 (Additional PEFT approaches)
+> "Additional PEFT approaches should be included to better validate the effectiveness of the proposed subspace-restricted updates."
+
+This is fair. Because Theorem 4.4 relies on an explicit low-rank admissible subspace W_{Delta,t}, our scope is LoRA-based PECL. Beyond the three methods in the paper (SeqLoRA, IncLoRA, OLoRA), we additionally evaluate InfLoRA and SDLoRA.
+
+Detailed results appear in the Vision Table in our mBoF response, with full tables and task matrices at [ANON_LINK]. These cover five fine-grained datasets, four perturbation types (SGD / RS(0) / AS(0) / AS(1)), and a het5 stream. The conclusion is consistent: AS(0) improves over SGD across all five methods, while RS(0) is unstable, indicating that gains come from correct scope plus curvature alignment rather than perturbation alone. Extending beyond LoRA remains future work.
+
+---
+
+W4 (Undefined notation H)
+> "Some notations are used before being defined. For example, H in Line 101 (Page 2) is not formally introduced."
+
+Correct. H denotes the hypothesis class; we will define it at first use.
+
+
+[1] BAR: Implicit Regularization of Sharpness-Aware Minimization for Scale-Invariant Problems. NeurIPS 2024
+[2] Flat-LoRA: Low-Rank Adapation Over A FlatT Loss  Landscape. ICML 2025
+[3] A PAC-Bayesian Bound for Lifelong Learning.
+[4] PAC-Bayes bounds for cumulative loss in Continual Learning.
+[5] InfLoRA: Interference-Free Low-Rank Adaptation for Continual Learning.
+[6] SD-LORA: Scalable Decoupled Low-Rank Adaptation FOR Class Incremental Learning

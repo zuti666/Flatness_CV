@@ -599,13 +599,17 @@ class _FeatureView:
             # 确保 m.head = Identity()（构造时已设；这里可再保险）
             if hasattr(m, "forward_features"):
                 return m.forward_features(x)
-            return m(x)
+            out = m(x)
         else:  # "base"
             m = getattr(self._bb, "base_vit", self._bb)
             # 确保 m.head = Identity()
             if hasattr(m, "forward_features"):
                 return m.forward_features(x)
-            return m(x)
+            out = m(x)
+        # CNN backbones (e.g. ResNet) return a dict; unwrap to feature tensor
+        if isinstance(out, dict):
+            out = out['features']
+        return out
 
 
 class LinearProbeRunner:

@@ -1,0 +1,59 @@
+# Real-data GPU pilot for PGSR-LoRA on the repository's IncLoRA pipeline.
+prefix: pgsr_inclora_cifar100_t3c5_r4_gpu_pilot_s0
+outputs_root: "Project1-3 INitilization/results/gpu_pilot"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+dataset: cifar224
+data_root: /data/140-1/datasets
+class_shuffle: false
+init_cls: 5
+increment: 5
+max_train_tasks: 3
+seed: [0]
+all_or_inc: inc
+
+backbone_type: vit_base_patch16_224
+device: [0]  # Logical device after CUDA_VISIBLE_DEVICES is applied.
+model_name: pgsr_lora
+lora_rank: 4
+
+batch_size: 128
+train_num_workers: 0
+eval_num_workers: 0
+
+optimizer: sgd
+optimizer_type: sgd
+scheduler: cosine
+init_epoch: 1
+init_lr: 0.01
+init_momentum: 0.0
+init_weight_decay: 0.0
+epochs: 1
+lrate: 0.01
+momentum: 0.0
+weight_decay: 0.0
+
+# PGSR selection and early-subspace warm-up.
+pgsr_preview_samples: 25
+pgsr_preview_batch_size: 25
+pgsr_fresh_prior: 0.5
+pgsr_gamma: 12.0
+pgsr_warmup_steps: 5
+pgsr_bank_max_tasks: 0
+pgsr_function_tolerance: 1.0e-6
+pgsr_max_train_steps: 0
+pgsr_selection_mode: map
+pgsr_skip_nme: true
+
+# Keep this pilot focused on training/selection rather than expensive probes.
+flat_eval: false
+feature_flat_eval: false
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+attention_probe_eval: false
+ood_eval: false
+mechanism_eval: false
+save_final_model: false

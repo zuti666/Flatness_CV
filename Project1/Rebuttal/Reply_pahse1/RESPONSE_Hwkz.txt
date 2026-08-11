@@ -1,0 +1,25 @@
+Thank you for your review. We address each concern directly.
+
+W1 (Motivation)
+
+We agree that SAM applied to a frozen-backbone LoRA model naturally perturbs only the trainable adapter parameters. However, this does not resolve which perturbation scope is correct in LoRA-based models — two published works explicitly disagree: LoRA-SAM (NeurIPS 2024) uses adapter-only perturbation; Flat-LoRA (ICML 2025) argues this is insufficient and advocates full-parameter perturbation including the frozen backbone. This is an unresolved inconsistency in how flatness is defined for LoRA models.
+
+This inconsistency becomes structural in PECL, where updates are restricted to the task-permissible subspace due to the frozen backbone. Perturbations over the full parameter space extend beyond the admissible update directions, creating a mismatch between the perturbation domain and the optimization domain. Our contribution is a formal resolution: Theorem 4.4 shows the bound-relevant sharpness is exclusively within W_{Delta,t}. Table 2 confirms empirically: full-scope degrades accuracy (DeltaAcc^cls = -2.00 to -6.84 across all LoRA variants) while adapter-scope improves it (+0.05 to +0.86).
+
+W2 (Missing related work: PAC-Bayesian CL analysis)
+
+On Pentina & Lampert (ICML 2014) [already cited in our paper, Sections 1 and 2]:
+P&L derives a bound on the multi-task risk assuming i.i.d. tasks from a fixed time-invariant hyperdistribution — task ordering is irrelevant and shuffling leaves the bound unchanged. This is multi-task learning, not sequential CL. As our paper states and Figure 2 illustrates: "in continual learning, the prior used at step t is typically produced by a history-dependent rule that progressively incorporates information from earlier tasks, rather than being generated from a single time-invariant hyperdistribution (Multi-task Learning)." Our framework captures this via a filtration-adapted hyperposterior {P_t} with drift penalty KL(P_t||P_{t-1}). P&L is a strict special case of Theorem 4.1 when drift = 0 (Section 4.1).
+
+On Friedman & Meir (ICLR 2026) — concurrent independent work:
+Three structural differences: (i) Prior hierarchy: F&M uses P_t = Q_{t-1} (flat chain, no distribution over distributions); we introduce P_{t-1} in M(M(H)), a genuine two-level hierarchy. (ii) Bound target: F&M bounds only cumulative plasticity loss — their Corollary 3.1 is self-described as "a straightforward extension requiring no new technical tools"; we bound the trajectory-averaged test risk capturing both stability and plasticity, with drift KL(P_t||P_{t-1}) as an explicit stability measure. (iii) No sharpness or subspace structure in F&M; Theorem 4.4 reduces the bound to the frozen-backbone adapter subspace (Lemma 4.2+4.3), absent from F&M entirely. We will add an explicit comparison to Related Work.
+
+W3 (Additional PEFT approaches)
+
+Beyond SeqLoRA, IncLoRA, and OLoRA already in the paper, we are adding results for InfLoRA and SD-LoRA — two additional LoRA-based PECL methods with different subspace management strategies. This directly addresses the request for broader PEFT validation. The framework targets LoRA specifically because its low-rank subspace structure makes the subspace reduction in Theorem 4.4 precise; extension to other PEFT families (prefix tuning, adapter modules) is possible when a well-defined W_{Delta,t} exists, and we will discuss this in the revision.
+
+W4 (Undefined notation H)
+
+H denotes the hypothesis class (predictors f_W: X->Y). It appears before its formal definition in Section 3.1 — we will add an inline definition at first use (page 2, line 101).
+
+Supplementary experiments include: ViT-B/16 on five fine-grained benchmarks (CUB200, Cars196, Flowers102, FGVC-Aircraft, OxfordPet) plus a cross-domain CL scenario; T5-small/T5-large on NLP CL benchmarks; and two additional LoRA methods (InfLoRA, SD-LoRA). We believe the formal reframing of motivation and the structural differentiation from P&L and F&M address the main concerns raised.

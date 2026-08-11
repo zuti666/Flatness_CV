@@ -1,0 +1,97 @@
+\section{PECL as a Constrained Update Geometry}
+\label{sec:pecl-geometry}
+
+LoRA-based continual learning turns sequential adaptation into a constrained geometric problem.
+Unlike full-parameter fine-tuning, future tasks do not modify the model freely in the ambient parameter space, but only through low-rank update directions induced by the trainable LoRA parameters.
+To study generalization and forgetting in this regime, we therefore need to make explicit not only which parameters are trainable, but also which \emph{weight-space directions} are actually realizable under the PECL mechanism.
+
+\subsection{Frozen-Backbone PECL as Constrained Adaptation}
+\label{sec:decomp}
+
+Let $\mathcal{X}$, $\mathcal{Y}$, and $\mathcal{Z} = \mathcal{X} \times \mathcal{Y}$ denote the input, label, and data spaces.
+A model with parameters $W \in \mathbb{R}^d$ induces a predictor $f_W : \mathcal{X} \to \mathcal{Y}$.
+We fix a bounded loss $\ell : \mathcal{H} \times \mathcal{Z} \to [0,1]$ and write $\ell(W,z)$ for $\ell(f_W,z)$.
+In continual learning with $T$ tasks, each task $t$ provides a sample $S_t = \{z_{tj}\}_{j=1}^{m_t}$ drawn i.i.d.\ from distribution $\mathcal{D}_t$.
+
+In frozen-backbone PECL, the model at task $t$ decomposes as
+\[
+W_t = W_t^{\mathrm{froz}} + \Delta W_t,
+\]
+where $W_t^{\mathrm{froz}}$ collects all parameters frozen while learning task $t$, and $\Delta W_t$ is the trainable increment produced by the current-task LoRA adapter.
+The key PECL constraint is that the update is not arbitrary.
+Rather, it is restricted to a task-dependent admissible update geometry:
+\[
+\Delta W_t \in \mathcal{W}_{\Delta,t} \subseteq \mathbb{R}^{d_1 \times d_2},
+\]
+where $\mathcal{W}_{\Delta,t}$ is a linear subspace in the ambient weight-increment space.
+Accordingly, the hypothesis class available at task $t$ is the affine set $W_t^{\mathrm{froz}} + \mathcal{W}_{\Delta,t}$, and all task-dependent adaptation is confined to $\mathcal{W}_{\Delta,t}$.
+
+This is the central geometric fact underlying the rest of the paper.
+Under the frozen-backbone constraint, future tasks can only adapt the model through perturbations supported on $\mathcal{W}_{\Delta,t}$.
+\emph{Any curvature or flatness property aggregated over directions outside $\mathcal{W}_{\Delta,t}$ is not automatically exploitable by future continual adaptation.}
+
+\subsection{From LoRA Coordinates to Admissible Update Geometry}
+\label{sec:lora-bridge}
+
+The central object of our analysis is not the LoRA factor-coordinate space itself, but the set of \emph{weight-increment directions} that the LoRA parameterization can realize locally around the learned solution.
+
+Let $\theta_{\Delta} = (A,B)$ denote the trainable LoRA coordinates, and let the corresponding weight increment be
+\[
+\Delta W(\theta_{\Delta}) = AB.
+\]
+Since the map $\theta_{\Delta} \mapsto \Delta W(\theta_{\Delta})$ is bilinear, the globally reachable set is the variety of rank-$\le r$ matrices---not a linear subspace.
+For our PAC-Bayesian analysis, however, we only require a \emph{local linear model} of the admissible update directions around the learned task-$t$ solution.
+
+Let $\hat{\theta}_{\Delta,t} = (\hat A_t, \hat B_t)$ be the learned LoRA parameters after task $t$.
+A first-order expansion yields
+\[
+\Delta W(\hat{\theta}_{\Delta,t} + \delta\theta_{\Delta})
+= \Delta W(\hat{\theta}_{\Delta,t})
++ J_{\mathrm{LoRA}}(\hat{\theta}_{\Delta,t})\,\delta\theta_{\Delta}
++ O(\|\delta\theta_{\Delta}\|^2),
+\]
+where $J_{\mathrm{LoRA}}(\hat{\theta}_{\Delta,t}) = [\hat B_t^\top \otimes I_{d_1},\; I_{d_2} \otimes \hat A_t]$ is the Jacobian of the parameterization map at $\hat\theta_{\Delta,t}$.
+This motivates defining the task-admissible update subspace as
+\[
+\mathcal{W}_{\Delta,t}
+:= \mathrm{Im}\!\left(J_{\mathrm{LoRA}}(\hat{\theta}_{\Delta,t})\right)
+\subseteq \mathbb{R}^{d_1 \times d_2}.
+\]
+Thus, $\mathcal{W}_{\Delta,t}$ is the local tangent subspace in weight-increment space induced by the LoRA parameterization at the learned solution.
+It has dimension at most $r(d_1 + d_2)$, is fully determined by $(\hat A_t, \hat B_t)$, and changes after each task.
+
+This distinction is crucial for the rest of the paper.
+The PAC-Bayesian theory is stated on $\mathcal{W}_{\Delta,t}$, because the bound concerns perturbations and posterior complexity in the space of realizable weight increments.
+In implementation, perturbations are applied in the trainable LoRA coordinates $(A,B)$.
+Under the local linearization above, such coordinate perturbations induce increment perturbations supported on $\mathcal{W}_{\Delta,t}$---so trainable-coordinate perturbations admit a local geometric interpretation through $\mathcal{W}_{\Delta,t}$.
+However, trainable-coordinate flatness and admissible-update flatness should not be conflated as globally identical: the former is an implementation-level quantity defined in the optimization coordinate space, while the latter is the geometric object studied by our theory, defined in weight-increment space and invariant to local reparameterization.
+See Appendix~\ref{app:lora_subspace_bridge} for the full derivation.
+
+\textbf{Theory object vs.\ empirical proxy.}
+Our PAC-Bayesian analysis is stated on the abstract $\mathcal{W}_{\Delta,t}$, while empirical diagnostics such as the amplification factor $\alpha_t$ and curvature projection ratio $c_t$ are constructed from the learned $\Delta W_t$ as an empirical proxy for $\mathcal{W}_{\Delta,t}$.
+These proxies are justified by the Jacobian bridge, but the distinction should be kept in mind when interpreting the experimental results in Section~\ref{sec:experiments}.
+
+\subsection{Geometry Evolution Across Tasks}
+\label{sec:lora-orgs}
+
+Different LoRA-based continual learning methods can be understood as different rules for how the admissible update geometry $\mathcal{W}_{\Delta,t}$ evolves across tasks.
+
+\textbf{SeqLoRA (fixed geometry).}
+A single LoRA module is updated sequentially across all tasks while the backbone remains frozen, yielding $W = W_0 + AB$.
+The admissible geometry is heavily shared across tasks, so cross-task overlap is maximal and new tasks are most likely to reuse or overwrite previously occupied directions.
+
+\textbf{IncLoRA (expanding geometry).}
+A new LoRA module is added for each task while previous modules and the backbone are frozen, yielding $W = W_0 + \sum_{t=1}^T A_t B_t$.
+The admissible geometry grows over time, allowing new tasks to access additional update directions and reducing direct overlap between task-specific updates.
+
+\textbf{Constrained expansion.}
+A third family retains the incremental design of IncLoRA but imposes structural constraints on $\mathcal{W}_{\Delta,t}$ to limit cross-task interference.
+The constraint mechanism differs across methods:
+\begin{itemize}
+  \item \emph{OLoRA}~\citep{wang2023orthogonal} acts in parameter space, penalizing overlap between adapter directions via $\sum_{i < t}\|A_i^\top A_t\|_F^2$ so that newly added directions are disentangled from previous ones.
+  \item \emph{InfLoRA}~\citep{Liang_2024_CVPR} acts in gradient space, projecting each task's gradient into the null space of the subspace spanned by previous task gradients.
+  \item \emph{SDLoRA}~\citep{wu2025sdlorascalabledecoupledlowrank} acts through component decomposition, splitting the LoRA update into task-shared and task-specific parts with independently controlled ranks.
+\end{itemize}
+
+Although these methods differ algorithmically, they can all be understood as defining different evolution rules for the sequence $\{\mathcal{W}_{\Delta,t}\}_{t=1}^T$.
+As we show in Section~\ref{sec:pecl-spec}, the PAC-Bayesian reduction to $\mathcal{W}_{\Delta,t}$ holds for all three organizations; the organization determines the structure of $\mathcal{W}_{\Delta,t}$ itself, and hence how sharply the scope-type distinction manifests empirically.

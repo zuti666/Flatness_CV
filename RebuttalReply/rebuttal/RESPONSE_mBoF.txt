@@ -1,0 +1,79 @@
+Thank you for the thoughtful questions. We address each concern with the experiment we ran and what it shows. Full results are in the tables at the end of this response.
+
+---
+
+Q1 (FlatLoRA and the generalization bound)
+
+We do not view Flat-LoRA and our paper as contradictory. Theorems 4.1/4.4 depend on the posterior support lying in W_{Delta,t}, not on which optimizer produced that posterior. Flat-LoRA can influence our bound only indirectly: it helps only if full-model flattening also reduces sharpness inside W_{Delta,t}; flattening W_{Delta,t}^perp does not enter the PECL bound. Table 2 already shows a full-space objective need not achieve this.
+
+---
+
+W1 / Q2 (Architecture, scale, and dataset breadth)
+
+Experiment: We extended the ViT-B/16 setup to five fine-grained datasets (Aircraft, Cars196, CUB200, Flowers, OxfordPet) across five LoRA variants (SeqLoRA, IncLoRA, OLoRA, InfLoRA, SDLoRA) and four perturbation types (SGD, AS(0), AS(1), RS(0); notation as in paper Table 2). Full task-wise accuracy matrices at [ANON_LINK].
+
+Trend (Vision Table below): AS(0) > SGD in 24/25 method-dataset pairs; AS(1) is best on 4-5/5 datasets for SeqLoRA, IncLoRA, OLoRA, SDLoRA.
+
+As an additional experiment, we ran SeqLoRA, IncLoRA, and OLoRA on T5-small and T5-large under three NLP task orders. Only adapter-scope AS(0) vs. Adam baseline is evaluated; this is not a replacement for the full vision comparison but confirms the structural conclusion transfers to encoder-decoder architectures. Trend (NLP Table below): AS(0) consistently improves over Adam across both model scales.
+
+---
+
+Q3 / Q4 (Cross-dataset and domain gap)
+
+Experiment: Heterogeneous sequential stream Aircraft->Cars196->CUB200->Flowers->OxfordPet (het5 column in Vision Table), where each task is a distinct fine-grained domain, testing cross-dataset transfer and pre-training/target domain gap.
+
+Trend (het5 column): AS(0) > SGD for SeqLoRA (72.79 vs 66.30), IncLoRA (74.42 vs 72.99), OLoRA (75.67 vs 70.98), InfLoRA (79.42 vs 76.15); AS(1) consistently best. Domain gap shifts absolute accuracy but not the perturbation-scope ordering. The mechanism is structural: W_{Delta,t} is determined by the LoRA parameterization and the frozen-backbone constraint, both independent of the pre-training/target domain relationship.
+
+---
+
+W2 (Scalability)
+
+Theorem 4.4 requires only the frozen-backbone support restriction, not a specific model size. The T5-large results above confirm the conclusion holds at a different architecture and scale.
+
+---
+
+W3 (Incremental)
+
+The diagnostic is RS(0) in the Vision Table. If our result were merely "any perturbation helps," RS(0) (adapter-scope but undirected) should also help consistently. Instead, RS(0) is unreliable: avg delta vs. SGD is near zero with large variance (IncLoRA: ranges from -17.2 to +22.5 pp across datasets). AS(0) is consistently +3.0 to +4.6 pp avg. This contrast is exactly what Theorem 4.4 predicts: perturbations must be both adapter-scoped and curvature-aligned. Undirected adapter perturbation fails; full-scope perturbation hurts (Table 2: -2.00 to -6.84). This is PECL-specific, not a restatement of standard SAM.
+
+---
+
+Vision Table (AAA; het5 = cross-domain sequential stream):
+|Method |Opt |Air.|Cars|CUB|Fl.|Pet|het5|
+|---|---|---:|---:|---:|---:|---:|---:|
+|SeqLoRA|SGD |39.26|33.39|65.48|60.82|69.94|66.30|
+|SeqLoRA|RS(0)|39.63|35.52|66.56|57.31|68.69|69.10|
+|SeqLoRA|AS(0)|40.54|38.16|69.19|62.97|73.14|72.79|
+|SeqLoRA|AS(1)|43.86|51.65|73.54|85.80|83.03|78.15|
+|IncLoRA|SGD |38.11|38.67|67.27|57.50|64.32|72.99|
+|IncLoRA|RS(0)|27.97|21.44|68.29|80.01|74.74|67.93|
+|IncLoRA|AS(0)|38.37|41.80|70.16|61.04|71.53|74.42|
+|IncLoRA|AS(1)|40.54|50.83|70.68|84.22|82.04|75.14|
+|OLoRA  |SGD |36.87|36.75|66.55|57.15|64.29|70.98|
+|OLoRA  |RS(0)|20.12|19.46|68.30|79.84|74.66|68.90|
+|OLoRA  |AS(0)|38.31|39.81|69.95|60.20|70.16|75.67|
+|OLoRA  |AS(1)|35.53|51.01|70.33|83.93|81.91|78.41|
+|InfLoRA|SGD |40.38|37.31|66.52|67.31|67.57|76.15|
+|InfLoRA|RS(0)|38.68|41.05|76.19|67.09|68.85|--|
+|InfLoRA|AS(0)|40.90|42.43|71.35|73.09|73.43|79.42|
+|InfLoRA|AS(1)|42.15|45.31|68.31|90.15|83.09|--|
+|SDLoRA |SGD |24.70|37.93|65.94|57.47|70.47|--|
+|SDLoRA |RS(0)|37.46|39.26|67.55|55.11|67.49|--|
+|SDLoRA |AS(0)|37.91|41.01|67.95|61.05|71.53|--|
+|SDLoRA |AS(1)|36.31|41.04|73.55|87.19|82.13|--|
+
+NLP Table (FAA per order; additional experiment, AS(0) vs Adam only):
+|Model|Method|Opt|o1|o2|o3|
+|---|---|---|---|---|---|
+|T5-sm|SeqLoRA|Adam|34.32|44.26|50.12|
+||     |AS(0)|43.07|49.61|50.22|
+||IncLoRA|Adam|48.01|56.99|45.56|
+||     |AS(0)|50.92|57.84|55.46|
+||OLoRA|Adam|61.67|61.68|57.36|
+||     |AS(0)|62.45|62.88|58.11|
+|T5-lg|SeqLoRA|Adam|56.40|66.24|69.88|
+||     |AS(0)|65.43|68.09|73.35|
+||IncLoRA|Adam|48.01|69.99|70.37|
+||     |AS(0)|71.00|77.39|73.27|
+||OLoRA|Adam|77.59|76.50|76.26|
+||     |AS(0)|78.51|78.60|77.55|

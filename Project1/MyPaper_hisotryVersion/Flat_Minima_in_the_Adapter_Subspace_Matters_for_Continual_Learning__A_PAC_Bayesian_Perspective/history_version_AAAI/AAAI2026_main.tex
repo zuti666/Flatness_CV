@@ -1,0 +1,793 @@
+%File: anonymous-submission-latex-2026.tex
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2026}  % DO NOT CHANGE THIS
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in} % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in} % DO NOT CHANGE THIS
+
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\usepackage{amsmath} 
+\usepackage{amsthm}
+\newtheorem{definition}{Definition}  
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb} % For \mathbb and \mathcal
+
+\usepackage{makecell}
+\usepackage{booktabs}       
+\usepackage{adjustbox}
+
+% —— 在这里插入 newtxmath，使数学符号与正文 Times 家族一致 —— 
+% \usepackage{newtxmath}
+
+% These are are recommended to typeset listings but not required. See the subsubsection on listing. Remove this block if you don't have listings in your paper.
+% \usepackage{newfloat}
+% \usepackage{listings}
+% \DeclareCaptionStyle{ruled}{labelfont=normalfont,labelsep=colon,strut=off} % DO NOT CHANGE THIS
+% \lstset{%
+% 	basicstyle={\footnotesize\ttfamily},% footnotesize acceptable for monospace
+% 	numbers=left,numberstyle=\footnotesize,xleftmargin=2em,% show line numbers, remove this entire line if you don't want the numbers.
+% 	aboveskip=0pt,belowskip=0pt,%
+% 	showstringspaces=false,tabsize=2,breaklines=true}
+% \floatstyle{ruled}
+% \newfloat{listing}{tb}{lst}{}
+% \floatname{listing}{Listing}
+%
+% Keep the \pdfinfo as shown here. There's no need
+% for you to add the /Title and /Author tags.
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+
+% DISALLOWED PACKAGES
+% \usepackage{authblk} -- This package is specifically forbidden
+% \usepackage{balance} -- This package is specifically forbidden
+% \usepackage{color (if used in text)
+% \usepackage{CJK} -- This package is specifically forbidden
+% \usepackage{float} -- This package is specifically forbidden
+% \usepackage{flushend} -- This package is specifically forbidden
+% \usepackage{fontenc} -- This package is specifically forbidden
+% \usepackage{fullpage} -- This package is specifically forbidden
+% \usepackage{geometry} -- This package is specifically forbidden
+% \usepackage{grffile} -- This package is specifically forbidden
+% \usepackage{hyperref} -- This package is specifically forbidden
+% \usepackage{navigator} -- This package is specifically forbidden
+% (or any other package that embeds links such as navigator or hyperref)
+% \indentfirst} -- This package is specifically forbidden
+% \layout} -- This package is specifically forbidden
+% \multicol} -- This package is specifically forbidden
+% \nameref} -- This package is specifically forbidden
+% \usepackage{savetrees} -- This package is specifically forbidden
+% \usepackage{setspace} -- This package is specifically forbidden
+% \usepackage{stfloats} -- This package is specifically forbidden
+% \usepackage{tabu} -- This package is specifically forbidden
+% \usepackage{titlesec} -- This package is specifically forbidden
+% \usepackage{tocbibind} -- This package is specifically forbidden
+% \usepackage{ulem} -- This package is specifically forbidden
+% \usepackage{wrapfig} -- This package is specifically forbidden
+% DISALLOWED COMMANDS
+% \nocopyright -- Your paper will not be published if you use this command
+% \addtolength -- This command may not be used
+% \balance -- This command may not be used
+% \baselinestretch -- Your paper will not be published if you use this command
+% \clearpage -- No page breaks of any kind may be used for the final version of your paper
+% \columnsep -- This command may not be used
+% \newpage -- No page breaks of any kind may be used for the final version of your paper
+% \pagebreak -- No page breaks of any kind may be used for the final version of your paperr
+% \pagestyle -- This command may not be used
+% \tiny -- This is not an acceptable font size.
+% \vspace{- -- No negative value may be used in proximity of a caption, figure, table, section, subsection, subsubsection, or reference
+% \vskip{- -- No negative value may be used to alter spacing above or below a caption, figure, table, section, subsection, subsubsection, or reference
+
+\setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
+
+% The file aaai2026.sty is the style file for AAAI Press
+% proceedings, working notes, and technical reports.
+%
+
+% Title
+
+
+\title{Sharpness Matters for LoRA-Based Continual Learning: A PAC-Bayesian Perspective}
+\author{
+    %Authors
+    % All authors must be in the same font size and format.
+    Written by AAAI Press Staff\textsuperscript{\rm 1}\thanks{With help from the AAAI Publications Committee.}\\
+    AAAI Style Contributions by Pater Patel Schneider,
+    Sunil Issar,\\
+    J. Scott Penberthy,
+    George Ferguson,
+    Hans Guesgen,
+    Francisco Cruz\equalcontrib,
+    Marc Pujol-Gonzalez\equalcontrib
+}
+\affiliations{
+    %Afiliations
+    \textsuperscript{\rm 1}Association for the Advancement of Artificial Intelligence\\
+    % If you have multiple authors and multiple affiliations
+    % use superscripts in text and roman font to identify them.
+    % For example,
+
+    % Sunil Issar\textsuperscript{\rm 2},
+    % J. Scott Penberthy\textsuperscript{\rm 3},
+    % George Ferguson\textsuperscript{\rm 4},
+    % Hans Guesgen\textsuperscript{\rm 5}
+    % Note that the comma should be placed after the superscript
+
+    1101 Pennsylvania Ave, NW Suite 300\\
+    Washington, DC 20004 USA\\
+    % email address must be in roman text type, not monospace or sans serif
+    proceedings-questions@aaai.org
+%
+% See more examples next
+}
+
+
+%Example, Single Author, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\iffalse
+\title{My Publication Title --- Single Author}
+\author {
+    Author Name
+}
+\affiliations{
+    Affiliation\\
+    Affiliation Line 2\\
+    name@example.com
+}
+\fi
+
+\iffalse
+%Example, Multiple Authors, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\title{My Publication Title --- Multiple Authors}
+\author {
+    % Authors
+    First Author Name\textsuperscript{\rm 1},
+    Second Author Name\textsuperscript{\rm 2},
+    Third Author Name\textsuperscript{\rm 1}
+}
+\affiliations {
+    % Affiliations
+    \textsuperscript{\rm 1}Affiliation 1\\
+    \textsuperscript{\rm 2}Affiliation 2\\
+    firstAuthor@affiliation1.com, secondAuthor@affilation2.com, thirdAuthor@affiliation1.com
+}
+\fi
+
+% REMOVE THIS: bibentry
+% This is only needed to show inline citations in the guidelines document. You should not need it and can safely delete it.
+% \usepackage{bibentry}
+% END REMOVE bibentry
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+Low-Rank Adaptation (LoRA) offers a scalable route to continual learning (CL) with large pre-trained models, yet shared adapter subspaces make it difficult to balance stability and plasticity. While training toward flatter solutions is known to improve generalization, its role \emph{inside the adapter subspace} for CL has not been theoretically established. We address this gap by proposing \emph{LoRA Subspace Sharpness Steering} and by deriving a hierarchical PAC-Bayesian framework that augments empirical risk with an \emph{adapter-subspace expected sharpness} term and a \emph{hierarchical KL} term reflecting posterior complexity. Under adapter orthogonality the task-level complexity decouples, clarifying when modular adapters should benefit from subspace sharpness control. Guided by this analysis, we organize our study around three research questions on (i) the sufficiency of \emph{subspace-only} sharpness control, (ii) strategy selection across sequence length and task similarity, and (iii) interactions with adapter structure. Using a unified protocol across LoRA variants (Seq/Inc/Orthogonal), perturbation geometries (SAM, Gaussian, Fisher-guided), and benchmarks with varying similarity and sequence length, we find that reducing sharpness within the adapter subspace consistently improves last accuracy and reduces forgetting compared with both no-noise and full-model counterparts under matched budgets. The theory also predicts, and experiments confirm, when orthogonality and directional perturbations synergize and how performance trades off with perturbation strength and compute. Our results provide a theory-to-practice account and design guidance for parameter-efficient CL.
+\end{abstract}
+
+% Low-Rank Adaptation (LoRA) offers a scalable solution for continual learning (CL) with large pre-trained models across diverse downstream tasks.  However, its reliance on shared adapter subspaces poses challenges for balancing stability and plasticity. Although the practice of learning a flat minima is known to enhance generalization and reduce forgetting, its impact within the adapter subspace in CL remains unexplored. 
+% To address this gap, we develop a PAC-Bayesian framework that formally incorporates sharpness-aware regularization and hierarchical posterior complexity under the structural constraints of LoRA. We discuss different perturbation strategies and empirically show that reducing sharpness within the adapter subspace consistently improves generalization and reduce forgetting on multiple CL benchmarks with varying task similarity and sequence length. This work establishs a theoretical foundation for sharpness-aware regularization in LoRA-based CL. We demonstrate conclusively that reducing sharpness solely within the trainable adapter subspace is a sufficient and robust strategy for improving generalization and stability, offering clear guidance for developing future parameter-efficient methods in CL.
+% \end{abstract}
+
+
+\section{Introduction}
+
+
+Continual learning (CL) has become increasingly relevant for adapting large-scale pre-trained models to evolving tasks in dynamic environments~\cite{PARISI201954,10444954,a2923225ea7d94e6c86faff97e23c69be,10.1145/3735633}. 
+While full fine-tuning remains the most expressive adaptation strategy, its application in sequential settings is computationally demanding and susceptible to catastrophic forgetting, as newly acquired knowledge may interfere with previously learned representations~\cite{howard2018universallanguagemodelfinetuning,doi:10.1073/pnas.1611835114,pmlr-v234-zhai24a,luo2025empiricalstudycatastrophicforgetting}.
+To address these limitations, parameter efficient continual learning methods (PECL) such as Low-Rank Adaptation (LoRA)~\cite{hu2022lora} introduce lightweight, task-specific modules while freezing the backbone weights~\cite{pmlr-v97-houlsby19a,dingParameterefficientFinetuningLargescale2023,He_2025_CVPR,NEURIPS2024_b0bc711f}.
+Although PECL enables scalable adaptation, its reliance on shared parameters can still induce task interference and limit generalization.
+
+% Parameter-efficient tuning methods such as Low-Rank Adaptation (LoRA)~\cite{hu2022lora}, address this challenge by introducing lightweight, task-specific modules while freezing the backbone weights~\cite{pmlr-v97-houlsby19a,dingParameterefficientFinetuningLargescale2023}. 
+
+
+% Full finetuning across sequential tasks is not only computationally expensive, but also prone to catastrophic forgetting and degraded generalization.
+
+Recent studies have associated flat minima in the loss landscape with improved generalization and robustness, as flat solutions tend to be more stable under parameter perturbations and distribution shifts~\cite{wu2017understandinggeneralizationdeeplearning,chaudhariEntropySGDBiasingGradient2019,NEURIPS2020_518a38cc,NEURIPS2021_995f5e03,JMLRAnEmpiricalInvestigatio,yangRevisitingFlatnessAwareOptimization2025}. Techniques such as Sharpness-Aware Minimization (SAM)~\cite{foretSharpnessAwareMinimizationEfficiently2021} and Stochastic Weight Averaging (SWA)~\cite{izmailovAveragingWeightsLeads2019} have demonstrated the benefits of encouraging flat minima  (i.e., promoting flatness or reducing sharpness; we use sharpness as the unified term in this work) in full-model training. However these methods have not yet been extended to parameter-efficient updating techniques, where updates are confined to a low-rank, parameter-efficient region.
+In PECL, it remains unclear whether reducing sharpness within the adapter subspace is sufficient to ensure robust generalization and resistance to forgetting across tasks.
+
+
+Theoretical understanding of this question remains limited. While the PAC-Bayesian framework~\cite{mcallesterPACBayesianStochasticModel2003,PAC-Bayesiansupervisedclassification2007,pentinaPACBayesianBoundLifelong2014,germainPACBayesianTheoryMeets2016,lotfiPACBayesCompressionBounds2022} provides a principled lens for analyzing generalization through posterior complexity, existing analyses rarely account for the role of sharpness or the adapter subspace constraints. In particular, the interaction between sharpness within the adapter subspace and posterior complexity across tasks remains poorly understood.
+
+
+In this work, we propose a PAC-Bayesian framework for analyzing and improving CL under LoRA-based adaptation. We derive a generalization bound that incorporates empirical risk, sharpness-based perturbation risk, and a hierarchical KL divergence term reflecting posterior complexity.  We further conduct a systematic analysis of the interaction between different LoRA configurations including sequential (SeqLoRA), incremental (IncLoRA), and orthogonal (OLoRA)~\cite{wang2023orthogonal}, and various perturbation strategies such as SAM~\cite{foretSharpnessAwareMinimizationEfficiently2021}, Gaussian noise~\cite{pmlr-v151-bisla22a}, and Fisher-guided perturbation~\cite{kimFisherSAMInformation2022,liRevisitingRandomWeight2024}, evaluated across benchmarks with varying task lengths and similarity. Our results demonstrate that sharpness-aware regularization within the adapter subspace improves continual learning across LoRA variants, with modular architectures (IncLoRA, OLoRA) showing stronger synergy with directional perturbations under challenging benchmarks.
+
+
+Our main contributions can be summarized as:
+\begin{itemize}
+\item We develop a novel PAC-Bayesian generalization bound that explicitly incorporates sharpness within the adapter subspace, offering a formal explanation for sharpness-aware regularization in PECL.
+\item We propose a systematic analysis of how LoRA modularity and sharpness-based perturbations interact, showing that these design choices correspond to complementary mechanisms for controlling forgetting and enhancing generalization.
+
+\item We provide comprehensive empirical validation across benchmarks with varying task sequence lengths and inter-task similarity, showing that sharpness within the adapter subspace reliably predicts downstream performance.
+\end{itemize}
+
+
+
+
+\section{Realted Work}
+
+\subsection{LoRA-Based CL}
+Parameter efficient continual learning (PECL) has emerged as a practical solution for incrementally adapting large pre-trained models, with LoRA becoming a representative approach due to its efficiency and compatibility with frozen backbones~\cite{pmlr-v97-houlsby19a,Wang_2022_CVPR,dingParameterefficientFinetuningLargescale2023,xu2023parameterefficientfinetuningmethodspretrained,Yang_Muhtar_Shen_Zhan_Liu_Wang_Sun_Deng_Sun_Zhang_Chen_Tong_2025}. By introducing trainable low-rank matrices, LoRA enables continual adaptation with minimal overhead, and has demonstrated strong performance across diverse learning scenarios~\cite{hu2022lora}.
+However, LoRA-based methods remain vulnerable to forgetting and task interference, particularly in long and diverse task sequences~\cite{Gao_2023_ICCV,10.1145/3730436.3730456,yang2024parametercollisionhinderingcontinual}. Recent variants such as SDLoRA~\cite{wu2025sdlorascalabledecoupledlowrank} and OLoRA~\cite{NEURIPS2020_70d85f35,wang2023orthogonal} aim to alleviate these issues via adapter modularity and orthogonal constraints. 
+Although such designs yield empirical improvements, they lack a principled understanding of how adapter structure affects forgetting and generalization. In particular, the interaction between adapter subspace design and solution stability remains insufficiently explored.
+
+
+\subsection{Flat Minima}
+
+
+Flat minima in the loss landscape are widely believed to promote generalization and robustness by reducing sensitivity to perturbations~\cite{FlatMinima1997,wu2017understandinggeneralizationdeeplearning,chaudhariEntropySGDBiasingGradient2019,NEURIPS2020_518a38cc,bahri2022sharpnessawareminimizationimproveslanguage,NEURIPS2020_518a38cc,NEURIPS2021_995f5e03,JMLRAnEmpiricalInvestigatio,yangRevisitingFlatnessAwareOptimization2025}. 
+Prior work has explored flat minima in CL through sharpness-aware optimization~\cite{pmlr-v151-bisla22a,foretSharpnessAwareMinimizationEfficiently2021,zhangGradientNormAware2023}, mode connectivity~\cite{izmailov2019averagingweightsleadswider,mirzadeh2020linearmodeconnectivitymultitask}, and improved representation learning~\cite{hu2022doesselfsupervisedpretrainingperform,ramasesh2022effect}.
+These methods are mainly developed for full model training on simple tasks and do not account for the adapter subspace constraints\cite{yangRevisitingFlatnessAwareOptimization2025}. Whether sharpness within the adapter subspace alone can ensure generalization in LoRA-based CL remains unclear, motivating further investigation.
+
+
+\subsection{PAC-Bayesian Theory}
+
+
+The PAC-Bayesian framework provides a principled foundation for analyzing generalization by balancing empirical risk and posterior complexity~\cite{mcallesterPACBayesianStochasticModel2003,pentinaPACBayesianBoundLifelong2014,germainPACBayesianTheoryMeets2016,lotfiPACBayesCompressionBounds2022}. Its extensions to lifelong learning~\cite{pentinaPACBayesianBoundLifelong2014} incorporate hierarchical priors to capture task-dependent posterior complexity across sequences.
+Recent studies have connected generalization to flat minima by interpreting sharpness as a surrogate for posterior sensitivity, thereby linking flatter solutions to tighter PAC-Bayesian bounds~\cite{NIPS2017_10ce03a1,jiang2019fantasticgeneralizationmeasures,mllenhoff2023sam}. These advances provide a geometric perspective on generalization in deep networks. However, existing analyses largely overlook the adapter subspace constraints and offer limited insight into how sharpness within this subspace interacts with posterior complexity across tasks. Bridging this gap requires a theoretical framework that jointly captures sharpness and adapter subspace constraints. Our work addresses this need in the context of LoRA-based CL.
+
+
+\section{Notation and Preliminaries}
+
+\subsection{CL Problem Setting }
+
+We formalize CL with the concept of the task environment framework~\cite{baxter2000model,pentinaPACBayesianBoundLifelong2014}. Let $\mathcal{X}$ and $\mathcal{Y}$ denote the input and output spaces respectively, and let $\mathcal{F} \subset \{f : \mathcal{X} \rightarrow \mathcal{Y}\}$ denote the hypothesis space. The loss function is $\ell : \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}_{\geq 0}$. We assume an underlying environment with a task distribution $\mathcal{T}$, such that each task $t \in \{1, 2, \ldots, n\}$ is independently sampled from $\mathcal{T}$. For each task $t$, the CL system (which we will call an agent) receives a training set $S_t = \{(x_{tj}, y_{tj})\}_{j=1}^{m_t}$ and a test set $T_t$, both drawn i.i.d.\ from a task-specific data distribution $\mathcal{D}_t$. The empirical loss for function $f \in \mathcal{F}$ on task $t$ is defined as
+$
+\hat{L}_{S_t}(f) = \frac{1}{m_t} \sum_{j=1}^{m_t} \ell(f(x_{tj}), y_{tj}).
+$
+
+Modern large-scale pretrained models are often adapted to downstream tasks using parameter-efficient methods. In the context of CL, we focus on three representative LoRA-based strategies:
+\begin{itemize}
+ \item \textbf{Sequence LoRA (SeqLoRA)} : A single LoRA pair $(A, B)$ is trained sequentially across tasks while keeping the backbone weights $W_0$ frozen. The final model after $N$ tasks is given by $W_0 + AB$.
+\item \textbf{Incremental LoRA (IncLoRA)} : A new LoRA pair $(A_t, B_t)$ is incrementally added for each task $t$, and only the current pair is updated while all previous modules and $W_0$ are fixed. The resulting model is $W_0 + \sum_{t=1}^N A_t B_t$.
+\item \textbf{Orthogonal LoRA (OLoRA)} : Extending IncLoRA, OLoRA~\cite{wang2023orthogonal} introduces an orthogonality constraint across tasks to encourage adapter subspace disentanglement. Specifically, during task $t$, a penalty $\mathcal{L}_{\text{orth}}^{(t)} = \sum_{i=1}^{t-1} \|A^{(i)\top} A^{(t)}\|_F^2$ is applied, where $A^{(i)}$ denotes the LoRA-A matrix from task $i$.
+\end{itemize}
+
+
+\subsection{Sharpness Measurement}
+
+Following the intuition that sharpness reflects the sensitivity of a solution to perturbations in parameter space, we consider two representative definitions of sharpness commonly used in the literature:
+
+
+\begin{definition}[Adversarial Sharpness]~\cite{foretSharpnessAwareMinimizationEfficiently2021}
+The adversarial sharpness of a solution $\hat{\theta}$ on dataset $S$ is defined as
+\begin{equation}
+    \epsilon\text{-Sh}(\hat{\theta}, \rho) :=\max_{\epsilon \in B(\hat\theta, \rho)} \big( \hat{L}_{S}(\hat{\theta} + \epsilon) - \hat{L}_{S}(\hat{\theta}) \big),
+\end{equation}
+where $B(\hat\theta, \rho)$ denotes a ball of radius $\rho$ centered at $\hat\theta$.
+\end{definition}
+
+
+\begin{definition}[Expected Sharpness]~\cite{liRevisitingRandomWeight2024}
+For task $i$, the expected sharpness of a solution $\theta$ is defined as
+\begin{equation}\label{def: Task-Aware Expected Sharpness}
+    \text{E-Sh}(\theta, \Sigma_Q) := \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\,\Sigma_Q)} \left[ \hat{L}_{\mathcal{D}}(\theta + \epsilon) - \hat{L}_{\mathcal{D}}(\theta) \right],
+\end{equation}
+where $\mathcal{N}(0,\,\Sigma_Q)$ is a Gaussian distribution, typically instantiated as $\mathcal{N}(0,\, \sigma^2 \mathbf{I})$.
+\end{definition}
+
+
+While  $\epsilon$-Sh captures the worst-case loss increase under bounded perturbations, its reliance on maximization makes it computationally impractical for model evaluation. In contrast, $\text{E-Sh}$ measures average-case sensitivity to stochastic perturbations and can be computed efficiently without gradients. Moreover, $\text{E-Sh}$ aligns naturally with PAC-Bayesian theory, which links generalization to posterior sensitivity~\cite{jiang2019fantasticgeneralizationmeasures}. Based on these advantages, we adopt $\text{E-Sh}$ as our primary metric. For qualitative comparison, we also visualize the loss landscape~\cite{liVisualizingLossLandscape2018} across different LoRA configurations and task sequences.
+
+
+\subsection{PAC-Bayesian Generalization Theory}
+
+The PAC-Bayesian framework provides a principled approach to quantifying generalization by considering a distribution over model parameters, rather than a single deterministic solution. The classical generalization bound of McAllester~\shortcite{mcallesterPACBayesianStochasticModel2003} states that, for any posterior $Q$ and prior $P$ over the hypothesis space, the generalization error is upper-bounded by the empirical risk plus a complexity term involving the KL divergence between $Q$ and $P$:
+\begin{theorem}[PAC-Bayes Generalization Bound]
+For any loss $\ell': \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \to [0,1]$, with probability at least $1-\delta$ over the choice of training set $S$:
+    \[\mathbb{E}_{f \sim Q}[L_{\mathcal{D}}^{\ell'}(f)] \leq \mathbb{E}_{f \sim Q}[\hat{L}_S^{\ell'}(f)] + \sqrt{\frac{KL(Q\|P) + \log \frac{m}{\delta}}{2(m-1)}}\]
+\end{theorem}
+
+
+
+\section{PAC-Bayesian Generalization Theory with Sharpness for CL}
+
+\begin{figure}[thpb]
+  \centering
+  \includegraphics[width=1\linewidth]{images/PAC_large.pdf}
+  \caption{Illustration of the three types of risk in hierarchical PAC-Bayesian CL: future task generalization risk $L(Q)$, expected generalization risk on observed tasks $L(Q_{1:n})$, and empirical risk on observed tasks $\hat{L}(Q_{1:n})$.}
+  \label{fig concept: 3 different definaiton}
+\end{figure}
+
+
+To analyze the role of sharpness in CL, we adopt a hierarchical Bayesian framework~\cite{pentinaPACBayesianBoundLifelong2014}, in which the prior $P$ is treated as a random variable sampled from a hyperprior $\mathcal{P}$, and updated to a hyperposterior 
+$\mathcal{Q}$ after observing new tasks. Within this general setting, we define three types of risk (see Fig.~\ref{fig concept: 3 different definaiton}):
+
+
+\begin{itemize}
+    \item \textbf{Future-Task Generalization Risk}: The expected performance on future tasks, reflecting CL generalization, but is intractable due to unknown future distributions \[ L(\mathcal{Q}) := \mathbb{E}_{t \sim \mathcal{T}}\mathbb{E}_{P \sim \mathcal{Q}}L_{\mathcal{D}_t}\big(Q_t(\mathcal{D}_t, P)\big),
+    \] where $Q_t(\mathcal{D}_t, P )$ (short as $Q_t(P_t)$) is the posterior obtained by training the learning algorithm with prior $P$.
+    \item \textbf{Expected Generalization Risk on Observed Tasks}: The expected performance on all encountered tasks,approximating future generalization but still dependent on inaccessible data distributions.
+    $$
+        L(\mathcal{Q}_{1:n}) := \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P_{t} \sim \mathcal{Q}_{t}} \mathbb{E}_{f \sim Q_t(P_t)} [ L_{\mathcal{D}_t}(f) ],
+    $$ where $\mathcal{Q}_{1:n} = (\mathcal{Q}_1, \ldots, \mathcal{Q}_n)$ denotes the set of hyperposteriors over task-specific priors, 
+   
+    \item \textbf{Empirical Risk on Observed Tasks}: The average training loss over seen tasks, serving as computable surrogate based solely on available data.
+    $$
+        \hat{L}(\mathcal{Q}_{1:n}) := \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P_t \sim \mathcal{Q}_t(P_t)} \mathbb{E}_{f \sim Q_t}  [ L_{\mathcal{S}_t}(f) ].
+    $$
+\end{itemize}
+
+
+
+
+These risk definitions underscore the core objective of CL: connecting  empirical performance to both reducing catastrophic forgetting and promoting generalization to future tasks. Existing PAC-Bayesian formulations for lifelong learning~\cite{pentinaPACBayesianBoundLifelong2014} overlook two key factors: task-aware sharpness and sequential posterior dependencies. We address these gaps by deriving a PAC-Bayesian generalization bound that explicitly integrates sharpness-aware regularization and captures inter-task posterior shifts. The complete theorem statement and its proof are provided in the appendix.
+
+
+\begin{theorem}[PAC-Bayes Bound with Sharpness for CL]
+\label{thm:general-pacbayes}
+Consider $n$ sequential tasks under a hierarchical Bayesian CL framework. For any hyperposterior $\mathcal{Q}$ and task-wise posteriors $\{Q_t\}$, with probability at least $1-\delta$,
+\begin{align}
+& L(\mathcal{Q}_{1:n}) \leq \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P_{t} \sim \mathcal{Q}_{t}} \Big[ \widehat{L}_{S_t}(\mathbf{W}_t) 
++ {\mathrm{E\text{-}Sh}}_t(\mathbf{W}_t, \Sigma_Q) \Big] \notag\\
+& \quad  +\frac{1}{n(\bar{m}_n-1)} \sqrt{
+\frac{
+KL^{\text{task}}_n + KL^{\text{hyper}}_n + \log(\bar{m}_n/\delta)
+}{2(\bar{m}_n-1)}
+}
+\end{align}
+where
+\begin{itemize}
+\item $\mathbf{W}_t$ denotes the model parameters trained on task $t$.
+\item $KL^{\text{task}}_n = KL(Q_{1:n}||P_{1:n})$ denotes the joint KL divergence over all task posteriors and priors, reflecting parameter-level complexity.
+\item $KL^{\text{hyper}}_n$ is the KL divergence between the hyperposterior and hyperprior, reflecting the meta-level (hyperprior) complexity. 
+\item $\bar{m}_n = n / (\sum_{t=1}^n 1/m_t)$ is the harmonic mean of the sample sizes.
+\end{itemize}
+\end{theorem}
+
+The general PAC-Bayesian bound offers a unified framework for CL by incorporating empirical risk, sharpness, and hierarchical posterior complexity. However, the task-level KL term $KL^{\text{task}}_n$ remains difficult to optimize due to sequential dependencies across tasks.
+To enhance both tractability and theoretical clarity, we introduce an orthogonality assumption over task-specific adapter subspaces in LoRA-based CL. This structural assumption disentangles inter-task posterior interactions and enables a tighter, more interpretable generalization bound.
+
+
+\begin{theorem}[PAC-Bayes Bound with Sharpness LoRA-based CL under Orthogonality]
+Under the orthogonality constraint Lora-based CL, the generalization risk satisfies:
+\begin{align}
+      &  L(\mathcal{Q}_{1:n}) \leq  \frac{1}{n} \sum_{t=1}^{n}
+        \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\big[
+            \widehat{L}_{S_t}(\mathbf{W}_{t}) \notag
+ + \text{E-Sh}_t(\mathbf{W}_{t} ,\, \Sigma_Q)
+        \big] \notag\\
+&  \qquad + \frac{1 }{n(\bar{m}_n - 1)}\sqrt{
+            \frac{KL_{n}^{\text{task}} + KL_{n}^{\text{hyper}} +\log(\bar{m}_{n}/\delta)}{2(\bar{m}_{n} - 1)}
+        }
+\end{align}
+where $KL^{\text{task}}_n = \sum_{t=1}^n KL(Q_t \| P_t) $.
+\end{theorem}
+
+This result instantiates the general PAC-Bayesian bound under a structured orthogonality constraint designed for LoRA-based CL. By enforcing disentangled adapter parameters across tasks, the joint KL divergence decomposes into a sum of task-specific terms. This enables empirical risk and sharpness to be regularized on a per-task basis, supporting both theoretical clarity and practical optimization. The bound highlights how adapter modularity and sharpness reduction jointly contribute to continual learning: orthogonality alleviates task interference, while controlling sharpness improves generalization. Together, these components form a tractable and principled framework for robust, parameter-efficient CL.
+
+
+\section{Understanding Sharpness in LoRA-Based CL}
+\label{sec:Understanding Flatness in LoRA-Based CL}
+
+
+To empirically assess the role of sharpness in LoRA-based CL, we build on PAC-Bayesian theory, which links local curvature to generalization and forgetting. While Flat-LoRA~\cite{li2025flatloralowrankadaptationflat} demonstrates that promoting flatness benefits LoRA fine-tuning, its analysis is limited to single-task settings without interference across tasks. In contrast, continual learning involves sequential updates to task-specific adapters, often under structural constraints that limit optimization to narrow subspaces. This discrepancy prompts two key questions:
+\begin{enumerate}
+    \item Is reducing sharpness within the LoRA subspace sufficient to improve robustness and mitigate forgetting, or is sharpness over the full model necessary?
+    \item How do different perturbation strategies trade off knowledge retention, adaptability, and generalization during CL?
+\end{enumerate}
+
+
+To answer these questions, we design a controlled empirical study along two axes:
+\paragraph{Perturbation Scope.} We consider two settings:
+\begin{itemize}
+    \item \textbf{LoRA-only}~\cite{li2025flatloralowrankadaptationflat}: Perturbations are applied solely to the newly introduced LoRA adapters.
+    \item \textbf{Global}: Perturbations are applied to the entire model, including frozen backbone and past adapters.
+\end{itemize}
+
+\paragraph{Perturbation Strategy} We evaluate three representative noise types commonly used to reduce sharpness:
+
+\begin{itemize}
+    \item \textbf{Adversarial Perturbation (SAM)}~\cite{foretSharpnessAwareMinimizationEfficiently2021}: Perturbs weights in the direction of steepest loss ascent to induce flatter minima:
+    $$
+    \epsilon^*(\theta, \rho) := \arg \max_{\|\epsilon\|_2 \leq \rho} \hat{L}_S(\theta + \epsilon) \approx \rho \cdot \frac{g}{\|g\|_2}
+    $$
+
+    \item \textbf{Random Weight Perturbation (Gaussian)}~\cite{pmlr-v151-bisla22a}: Applies isotropic Gaussian noise across all dimensions:
+    $$
+    \epsilon \sim \mathcal{N}(0,\ \sigma^2 \cdot I)
+    $$
+
+    \item \textbf{Adaptive Random Perturbation (Fisher-guided)}: Modulates the variance of injected noise based on parameter importance. Following~\cite{liRevisitingRandomWeight2024}, we employ Fisher information as a sensitivity proxy, but adopt an exponential decay rather than square-root normalization to better preserve relative contrast:
+    $$
+    \epsilon_{ij} \sim \mathcal{N}\left(0,\ \left[\exp\left(-\alpha \cdot \tilde{\mathcal{F}}_{ij} \right)\right]^2 \cdot \sigma^2 \right)
+    $$
+    where $\tilde{\mathcal{F}}_{ij}$ is the normalized Fisher score for parameter $(i,j)$.
+\end{itemize}
+
+
+\section{Experiments}
+
+\textbf{Datasets.}
+We evaluate the methods on three benchmarks covering a spectrum of task diversity and difficulty:
+
+
+\textbf{Model.} We adopt the CL setup for the T5 model, following LFPT5~\cite{qin2022lfpt5unifiedframeworklifelong} and Olora~\cite{wang2023orthogonal}, and explore three different orders of the benchmark.
+
+
+\textbf{Standard CL Benchmark.}  
+This benchmark consists of four topic classification datasets—AG News, Amazon Reviews, DBpedia, and Yahoo Answers—from~\cite{NIPS2015_250cf8b5}. These tasks are thematically related and represent within-domain transfer scenarios. 
+
+
+\textbf{Long Sequence Benchmark.}  
+To simulate CL under high task heterogeneity, we use a $15$-task benchmark following~\cite{razdaibiedina2023progressivepromptscontinuallearning}. It includes datasets from CL, GLUE~\cite{wang2019gluemultitaskbenchmarkanalysis}, SuperGLUE~\cite{NEURIPS2019_4496bf24}, and IMDB~\cite{maas2011learning}, with each task comprising 1,000 training examples. This setup introduces domain shift.
+
+
+\begin{table*}[thbp]
+
+\resizebox{\textwidth}{!}{
+\begin{tabular}{cc|ccc|ccc|ccc|ccc}
+\toprule
+& & \multicolumn{3}{c|}{\textbf{Order1}}
+  & \multicolumn{3}{c|}{\textbf{Order2}}
+  & \multicolumn{3}{c|}{\textbf{Order3}}
+  & \multicolumn{3}{c}{\textbf{Average (Avg)}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
+\textbf{Baseline} & \textbf{Method}
+& ABWT & AFG & LA
+& ABWT & AFG & LA
+& ABWT & AFG & LA
+& ABWT & AFG & LA \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+& Naive        & -9.02 & 45.59 & 73.41 
+                  & \textbf{-3.95} & 44.13 & 75.74 
+                  & -4.83 & 58.27 & 77.55 
+                  & -5.93 & 49.33 & 75.57 \\
+                   \cmidrule(lr){2-14}
+& Full-Fisher     & -6.50 & 44.62 & 74.72 
+                  & -4.90 & 39.71 & 75.27 
+                  & {-4.56} & 58.03 & {78.55} 
+                  & -5.32 & 47.45 & 76.18  \\
+& Full-Gaussian   & \textbf{-6.31} & 44.82 & 74.56 
+                  & -4.20 & 42.11 & 76.00 
+                  & -5.47 & 58.43 & 77.10 
+                  & -5.33 & 48.45 & 75.89 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & -7.39 & 46.14 & 73.69 
+                  & -5.14 & 43.93 & 76.07 
+                  & -1.63 &58.63& 77.70 
+                  & -4.72 & 49.57 & 75.82\\
+& LoRA-Fisher     & -6.79 & 43.31 & \textbf{74.92} 
+                  & -4.89 & 39.65 & 75.39 
+                  & -2.13 & 59.30 & 78.95 
+                   & -4.60 & 47.42 & 76.42 \\
+& LoRA-Gaussian   & -6.65 & \textbf{47.74} & 74.75 
+                  & -4.09 & \textbf{45.70} & \textbf{76.67} 
+                  & \textbf{-1.53} & \textbf{59.30} & \textbf{79.10}
+                  & \textbf{-4.09} & \textbf{50.91} & \textbf{76.84}  \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+& Naive       & -2.83 & 48.27 & 76.58 
+                  & -3.33 & 48.08 & 75.55 
+                  & -2.13 & \textbf{59.37} & 79.00 
+                  & -2.76 & 51.91 & 77.04 \\
+                   \cmidrule(lr){2-14}
+& Full-Fisher     & -1.45 & 45.70 & 77.65 
+                  & -2.03 & 46.48 & 76.35 
+                  & -2.87 & 59.07 & 77.00 
+                  & -2.12 & 50.42 & 77.00 \\
+& Full-Gaussian   & -1.90 & 44.82 & 77.48 
+                  & -1.90 & 45.53 & 76.80 
+                  & -2.60 & 58.90 & 77.55 
+                  & -2.13 & 49.75 & 77.28 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & -1.55 & 45.78 & 77.10 
+                  & -2.20 & 46.98 & 75.70 
+                  & -1.20 & 58.53 & 77.20 
+                  & -1.65 & 50.43 & 76.67 \\
+& LoRA-Fisher     & \textbf{-0.23} & 48.63 & \textbf{78.30} 
+                  & \textbf{-0.93} & 48.87 & \textbf{77.25} 
+                  & -1.80 & 59.27 & 78.25 
+                  & -0.99 & 52.26 & 77.93 \\
+& LoRA-Gaussian   & -0.80 & \textbf{48.75} & 78.00 
+                  & -1.37 & \textbf{49.28} & 76.85 
+                  & \textbf{-0.70} & 59.53 & \textbf{79.10} 
+                  & \textbf{-0.96} & \textbf{52.52} & \textbf{78.32} \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+& Naive       & -1.42 & 46.98 & 72.83 
+                  & -0.70 & 46.43 & 73.25 
+                  & -1.90 & 58.97 & 73.15 
+                  & -1.34 & 50.79 & 73.08 \\
+                   \cmidrule(lr){2-14}
+& Full-Fisher     & -2.33 & 46.73 & 70.45 
+                  & -2.77 & 47.00 & 71.40 
+                  & -1.70 & 58.63 & 73.08 
+                  & -2.27 & 50.79 & 71.64 \\
+& Full-Gaussian   & -3.33 & 46.07 & 68.30 
+                  & -3.75 & 45.82 & 70.10 
+                  & -1.63 & 58.77 & 73.20 
+                  & -2.90 & 50.22 & 70.53 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & \textbf{-1.33} & 47.92 & \textbf{73.70} 
+                  & -1.47 & 47.42 & 73.45 
+                  & -1.07 & 58.43 & 72.25 
+                  & \textbf{-1.29} & 51.26 & \textbf{73.13} \\
+& LoRA-Fisher     & -2.28 & 47.50 & 69.23 
+                  & -3.07 & 47.68 & 70.05 
+                  & -2.60 & 59.23 & 72.60 
+                  & -2.65 & 51.47 & 70.63 \\
+& LoRA-Gaussian   & -1.72 & \textbf{48.55} & 69.68 
+                  & -2.30 & 48.60 & 70.65 
+                  & \textbf{-0.80} & \textbf{59.53} & \textbf{74.30} 
+                  & -1.61 & \textbf{52.23} & 71.54 \\
+\bottomrule
+\end{tabular}
+}
+\caption{CL results of SeqLoRA, IncLoRA, and OLoRA on the Standard Benchmark (Orders 1–3), measured by ABWT, AFG, and LA. Each row corresponds to a perturbation type. We observe that LoRA-perturbation methods perform best on an average.}
+\vspace{-10pt}
+\label{tab:all_orders3}
+\end{table*}
+
+\subsubsection{Evaluation Metrics}
+
+
+To assess CL dynamics, we adopt a set of task-wise and sequence-level metrics, following~\cite{NIPS2017_f8752278,díazrodríguez2018dontforgetforgettingnew}. At each training task, we evaluate based on three key quantities: (1) {Last Accuracy (LA)}, which measures the model's average performance on all tasks after training on the last task; (2) {Backward Transfer (BWT)}, which quantifies the influence of learning new tasks on previously learned tasks; and (3) {Future Generalization (FG)}, which captures the model’s ability to generalize to all future or unseen tasks. We report the average of the BWT and FG metrics across all tasks (denoted by ABWT and AFG).
+A detailed description of the metric formulas and a graphical illustration are provided in Appendix.
+
+
+\subsection{Empirical Evaluation}
+
+
+\subsubsection{Modularity and Orthogonality in LoRA: Impacts on Forgetting and Generalization}
+
+
+We examine three LoRA-based CL strategies under the naive setting to assess how structural design influences forgetting and generalization. Table \ref{tab:all_orders3} and \ref{tab:all_orders_456} show that SeqLoRA exhibits the most severe forgetting, especially on the Long Sequence Benchmark. IncLoRA improves retention and accuracy across tasks, while OLoRA reduces forgetting on heterogeneous tasks but underperforms on the Standard CL benchmark. Fig. \ref{fig: lmitiaon of Olora} confirms this pattern: IncLoRA is superior for similar tasks, and OLoRA is more robust to domain shifts
+
+
+
+
+% As shown in Table~\ref{tab:all_orders3} and \ref{tab:all_orders_456}, SeqLoRA suffers from the most severe forgetting, particularly the Long Sequence Benchmark. IncLoRA consistently improves retention and accuracy, while OLoRA achieves the lowest forgetting on this benchmark but performs worse on the Standard CL benchmark. Figure~\ref{fig: lmitiaon of Olora} further supports this trend: IncLoRA outperforms OLoRA in similar tasks, whereas OLoRA shows greater robustness under domain shift.
+
+
+These patterns align with our PAC-Bayesian analysis. SeqLoRA relies on a single shared adapter, which accumulates interference over time and leads to increasing task posterior divergence $KL^{\text{task}}$. IncLoRA mitigates this by allocating task-specific adapters that support parameter reuse in semantically related tasks, thereby reducing divergence and facilitating positive transfer. OLoRA further enforces orthogonality between adapters to suppress cross-task interference. While this improves stability on the long benchmark, it constrains beneficial sharing on the Standard benchmark, resulting in higher divergence and degraded performance.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\linewidth]{images/Paper_resize1_compare_heatmaps_dict_2x2_Small_resize.pdf}
+  \caption{Test accuracy of IncLoRA and OLoRA across two task regimes. IncLoRA performs better on similar tasks, while it suffers from high forgetting with domain shifts. OLoRA is more robust under domain shifts.
+}
+\label{fig: lmitiaon of Olora}
+\vspace{-5pt}
+\end{figure}
+
+
+In summary, SeqLoRA is highly susceptible to interference, IncLoRA balances stability and adaptability, and OLoRA enhances robustness on heterogeneous tasks at the cost of flexibility on more homogeneous tasks. These findings underscore the importance of aligning architectural constraints with task structure to support effective and generalizable CL.
+
+
+\subsubsection{Sharpness in SeqLoRA: Local vs. Global Effects}
+
+
+In the absence of structural constraints, SeqLoRA applies a single shared LoRA subspace across all tasks while freezing backbone parameters. This fully shared setting maximizes plasticity, but lacks mechanisms to preserve task-specific information, resulting in severe forgetting. This raises the question: Is controlling sharpness within the trainable LoRA subspace sufficient to stabilize learning and mitigate forgetting?
+
+
+\begin{figure}[th]
+  \centering
+  \includegraphics[width=1\linewidth]{images/Heatmap_Selected_Three_Enhanced.pdf}
+  \caption{Task-wise accuracy and sharpness under different perturbation strategies in SeqLoRA. LoRA-specific methods achieve lower sharpness and higher accuracy compared to full-model perturbations.}
+  
+  \label{fig:short_Heatmap_Global_LoRA_ESharp}
+\end{figure}
+
+
+
+Empirical results in Tables~\ref{tab:all_orders3} and \ref{tab:all_orders_456} support this hypothesis. When sharpness regularization is applied only to trainable LoRA parameters—as in LoRA-Gaussian and LoRA-SAM—we observe consistent improvements in ABWT, AFG, and LA across both benchmarks. In contrast, full-model perturbations such as Full-Gaussian and Full-Fisher yield limited or even adverse effects, with Full-Gaussian reducing LA by over $11$ points in Order $6$. These results underscore the importance of aligning perturbations with the model’s adaptive components: sharpness control is effective only when confined to the subspace actively involved in learning.
+
+To further examine this mechanism, we analyze expected sharpness as a proxy. As shown in Fig.~\ref{fig:short_Heatmap_Global_LoRA_ESharp}, sharpness within the LoRA subspace is negatively correlated with task accuracy. Methods like LoRA-Gaussian and LoRA-SAM exhibit lower sharpness and higher accuracy, suggesting that optimization in SeqLoRA is indeed localized within the adapter subspace. Conversely, perturbing frozen components introduces misaligned noise, destabilizing training and exacerbating forgetting.
+
+
+
+
+
+
+
+
+In summary, within the SeqLoRA setting, reducing sharpness within the trainable subspace proves effective in mitigating forgetting and improving generalization—provided it is applied to the trainable subspace. 
+
+
+\begin{table*}[htbp]
+
+\resizebox{\textwidth}{!}{
+\begin{tabular}{cc|ccc|ccc|ccc|ccc}
+\toprule
+& & \multicolumn{3}{c|}{\textbf{Order4}}
+  & \multicolumn{3}{c|}{\textbf{Order5}}
+  & \multicolumn{3}{c|}{\textbf{Order6}}
+  & \multicolumn{3}{c}{\textbf{Average (Avg)}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
+\textbf{Baseline} & \textbf{Method}
+& ABWT & AFG & LA
+& ABWT & AFG & LA
+& ABWT & AFG & LA
+& ABWT & AFG & LA \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+& Naive        & -14.42 & 20.04 & \textbf{70.44}
+                  & -22.57 & 14.22 & 68.11 
+                  & -16.61 & \textbf{43.84} & 38.85 
+                  & -17.87 & 26.03 & 59.13 \\
+ \cmidrule(lr){2-14}
+& Full-Fisher     & -14.97 & 21.46 & 68.43 
+                  & \textbf{-17.26} & 14.18 & \textbf{68.70} 
+                  & -18.47 & 41.89 & 25.07 
+                  & -16.90 & 25.84 & 54.07 \\
+& Full-Gaussian   & -16.96 & 20.84 & 67.74 
+                  & -18.40 & 13.90 & 65.11 
+                  & -19.50 & 42.11 & 27.79 
+                  & -18.29 & 25.62 & 53.55 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & \textbf{-11.02} & \textbf{22.74} & 70.17 
+                  & -19.27 & 13.41 & 66.87 
+                  & -19.54 & 43.18 & 18.11 
+                  & \textbf{-16.61} & 26.44 & 51.72 \\
+& LoRA-Fisher     & -14.89 & 23.16 & 68.99 
+                  & -20.69 & \textbf{17.43} & 66.03 
+                  & \textbf{-15.56} & 42.30 & \textbf{45.07} 
+                  & -17.05 & \textbf{27.63} & \textbf{60.03} \\
+& LoRA-Gaussian   & -14.78 & 21.40 & 68.08 
+                  & -18.29 & 14.22 & 67.64 
+                  & -17.91 & 41.77 & 31.83 
+                  & -16.99 & 25.80 & 55.85 \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+& Naive       & -12.23 & 22.18 & 70.13 
+                  & -14.60 & 14.31 & 70.13 
+                  & -13.77 & 43.52 & 43.16 
+                  & -13.53 & 26.67 & 61.14 \\
+\cmidrule(lr){2-14}
+& Full-Fisher     & -10.95 & 24.48 & 69.24 
+                  & -16.52 & 14.04 & 70.02 
+                  & -9.00 & \textbf{47.17} & 70.75 
+                  & -12.16 & \textbf{28.56} & 70.00 \\
+& Full-Gaussian   & -12.87 & 23.35 & 69.48 
+                  & -18.67 & 15.26 & 69.17 
+                  & -9.80 & 44.54 & 65.16 
+                  & -13.78 & 27.72 & 67.94 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & -10.72 & \textbf{24.62} & 68.69 
+                  & -16.45 & 14.40 & 68.52 
+                  & \textbf{-9.45} & 45.39 & 70.69 
+                  & -12.21 & 28.14 & 69.30 \\
+& LoRA-Fisher     & \textbf{-10.50} & 23.68 & 69.29 
+                  & \textbf{-12.44} & \textbf{16.90} & \textbf{72.52} 
+                  & -9.46 & 43.02 & \textbf{72.20} 
+                  & \textbf{-10.80} & 28.53 & \textbf{71.34} \\
+& LoRA-Gaussian   & -11.32 & 24.42 & \textbf{70.44} 
+                  & -17.96 & 13.96 & 71.07 
+                  & -10.01 & 44.11 & 67.52 
+                  & -13.10 & 27.49 & 69.68 \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+& Naive       & -6.27 & 23.42 & 66.95 
+                  & \textbf{-7.70} & 13.35 & 66.91 
+                  & -5.14 & \textbf{56.05} & 70.84 
+                  & -6.37 & 30.94 & 68.23 \\
+                 \cmidrule(lr){2-14}
+& Full-Fisher     & -6.01 & 24.08 & 67.93 
+                  & -10.20 & 13.22 & 65.73 
+                  & -4.11 & 55.46 & 72.76 
+                  & -6.77 & 30.92 & 68.81 \\
+& Full-Gaussian   & \textbf{-5.19} & 23.35 & 67.64 
+                  & -10.02 & 13.19 & 65.03 
+                  & -4.61 & 55.72 & 72.80 
+                  & -6.61 & 30.75 & 68.49 \\
+                  \cmidrule(lr){2-14}
+& LoRA-SAM        & -6.55 & 24.02 & \textbf{68.04} 
+                  & -9.22 & 13.40 & \textbf{66.99} 
+                  & -4.00 & 52.34 & 71.68 
+                  & -6.59 & \textbf{29.92} & \textbf{68.90} \\
+& LoRA-Fisher     & -6.15 & \textbf{24.32} & 66.43 
+                  & -10.22 & \textbf{13.65} & 66.00 
+                  & -3.85 & 54.65 & 72.17 
+                  & -6.74 & 30.87 & 68.20 \\
+& LoRA-Gaussian   & -5.84 & 24.20 & 66.41 
+                  & -10.26 & 13.46 & 65.21 
+                  & \textbf{-3.18} & 54.94 & \textbf{73.11} 
+                  & \textbf{-6.43} & 30.87 & 68.24 \\
+\bottomrule
+\end{tabular}
+}
+\caption{CL results on the Long Sequence Benchmark (Orders 4–6), using the same evaluation metrics as \ref{tab:all_orders3}. LoRA-specific perturbations remain effective, with LoRA-SAM showing strong performance under stricter structural constraints.}
+\label{tab:all_orders_456}
+\vspace{-10pt}
+\end{table*}
+
+
+\subsubsection{Interplay between Sharpness and Structural Modularity in LoRA-based CL}
+
+
+% Structural modularity is a widely adopted strategy to reduce interference in CL. IncLoRA introduces task-specific adapters to decouple updates across tasks, while OLoRA further enforces orthogonality to promote representational separation. Although these designs help isolate task knowledge, they also constrain parameter sharing, potentially limiting the flexibility required for cross-task generalization. This raises a critical question: under such architectural constraints, can sharpness reducing still enhance stability and generalization?
+
+
+% Empirical results in Tables~\ref{tab:all_orders3} and \ref{tab:all_orders_456} reveal two consistent trends. First, perturbation-based sharpness reduction improves performance across all LoRA-based architectures. Second, perturbations restricted to the trainable LoRA subspace consistently outperform full-model perturbations. These findings support the hypothesis that subspace-aware sharpness control aligns better with adapter modularity, enhancing both retention and generalization. The effectiveness of each perturbation strategy further depends on task heterogeneity and architectural rigidity.
+
+
+% In IncLoRA, LoRA-Gaussian provides the most consistent improvement on the Standard CL benchmark, suggesting that isotropic noise facilitates smooth optimization within isolated LoRA subspaces. On the Long Sequence benchmark, which involves higher task heterogeneity and domain shifts, LoRA-SAM and LoRA-Fisher tend to be more effective. These trends are further amplified in OLoRA, where strict orthogonality constraints narrow the optimization space. In this setting, LoRA-SAM consistently outperforms other strategies, likely because its directional perturbations align with the geometry of orthogonal subspaces, guiding updates effectively while preserving representational independence. In contrast, LoRA-Gaussian exhibits diminished performance under OLoRA, likely due to misaligned updates that conflict with the imposed orthogonality.
+
+
+Structural modularity is a common strategy to mitigate interference in continual learning. IncLoRA introduces task-specific adapters to decouple updates, while OLoRA further enforces orthogonality to promote representational separation. Although these designs isolate task knowledge, they also restrict parameter sharing, potentially limiting cross-task generalization. This raises a key question: under such constraints, can sharpness reduction still enhance stability and generalization?
+
+Empirical results in Tables~\ref{tab:all_orders3} and \ref{tab:all_orders_456} reveal two consistent patterns. First, sharpness-reducing perturbations improve performance across all LoRA-based architectures. Second, restricting perturbations to the trainable LoRA subspace consistently outperforms full-model perturbations. These findings support the hypothesis that subspace-aware sharpness control complements modularity, improving both retention and generalization. Effectiveness also varies with task heterogeneity and architectural rigidity.
+
+In IncLoRA, LoRA-Gaussian yields the most consistent gains on the Standard CL benchmark, suggesting that isotropic noise facilitates stable optimization within isolated subspaces. On the more heterogeneous Long Sequence benchmark, LoRA-SAM and LoRA-Fisher perform better. These trends are amplified in OLoRA, where strict orthogonality narrows the optimization space. Here, LoRA-SAM consistently outperforms other strategies, likely because its directional perturbations align with the geometry of orthogonal subspaces. In contrast, LoRA-Gaussian underperforms, likely due to misaligned updates that conflict with the imposed constraints.
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\linewidth]{images/Combined_Orders_Compact.pdf}
+\caption{Per-task evaluation of CL metrics across task orders 4 to 6. LoRA-SAM and LoRA-Fisher yield smoother trajectories and better transfer under modular architectures.}
+  \label{fig:Order4_Inc_Process}
+\end{figure}
+
+Fig.~\ref{fig:Order4_Inc_Process} further illustrates these dynamics over time. In IncLoRA, LoRA-Fisher and LoRA-SAM yield smoother BWT trajectories and improved forward transfer, particularly following tasks such as WiC, which pose greater semantic challenges. In OLoRA, LoRA-SAM leads to sustained gains in both ABWT and LA, indicating its ability to counteract the rigidity introduced by orthogonality. These empirical observations align with our theoretical insights. Sharpness reduction improves generalization by controlling curvature within task-specific posteriors. Structural modularity, achieved through adapter decoupling or enforced orthogonality, reduces task-wise KL divergence and mitigates interference across tasks. Together, these mechanisms offer complementary benefits: sharpness control enhances local robustness, while structural constraints facilitate global disentanglement. Their synergy supports joint optimization of distinct components in the PAC-Bayesian bound, enabling robust and scalable continual learning.
+
+\begin{figure}[htp]
+  \centering
+  \includegraphics[width=1\linewidth]{images/SAM_RWP_Rho_Paper2_line.pdf}
+  \caption{Impact of perturbation strength on IncLoRA performance. LoRA-specific methods show more stable behavior across tasks, while full-model perturbations degrade generalization at high noise levels.}
+  \label{fig:sam_rho_tradeoff}
+\end{figure}
+
+% These findings are consistent with our theoretical analysis. Flatness regularization reduces expected sharpness within the trainable subspace, which improves cross-task generalization and enhances resistance to forgetting. Structural modularity, implemented through adapter decoupling or orthogonality, helps reduce task-wise KL divergence and suppresses interference. Together, these mechanisms contribute to distinct yet complementary components of the PAC-Bayesian bound: flatness promotes local robustness within tasks, while structure facilitates global disentanglement across tasks. Their combined effect enables scalable and principled CL.
+
+These findings are consistent with our theoretical analysis.
+Sharpness-aware regularization, when applied to the trainable subspace, reduces curvature within task-specific posteriors, thereby enhancing cross-task generalization and mitigating forgetting.
+Structural modularity, implemented through adapter decoupling or orthogonality, helps reduce task-wise KL divergence and suppresses interference. 
+Together, these mechanisms target distinct yet complementary aspects of the PAC-Bayesian bound:
+sharpness control stabilizes adaptation within each task's posterior, while modular design facilitates posterior disentanglement across tasks.
+Their combined effect enables scalable and principled CL.
+
+
+
+In summary, sharpness regularization remains effective under structural constraints, though its impact varies with the degree of modularity. IncLoRA benefits from subspace-specific sharpness control while retaining flexibility, whereas OLoRA depends more on directional perturbations such as SAM to preserve robustness. These findings highlight the importance of matching perturbation strategies to architectural structure.
+
+% In summary, sharpness regularization remains effective under structural constraints, but its impact depends on the degree of modularity. IncLoRA benefits from subspace-specific sharpness control without sacrificing flexibility, while OLoRA relies more heavily on directional perturbations like SAM to maintain robustness. These results underscore the importance of aligning perturbation strategies with architectural design.
+
+
+
+\subsection{Ablation Study}
+
+
+
+
+\textbf{Trade-offs in Perturbation Strength for Sharpness Control} We analyze how perturbation strength affects performance in sharpness-reducing methods, focusing on LoRA-SAM, LoRA-Gaussian, and Full-Gaussian (Fig.~\ref{fig:sam_rho_tradeoff}). Weak perturbations fail to sufficiently lower sharpness, limiting generalization, while overly strong perturbations increase empirical risk and degrade current-task accuracy. Optimal performance requires balancing sharpness reduction and risk to minimize the PAC-Bayesian bound.
+
+\section{Conclusion}
+
+% This work presents a PAC-Bayesian perspective on sharpness regularization in LoRA-based CL. We show that reducing sharpness within the trainable subspace improves generalization and mitigates forgetting, especially under modular architectures like IncLoRA and OLoRA. Perturbation strategies exhibit complementary strengths: isotropic noise enables smooth optimization, while directional perturbations better align with constrained subspaces. These findings highlight the importance of matching perturbation geometry with structural design for robust continual learning.
+
+
+This work establishes a theoretical foundation for sharpness-aware regularization in LoRA-based CL. We show that reducing sharpness within the trainable adapter subspace reliably improves generalization and stability. Our analysis reveals that structural modularity and perturbation geometry correspond to complementary components of the generalization bound. Isotropic noise supports smooth adaptation, while directional perturbations better align with constrained subspaces. These insights offer guidance for designing scalable and robust parameter-efficient continual learners.
+
+% This work establishes a theoretical foundation for sharpness-aware regularization in LoRA-based continual learning. We present a PAC-Bayesian analysis showing that reducing sharpness within the trainable adapter subspace improves generalization and mitigates forgetting. Furthermore, we provide a systematic framework for analyzing the interplay between architectural modularity and sharpness-based perturbations, revealing how these two components correspond to complementary terms in the generalization bound. In this context, different perturbation strategies reflect distinct inductive biases: isotropic noise facilitates stable adaptation across modular components, whereas directional perturbations such as SAM better align with constrained subspaces, promoting robustness under stricter structural priors. Together, these insights offer practical guidance for designing scalable and resilient parameter-efficient continual learners.
+
+% This work offers a unified PAC-Bayesian perspective on sharpness regularization in LoRA-based continual learning. We show that controlling sharpness within trainable subspaces improves generalization and stability, especially when aligned with modular architectures like IncLoRA and OLoRA. These findings highlight the importance of matching optimization geometry with structural constraints to enable scalable and robust continual learning.
+
+% This work presents a PAC-Bayesian perspective on sharpness regularization in continual learning. We show that reducing sharpness within the trainable subspace suffices to improve generalization and mitigate forgetting, particularly under modular architectures like IncLoRA and OLoRA. Different perturbation strategies exhibit complementary strengths: isotropic noise supports smooth optimization, while directional perturbations better align with constrained subspaces. These findings highlight the importance of aligning perturbation geometry with structural design to achieve robust continual learning.
+
+
+\small % 此处设置参考文献字体为9pt
+\bibliography{aaai2026}
+
+
+\input{ReproducibilityChecklist}
+
+\end{document}

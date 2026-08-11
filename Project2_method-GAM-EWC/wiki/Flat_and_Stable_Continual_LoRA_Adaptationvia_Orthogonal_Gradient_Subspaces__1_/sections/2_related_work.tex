@@ -1,0 +1,124 @@
+% \section{Related Work}
+% \label{sec:related}
+
+% \paragraph{Continual learning and catastrophic forgetting.}
+% Continual learning addresses the challenge of learning a sequence of tasks without
+% forgetting previously acquired knowledge~\citep{McCloskey1989,FrenchCF1999,Parisi2019}.
+% Early approaches include regularization-based methods (EWC~\citep{EWC2017}, SI~\citep{zenke2017continual}),
+% replay-based methods~\citep{Rebuffi2017iCaRL,Lopez-Paz2017GEM}, and
+% architectural approaches~\citep{Rusu2016,HAT2018}.
+% Our work targets the replay-free setting, where no past-task data is retained.
+
+% \paragraph{LoRA-based continual learning.}
+% Low-rank adaptation (LoRA)~\citep{hu2022lora} has been widely adopted for
+% parameter-efficient fine-tuning of large pretrained models.
+% In the continual setting, SeqLoRA maintains a single shared adapter throughout task sequences,
+% leading to interference between tasks.
+% IncLoRA~\citep{Wang_2022_CVPR} and related structural methods use per-task or
+% growing adapters to prevent interference at the cost of increased storage.
+% EWC-LoRA~\citep{zheng2025ewclora} applies Fisher-weighted regularization in the $\DeltaW$ space
+% to protect task-relevant directions without growing the adapter.
+% O-LoRA~\citep{Wang2023OLoRA} projects new-task gradients onto the null space of
+% previous adapters.
+% FR-LoRA~\citep{adhikari2025frlora} applies two-stage Fisher regularization for
+% multilingual LoRA continual learning but does not address flatness control.
+% Our work is most closely related to EWC-LoRA, but adds a principled flatness component
+% grounded in the near-orthogonality discovery.
+
+% \paragraph{Sharpness-aware optimization.}
+% SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021} minimizes the worst-case loss
+% within a neighborhood of the parameters, finding flat minima with better generalization.
+% GAM~\citep{zhengGradientAwareminimizationDistributed2021} reformulates sharpness
+% via gradient norm perturbation, avoiding the inner-maximization solve.
+% Flat-LoRA~\citep{li2024flatlora} applies full-space SAM perturbations alongside LoRA adapters
+% to find flat regions in the full parameter space; it is a single-task fine-tuning method,
+% not a CL method.
+% LoRA-SAM~\citep{NEURIPS2024_4eb2c0ad} restricts SAM to LoRA coordinates.
+% In the continual learning context, flat minima have been linked to reduced
+% forgetting~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021}.
+% C-Flat~\citep{NEURIPS2024_C-Flat} proposes a plug-and-play zeroth-plus-first-order flatness
+% optimizer for CL, showing consistent gains across CL categories.
+% Unlike FS-LoRA, C-Flat does not combine flatness with Fisher regularization and
+% does not study the gradient interaction between the two objectives.
+% We build on adapter-subspace sharpness (AS$^1$)~\citep{Anonymous2026PaperB},
+% which restricts perturbations to the effective update space $\DeltaW = BA$,
+% making the flatness measure adapter-intrinsic rather than full-model.
+
+% \paragraph{Gradient geometry and orthogonality in continual learning.}
+% GEM~\citep{Lopez-Paz2017GEM} and A-GEM~\citep{chaudhry2019gem} project gradients onto
+% the feasible cone defined by past-task gradients.
+% OGD~\citep{farajtabar2020orthogonal} projects onto the orthogonal complement of previous
+% task gradients.
+% PCGrad~\citep{yu2020gradient} detects and resolves task-to-task gradient conflicts.
+% These methods study \emph{task-task} gradient orthogonality and enforce it as a hard
+% constraint.
+% FOPNG~\citep{garg2026fopng} projects gradients onto the Fisher-orthogonal complement of
+% past task gradients, combining natural gradient geometry with orthogonal projection.
+% The dual flatness-aware OGD framework of~\citet{yangRevisitingFlatnessAwareOptimization2025} combines
+% data and weight perturbation with gradient projection for CL, studying orthogonality
+% between task updates.
+% \emph{FS-LoRA studies a fundamentally different form of orthogonality}: not between
+% task-task updates (which requires a memory of past gradients or a constraint mechanism),
+% but between the \emph{flatness gradient component} $(\ggam - \gclean)$ and the
+% \emph{Fisher gradient} $\gfisher$ within a single task update.
+% This orthogonality is measured as an emergent property, not enforced as a constraint,
+% and it is the geometric fact that justifies the decoupled design.
+
+% \paragraph{Fisher information in continual learning.}
+% EWC~\citep{EWC2017} uses the diagonal Fisher to identify and protect important parameters.
+% Online EWC~\citep{schwarz2018progress} and SI~\citep{zenke2017continual} provide
+% online approximations.
+% In the LoRA setting, the Fisher must be computed in the $\DeltaW$ space for
+% basis-invariant protection~\citep{zheng2025ewclora}.
+% We extend this with trace normalization that makes the EWC hyperparameter
+% dimensionless and consistent across datasets with different gradient scales,
+% and with exponential accumulation decay that prevents older tasks from dominating
+% as the sequence grows.
+
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Replay-free continual learning and LoRA-based adaptation.}
+Continual learning studies how a model can learn a sequence of tasks without overwriting knowledge acquired from earlier tasks~\citep{McCloskey1989,FrenchCF1999,Parisi2019}.
+Classical approaches include regularization-based methods, such as EWC~\citep{EWC2017} and SI~\citep{zenke2017continual}, replay-based methods~\citep{Rebuffi2017iCaRL,Lopez-Paz2017GEM}, and architectural expansion methods~\citep{Rusu2016,HAT2018}.
+This work focuses on the replay-free PECL setting, where no past-task samples are stored and the number of trainable parameters should remain small.
+
+LoRA~\citep{hu2022lora} enables parameter-efficient adaptation by optimizing low-rank updates while keeping the pretrained backbone frozen.
+In continual learning, SeqLoRA maintains a single shared adapter across the task sequence, which is memory-efficient but vulnerable to task interference.
+Structural PECL methods, such as IncLoRA~\citep{Wang_2022_CVPR}, O-LoRA~\citep{Wang2023OLoRA}, and related growing-adapter designs, reduce interference by allocating new adapter capacity or imposing orthogonality across tasks, but they typically increase storage or architectural complexity.
+EWC-LoRA~\citep{zheng2025ewclora} is closest to our stability component because it regularizes drift in the effective adapter-update space $\Delta W=BA$ without growing the adapter.
+However, EWC-LoRA focuses on Fisher-based stability and does not address current-task flatness control or the interaction between Fisher regularization and sharpness-aware optimization.
+FR-LoRA~\citep{adhikari2025frlora} also uses Fisher information for LoRA continual learning, but it does not study flatness or the geometric coupling between plasticity and stability gradients.
+FS-LoRA keeps the single-adapter setting and introduces a decoupled flat-stable optimizer that combines current-task sharpness control with Fisher stabilization.
+
+\paragraph{Sharpness-aware optimization and Fisher stabilization.}
+Sharpness-aware optimization improves generalization by seeking flatter regions of the loss landscape.
+SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021} minimizes the worst-case loss within a local parameter neighborhood, while GAM~\citep{zhengGradientAwareminimizationDistributed2021} strengthens this idea through gradient-norm based perturbation.
+In continual learning, flatter minima have been linked to improved retention and reduced forgetting~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021}.
+C-Flat~\citep{NEURIPS2024_C-Flat} proposes a plug-and-play flatness optimizer for continual learning and shows that sharpness-aware updates can improve several CL methods.
+Flat-LoRA~\citep{li2024flatlora} and LoRA-SAM~\citep{NEURIPS2024_4eb2c0ad} study sharpness-aware optimization in LoRA or PEFT settings, but they are not designed to handle Fisher-based stability constraints in replay-free continual learning.
+
+Fisher-based regularization addresses a different objective.
+EWC~\citep{EWC2017} penalizes changes to parameters that are important for previous tasks, and Online EWC~\citep{schwarz2018progress} provides an efficient sequential approximation.
+In LoRA-based PECL, Fisher regularization should be applied to the effective update $\Delta W=BA$ rather than to raw factor coordinates, because the LoRA factorization is not unique.
+Existing Fisher-based PECL methods therefore provide a stability mechanism, while sharpness-aware methods provide a plasticity mechanism.
+The closest missing piece is how these two mechanisms should be combined.
+A naive summed objective couples the sharpness perturbation with the Fisher penalty, so the resulting flatness correction is no longer a current-task-only signal.
+FS-LoRA addresses this gap by computing the AS$^1$ sharpness correction only from the current-task loss and adding the Fisher gradient as an independent stability component.
+It further trace-normalizes the Fisher estimate to prevent the Fisher gradient from becoming inactive under low-rank parameterization.
+
+\paragraph{Gradient geometry, orthogonality, and plasticity-stability decoupling.}
+Gradient geometry has long been used to control interference in continual and multi-task learning.
+GEM~\citep{Lopez-Paz2017GEM} and A-GEM~\citep{chaudhry2019gem} constrain new-task updates using gradients from past tasks.
+OGD~\citep{farajtabar2020orthogonal} projects updates onto the orthogonal complement of previous task gradients, and PCGrad~\citep{yu2020gradient} resolves conflicts between task gradients.
+Recent methods further combine flatness-aware optimization with orthogonal projection or Fisher-aware gradient constraints~\citep{yangRevisitingFlatnessAwareOptimization2025,garg2026fopng}.
+These methods mainly study task-task gradient conflict and enforce orthogonality through projection or constraint mechanisms.
+
+FS-LoRA studies a different geometric relation.
+It does not enforce orthogonality between task gradients.
+Instead, it measures the interaction between two components inside the same update: the current-task AS$^1$ flatness correction and the past-task Fisher stability gradient.
+We find that these two components are nearly orthogonal across the evaluated fine-grained recognition streams.
+This observation is used as a diagnostic that supports the method design, not as a hard constraint.
+The key distinction from prior gradient-projection methods is therefore methodological: FS-LoRA does not perform gradient surgery.
+It preserves the functional separation between plasticity and stability by avoiding a shared perturbation closure and by scale-calibrating the Fisher gradient in the effective adapter-update space.

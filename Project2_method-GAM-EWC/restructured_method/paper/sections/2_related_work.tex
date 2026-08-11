@@ -1,0 +1,25 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{LoRA-based continual learning.}
+Parameter-efficient continual learning (PECL) has emerged as a practical solution for incrementally adapting large pretrained models~\citep{pmlr-v97-houlsby19a,Wang_2022_CVPR,dingParameterefficientFinetuningLargescale2023,xu2023parameterefficientfinetuningmethodspretrained}.
+Low-Rank Adaptation (LoRA) is a prominent instantiation: it freezes the backbone and learns compact rank-$r$ update matrices, substantially reducing storage and compute overhead while preserving upstream representations~\citep{hu2022lora}.
+In sequential settings, LoRA-based methods remain susceptible to forgetting and task interference~\citep{Gao_2023_ICCV,yang2024parametercollisionhinderingcontinual,10.1145/3730436.3730456}.
+Recent variants address this through adapter orthogonality~\citep{wang2023orthogonal}, subspace allocation~\citep{wu2025sdlorascalabledecoupledlowrank}, and gradient alignment~\citep{Liang_2024_CVPR}.
+These approaches are primarily algorithmic: they exploit the geometry of the adapter subspace to reduce interference, but they do not provide a principled account of how adapter structure shapes continual generalization or which flatness notion should guide optimization.
+
+\paragraph{Flat minima and sharpness-aware optimization.}
+Flat minima in the loss landscape are widely associated with improved generalization~\citep{FlatMinima1997,wu2017understandinggeneralizationdeeplearning,chaudhariEntropySGDBiasingGradient2019,NEURIPS2021_995f5e03,JMLRAnEmpiricalInvestigatio,yangRevisitingFlatnessAwareOptimization2025}.
+Sharpness-aware minimization (SAM)~\citep{foretSharpnessAwareMinimizationEfficiently2021} operationalizes this by seeking parameters whose worst-case neighborhood loss is small; variants include RWP~\citep{pmlr-v151-bisla22a}, GAM~\citep{Zhang_GAM}, and C-Flat~\citep{NEURIPS2024_C-Flat}.
+In continual learning, flatter solutions have been reported to reduce forgetting~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021,liRevisitingCatastrophicForgetting2024} and improve representations~\citep{hu2022doesselfsupervisedpretrainingperform}.
+For LoRA specifically, LoRA-SAM~\citep{NEURIPS2024_4eb2c0ad} shows that adapter-restricted perturbations provide implicit regularization.
+Flat-LoRA~\citep{li2024flatlora} takes the opposite position, arguing that adapter-subspace flatness may not suffice and that full-parameter perturbation is required.
+Neither work provides a theoretical account of which flatness notion is theoretically relevant under frozen-backbone continual adaptation.
+Our paper resolves this ambiguity.
+
+\paragraph{PAC-Bayesian theory for continual and lifelong learning.}
+The PAC-Bayesian framework~\citep{mcallesterPACBayesianModelAveraging1999,mcallesterPACBayesianStochasticModel2003} provides generalization guarantees by balancing empirical risk and posterior complexity.
+Hierarchical PAC-Bayes for meta- and lifelong learning~\citep{pentinaPACBayesianBoundLifelong2014,JMLR:v24:22-1254} introduces a hyperposterior over task priors but assumes tasks are drawn i.i.d.\ from a fixed environment, so the resulting bound is order-invariant and cannot model trajectory-dependent forgetting.
+Online PAC-Bayes~\citep{NEURIPS2022_onlineBayes,NEURIPS2024_xinrui} allows time-varying, data-dependent priors but operates at the example level rather than the task level.
+A concurrent work~\citep{friedman2026pac} derives a cumulative-loss PAC-Bayes bound for sequential CL.
+Our contribution differs in two respects: we introduce a hierarchical sequential PAC-Bayes framework with a time-varying hyperposterior at the task level, and we specialize the analysis to frozen-backbone PECL, deriving the reduction that links generalization to adapter-subspace flatness.

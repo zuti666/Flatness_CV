@@ -1,0 +1,404 @@
+%%%%%%%% ICML 2025 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+% \usepackage{subcaption}
+\usepackage{multirow}
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks (sometimes temporarily if a hyperlink spans a page)
+% please comment out the following usepackage line and replace
+% \usepackage{icml2025} with \usepackage[nohyperref]{icml2025} above.
+\usepackage{hyperref}
+
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+\usepackage{icml2025}
+
+% If accepted, instead use the following line for the camera-ready submission:
+% \usepackage[accepted]{icml2025}
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line
+%    and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Liying Notes}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{Liying Notes}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2025
+% package.
+
+% List of affiliations: The first argument should be a (short)
+% identifier you will use later to specify author affiliations
+% Academic affiliations should list Department, University, City, Region, Country
+% Industry affiliations should list Company, City, Region, Country
+
+% You can specify symbols, otherwise they are numbered in order.
+% Ideally, you should not use this facility. Affiliations will be numbered
+% in order of appearance and this is the preferred way.
+% \icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+% % \icmlauthor{Firstname1 Lastname1}{equal,yyy}
+% % \icmlauthor{Firstname2 Lastname2}{equal,yyy,comp}
+% % \icmlauthor{Firstname3 Lastname3}{comp}
+% % \icmlauthor{Firstname4 Lastname4}{sch}
+% % \icmlauthor{Firstname5 Lastname5}{yyy}
+% % \icmlauthor{Firstname6 Lastname6}{sch,yyy,comp}
+% % \icmlauthor{Firstname7 Lastname7}{comp}
+% % %\icmlauthor{}{sch}
+% % \icmlauthor{Firstname8 Lastname8}{sch}
+% % \icmlauthor{Firstname8 Lastname8}{yyy,comp}
+% % %\icmlauthor{}{sch}
+% % %\icmlauthor{}{sch}
+\end{icmlauthorlist}
+
+% % \icmlaffiliation{yyy}{Department of XXX, University of YYY, Location, Country}
+% % \icmlaffiliation{comp}{Company Name, Location, Country}
+% % \icmlaffiliation{sch}{School of ZZZ, Institute of WWW, Location, Country}
+
+\icmlcorrespondingauthor{Firstname1 Lastname1}{first1.last1@xxx.edu}
+% % \icmlcorrespondingauthor{Firstname2 Lastname2}{first2.last2@www.uk}
+
+% % % You may provide any keywords that you
+% % % find helpful for describing your paper; these are used to populate
+% % % the "keywords" metadata in the PDF but will not be shown in the document
+% % \icmlkeywords{Machine Learning, ICML}
+
+% % \vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+% The command takes one argument, which is text to display at the start of the footnote.
+% The \icmlEqualContribution command is standard text for equal contribution.
+% Remove it (just {}) if you do not need this facility.
+
+%\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+
+ \clearpage      % 换页，避免和正文混排
+\onecolumn      % 从这里开始改为单栏
+\section{Curvature}
+\paragraph{Curvature and perturbations in continual learning: full space first, then PECL.}
+Consider a sequence of tasks $t=1,2,\dots,T$. Each task $t$ comes with its own dataset $S_t$ and empirical loss
+$$
+\hat L_{S_t}(W)\;=\;\frac{1}{|S_t|}\sum_{(x,y)\in S_t}\ell(W;x,y),
+$$
+defined on the parameter vector $W\in\mathbb R^d$. Let $\hat W_t$ denote the solution obtained after training on task $t$ (starting from $\hat W_{t-1}$). Throughout, \textbf{\emph{curvature is task-conditioned}}: the local geometry for task $t$ is determined by $\hat L_{S_t}$, and we do not mix data across tasks when defining curvature.
+
+\paragraph{Full-parameter setting.}
+Fix a task $t$ and expand $\hat L_{S_t}$ around $\hat W_t$. For a small perturbation $\varepsilon$,
+$$
+\hat L_{S_t}(\hat W_t+\varepsilon)
+=
+\hat L_{S_t}(\hat W_t)
++
+\nabla \hat L_{S_t}(\hat W_t)^\top \varepsilon
++
+\frac12\,\varepsilon^\top H_t\,\varepsilon
++
+o(\|\varepsilon\|_2^2),
+$$
+where $H_t\triangleq\nabla^2 \hat L_{S_t}(\hat W_t)$. In practice, we may replace $H_t$ by a positive semidefinite curvature proxy $C_t$ (e.g., the GGN or empirical Fisher) computed \emph{on $S_t$} at $\hat W_t$. If $\varepsilon\sim\mathcal N(0,\Sigma_t)$ with $\mathbb E[\varepsilon]=0$, then using $\mathbb E[\varepsilon^\top C_t\varepsilon]=\operatorname{tr}(C_t\Sigma_t)$ yields the expected loss elevation
+$$
+\mathbb E\!\left[\hat L_{S_t}(\hat W_t+\varepsilon)-\hat L_{S_t}(\hat W_t)\right]
+\approx
+\frac12\,\operatorname{tr}(C_t\Sigma_t),
+$$
+up to higher-order terms. This form separates the role of local geometry through $C_t$ from the perturbation geometry through $\Sigma_t$.
+
+\paragraph{Continual learning and EWC-style influence (no mixing of task curvatures).}
+    When moving to task $t+1$, the training objective is $\hat L_{S_{t+1}}(W)$, whose gradient and curvature are defined \textbf{\emph{only}} by $S_{t+1}$. The previous solution $\hat W_t$ influences learning task $t+1$ through initialization and optional regularization, not by redefining the current-task curvature. Writing $W=\hat W_t+\delta$, a second-order expansion of the \emph{new-task loss} around $\hat W_t$ gives
+$$
+\hat L_{S_{t+1}}(\hat W_t+\delta)
+=
+\hat L_{S_{t+1}}(\hat W_t)
++
+g_{t+1}^\top \delta
++
+\frac12\,\delta^\top C_{t+1}(\hat W_t)\,\delta
++
+o(\|\delta\|_2^2),
+$$
+where $g_{t+1}\triangleq \nabla \hat L_{S_{t+1}}(\hat W_t)$ and $C_{t+1}(\hat W_t)$ is the Hessian or a PSD proxy computed on $S_{t+1}$ at $\hat W_t$. EWC introduces a quadratic penalty using curvature information from the \emph{previous} task computed on $S_t$ at $\hat W_t$. Let $F_t$ denote the empirical Fisher (or a PSD proxy) for task $t$ at $\hat W_t$:
+$$
+F_t\;\triangleq\;\mathbb E_{(x,y)\sim S_t}\!\big[\nabla_W \ell(\hat W_t;x,y)\nabla_W \ell(\hat W_t;x,y)^\top\big],
+$$
+often used in diagonal form. The EWC penalty is
+$$
+\Omega_t(W)
+=
+\frac{\lambda}{2}\,(W-\hat W_t)^\top F_t\,(W-\hat W_t),
+$$
+and task $t+1$ is trained by minimizing
+$$
+\min_W\;\hat L_{S_{t+1}}(W)\;+\;\Omega_t(W).
+$$
+Locally around $\hat W_t$, the combined objective admits
+$$
+\hat L_{S_{t+1}}(\hat W_t+\delta)+\Omega_t(\hat W_t+\delta)
+\approx
+\text{const}
++
+g_{t+1}^\top \delta
++
+\frac12\,\delta^\top\Big(C_{t+1}(\hat W_t)+\lambda F_t\Big)\delta.
+$$
+This decomposition makes the separation explicit: $C_{t+1}(\hat W_t)$ is defined by $S_{t+1}$, while $F_t$ is defined by $S_t$, and they interact only through an additive regularizer.
+
+\paragraph{Specialization to PECL/LoRA (frozen backbone).}
+In PECL with LoRA, the backbone is frozen and learning is restricted to a low-dimensional admissible update subspace. We write the effective parameters as
+$$
+W\;=\;W_0\;+\;\Delta W_t,
+$$
+where $W_0$ denotes frozen backbone parameters and $\Delta W_t$ is the task-$t$ adaptation restricted to an admissible subspace $\mathcal W_{\Delta,t}$. Let $\Pi_{\Delta,t}$ be the orthogonal projector onto $\mathcal W_{\Delta,t}$. For task $t$, define the task-conditioned curvature proxy $C_t$ at $\hat W_t$ (computed on $S_t$) and its restriction
+$$
+C_{\Delta,t}
+\;\triangleq\;
+\Pi_{\Delta,t}\,C_t\,\Pi_{\Delta,t}.
+$$
+To connect curvature with perturbations, let $\varepsilon\sim\mathcal N(0,\Sigma_t)$ be a perturbation supported on $\mathcal W_{\Delta,t}$, which can be expressed as $\varepsilon=\Pi_{\Delta,t}\xi$ with $\xi\sim\mathcal N(0,\Sigma_t)$. Then $\varepsilon\sim\mathcal N(0,\Pi_{\Delta,t}\Sigma_t\Pi_{\Delta,t})$, and the same second-order calculation yields
+$$
+\mathbb E\!\left[\hat L_{S_t}(\hat W_t+\varepsilon)-\hat L_{S_t}(\hat W_t)\right]
+\approx
+\frac12\,\operatorname{tr}\!\Big(C_t\,\Pi_{\Delta,t}\Sigma_t\Pi_{\Delta,t}\Big)
+=
+\frac12\,\operatorname{tr}\!\big(C_{\Delta,t}\Sigma_t\big),
+$$
+where the last equality uses cyclicity of the trace. This expression disentangles perturbation \emph{scope} and \emph{type}: $\mathcal W_{\Delta,t}$ determines which curvature modes are accessible through $C_{\Delta,t}$, while $\Sigma_t$ allocates variance across those admissible directions.
+
+\paragraph{Continual learning under PECL (task-conditioned geometry at an inherited solution).}
+When starting task $t+1$ from the inherited solution $\hat W_t=W_0+\hat{\Delta W}_t$, we again avoid mixing task data in curvature definitions. Expanding the \emph{new-task} loss around $\hat W_t$ gives
+$$
+\hat L_{S_{t+1}}(\hat W_t+\delta)
+=
+\hat L_{S_{t+1}}(\hat W_t)
++
+g_{t+1}^\top \delta
++
+\frac12\,\delta^\top C_{t+1}(\hat W_t)\,\delta
++
+o(\|\delta\|_2^2),
+$$
+where $g_{t+1}$ and $C_{t+1}(\hat W_t)$ are computed using only $S_{t+1}$. \textbf{The PECL constraint enforces $\delta\in\mathcal W_{\Delta,t+1}$}, hence the relevant feasible quadratic term is governed by the restricted operator
+$$
+C_{\Delta,t+1}(\hat W_t)
+\;\triangleq\;
+\Pi_{\Delta,t+1}\,C_{t+1}(\hat W_t)\,\Pi_{\Delta,t+1}.
+$$
+If an EWC-style constraint is added in PECL, the past-task curvature proxy $F_t$ remains defined on $S_t$ at $\hat W_t$ and is used only inside a penalty. A LoRA-consistent penalty that constrains only feasible directions is
+$$
+\Omega_t^{\Delta}(W)
+=
+\frac{\lambda}{2}\,(W-\hat W_t)^\top \Pi_{\Delta,t+1}F_t\Pi_{\Delta,t+1}\,(W-\hat W_t),
+$$
+leading to the objective $\min_W \hat L_{S_{t+1}}(W)+\Omega_t^{\Delta}(W)$ and the local approximation
+$$
+\hat L_{S_{t+1}}(\hat W_t+\delta)+\Omega_t^{\Delta}(\hat W_t+\delta)
+\approx
+\text{const}
++
+g_{t+1}^\top \delta
++
+\frac12\,\delta^\top\Big(C_{t+1}(\hat W_t)+\lambda \Pi_{\Delta,t+1}F_t\Pi_{\Delta,t+1}\Big)\delta.
+$$
+Here $C_{t+1}(\hat W_t)$ is defined solely by $S_{t+1}$, while $F_t$ is defined solely by $S_t$, preserving the task-conditioned interpretation of curvature.
+
+
+\section{Curvature localization and overlap with LoRA vs.\ backbone subspaces}
+
+\paragraph{Task-conditioned curvature and the scope mismatch in frozen-backbone PECL.}
+For each task $t$, let $\hat L_{S_t}(W)$ denote the empirical risk on the task-specific dataset $S_t$, and let $\hat W_t$ be the solution after training task $t$. We emphasize that curvature is \emph{task-conditioned}: all curvature quantities for task $t$ are computed using only $S_t$ and evaluated at $\hat W_t$. Let $C_t$ be a positive semidefinite curvature proxy at $\hat W_t$, such as the empirical Fisher or the GGN,
+$$
+C_t \;\triangleq\; C_t(\hat W_t)\;\approx\; \mathbb E_{(x,y)\sim S_t}\big[g_t g_t^\top\big]\Big|_{W=\hat W_t},
+\qquad g_t=\nabla_W \ell(W;x,y).
+$$
+Let $\{(\lambda_i,v_i)\}_{i\ge 1}$ denote the eigenpairs of $C_t$ with $\lambda_1\ge\lambda_2\ge\cdots$ and $\|v_i\|_2=1$. The leading eigenvectors $v_i$ characterize the dominant local sensitivity directions of task $t$ at $\hat W_t$.
+
+In frozen-backbone PECL, optimization is constrained to an admissible LoRA update subspace $\mathcal W_{\Delta,t}$, with orthogonal projector $\Pi_{\Delta,t}$. In parallel, we define a backbone coordinate subspace with projector $\Pi_{\mathrm{bb}}$ that selects backbone coordinates (or the corresponding weight blocks). Curvature localization asks \emph{where} the dominant curvature directions reside relative to these structural subspaces. For each leading curvature direction $v_i$, we define the squared projection masses
+$$
+r_{\Delta,t}(i)\;=\;\|\Pi_{\Delta,t}v_i\|_2^2,
+\qquad
+r_{\mathrm{bb},t}(i)\;=\;\|\Pi_{\mathrm{bb}}v_i\|_2^2,
+$$
+\textbf{which quantify how strongly the $i$-th curvature mode aligns with the LoRA-admissible directions or with backbone coordinates}, respectively. Since $\mathcal W_{\Delta,t}$ is generally low-dimensional and not necessarily orthogonal to the backbone coordinate subspace, $r_{\Delta,t}(i)$ and $r_{\mathrm{bb},t}(i)$ need not sum to one and should be interpreted as \emph{overlap scores} with two distinct structural subspaces.
+
+To summarize the localization of the dominant curvature modes, we form spectrum-weighted overlaps over the top-$k$ eigen-directions:
+$$
+R_{\Delta,t}^{(k)}
+\;=\;
+\frac{\sum_{i=1}^{k}\lambda_i\,\|\Pi_{\Delta,t}v_i\|_2^2}{\sum_{i=1}^{k}\lambda_i},
+\qquad
+R_{\mathrm{bb},t}^{(k)}
+\;=\;
+\frac{\sum_{i=1}^{k}\lambda_i\,\|\Pi_{\mathrm{bb}}v_i\|_2^2}{\sum_{i=1}^{k}\lambda_i}.
+$$
+The $\lambda_i$ weighting emphasizes directions that contribute more strongly to local sensitivity. A larger $R_{\Delta,t}^{(k)}$ indicates that the influential curvature modes are largely contained in the admissible LoRA subspace, so sharpness control or perturbations restricted to $\mathcal W_{\Delta,t}$ can directly target the curvature directions that matter for task $t$. Conversely, a larger $R_{\mathrm{bb},t}^{(k)}$ indicates that dominant curvature modes concentrate in backbone coordinates.
+
+\paragraph{Why backbone-localized curvature does \emph{not} imply ``flattening the backbone'' under PECL.}
+A potential concern is whether backbone-localized curvature suggests that we should actively perturb the backbone to obtain a globally flatter model. The second-order approximation clarifies why this is not a coherent objective in frozen-backbone PECL. Consider a Gaussian perturbation $\varepsilon\sim\mathcal N(0,\Sigma)$ applied at $\hat W_t$. Under a local quadratic approximation,
+$$
+\mathbb E\!\left[\hat L_{S_t}(\hat W_t+\varepsilon)-\hat L_{S_t}(\hat W_t)\right]
+\approx
+\frac12\,\operatorname{tr}(C_t\Sigma).
+$$
+If the perturbation covariance $\Sigma$ is supported on backbone coordinates, then whenever dominant curvature concentrates in the backbone, the approximation predicts a large expected loss elevation. \textbf{This elevation should be interpreted as a \emph{diagnostic} signal: the current solution for the input dataset is highly sensitive along backbone directions( 
+%Maybe this condition is not the case for lora,  the trained lora part should more related to the downstream task data).
+} 
+In frozen-backbone PECL, such sensitivity is not directly controllable because backbone parameters cannot move to reduce it, while optimization updates are restricted to $\mathcal W_{\Delta,t}$. In many regimes, $\mathcal W_{\Delta,t}$ is nearly orthogonal to, or only weakly coupled with, the high-curvature backbone modes. Consequently, injecting perturbations into backbone directions behaves like adding an uncontrollable noise source rather than applying a regularization pressure that the optimizer can absorb, which typically manifests as poorer stability and slower convergence rather than improved flatness. \textbf{More broadly, perturbations can promote robustness only when the sensitive directions they excite are sufficiently coupled to the learnable directions so that optimization can respond.} Under a frozen backbone, high-curvature backbone modes typically lack this controllable coupling.
+
+From this perspective, a large $R_{\mathrm{bb},t}^{(k)}$ should not be read as a prescription to ``flatten the backbone''. Its role is explanatory: it predicts when full-scope or backbone-scope perturbations are likely to be misaligned with the PECL learning constraint. The causal chain is: a large $R_{\mathrm{bb},t}^{(k)}$ implies that the top curvature modes are predominantly supported on backbone coordinates; full/backbone-scope perturbations then allocate perturbation energy to these high-curvature backbone directions, yielding larger loss elevation and more unstable dynamics; since the backbone is frozen, optimization cannot mitigate this sensitivity by updating backbone parameters, and the effect persists as performance degradation. This is precisely the \emph{scope mismatch}: in frozen-backbone PECL, global full-space flatness is not the appropriate objective, and the relevant notion is robustness within the admissible LoRA update subspace.
+
+\paragraph{Experimental design: computing curvature localization and mapping top-$k$ modes to subspaces.}
+We instantiate the above diagnostics at the end of each task $t$ using a task-conditioned curvature proxy computed on $S_t$ at $\hat W_t$. To reduce cost and improve interpretability, we optionally focus on a specific weight block (e.g., the attention $q$ matrix in a chosen layer) and define a block-restricted empirical Fisher $F_t^{(q)}$ using only gradients with respect to that block:
+$$
+F_t^{(q)} \;\triangleq\; \mathbb E_{(x,y)\sim S_t}\Big[\operatorname{vec}(G_{t}^{(q)})\,\operatorname{vec}(G_{t}^{(q)})^\top\Big]\Big|_{W=\hat W_t},
+\qquad
+G_{t}^{(q)}=\nabla_{W_q}\ell(W;x,y).
+$$
+We estimate $F_t^{(q)}$ by Monte-Carlo averaging over a fixed-size subset $\tilde S_t\subset S_t$ that is held constant across methods. Since $F_t^{(q)}$ is not formed explicitly, we compute its matrix--vector product via
+$$
+\widehat F_t^{(q)}v
+\approx
+\frac{1}{|\tilde S_t|}\sum_{(x,y)\in \tilde S_t}
+g_{t}^{(q)}(x,y)\,\big(g_{t}^{(q)}(x,y)^\top v\big),
+\qquad
+g_{t}^{(q)}=\operatorname{vec}(G_{t}^{(q)}),
+$$
+and obtain the top-$k$ eigenpairs $\{(\lambda_{t,i},V_{t,i}^{(q)})\}_{i=1}^{k}$ using Lanczos/LOBPCG, with $\|V_{t,i}^{(q)}\|_F=1$.
+
+To compare localization relative to LoRA updates and backbone structure in the \emph{same matrix space}, we define two rank-$r$ bilinear subspaces (with $r$ fixed across tasks). Let $\Delta W_{q,t}$ be the effective LoRA-induced update at task $t$ for the selected block, and let $W_{0,q}$ be the corresponding frozen backbone weight block. We compute the truncated SVDs
+$$
+\Delta W_{q,t}=U_{\Delta,t}S_{\Delta,t}V_{\Delta,t}^\top,
+\qquad
+W_{0,q}=U_WS_WV_W^\top,
+$$
+and define the associated bilinear projections for any matrix $X$:
+$$
+\Pi_{\Delta,t}^{(q)}(X)=U_{\Delta,t}^{(r)}U_{\Delta,t}^{(r)\top}\,X\,V_{\Delta,t}^{(r)}V_{\Delta,t}^{(r)\top},
+\qquad
+\Pi_{W}^{(q)}(X)=U_{W}^{(r)}U_{W}^{(r)\top}\,X\,V_{W}^{(r)}V_{W}^{(r)\top}.
+$$
+We then measure, for each top curvature mode, its overlap with the LoRA-update subspace and the backbone subspace:
+$$
+r_{\Delta,t}(i)=\|\Pi_{\Delta,t}^{(q)}(V_{t,i}^{(q)})\|_F^2,
+\qquad
+r_{W,t}(i)=\|\Pi_{W}^{(q)}(V_{t,i}^{(q)})\|_F^2,
+$$
+and summarize them via the spectrum-weighted overlaps
+$$
+R_{\Delta,t}^{(k)}=
+\frac{\sum_{i=1}^{k}\lambda_{t,i}\,r_{\Delta,t}(i)}{\sum_{i=1}^{k}\lambda_{t,i}},
+\qquad
+R_{W,t}^{(k)}=
+\frac{\sum_{i=1}^{k}\lambda_{t,i}\,r_{W,t}(i)}{\sum_{i=1}^{k}\lambda_{t,i}}.
+$$
+In our experiments we fix $r$ across tasks and set $k=10$ to reduce variance while keeping computation tractable.
+
+Finally, to validate the scope-mismatch mechanism, we align these localization metrics with performance degradation under different perturbation scopes. Specifically, we compare LoRA-only perturbations versus backbone-scope or full-scope perturbations under a matched perturbation budget, and report $\Delta\mathrm{AAA}_t$ (or $\Delta\mathrm{BWT}_t$) as the performance gap between full/backbone and LoRA-only perturbations. The proposed analysis predicts that tasks with larger $R_{W,t}^{(k)}$ exhibit larger degradation under full/backbone perturbations, whereas tasks with larger $R_{\Delta,t}^{(k)}$ are more amenable to LoRA-restricted sharpness control.
+
+\paragraph{Two complementary evaluation suites: weight--subspace correlation vs.\ curvature localization.}
+We analyze a fixed weight block (e.g., the attention $q$ matrix of a given layer) after learning task $t$ using two families of diagnostics. Although both are reported as ``projections'', they quantify different objects: (i) how the \emph{LoRA update subspace} relates to the \emph{pretrained weight} $W$, and (ii) how the \emph{dominant curvature modes} align with either the LoRA-induced subspace or a backbone subspace.
+
+\subparagraph{1.\ Weight--subspace correlation (H.3/H.4 style).}
+Let the pretrained (frozen) block be $W\in\mathbb{R}^{d_{\mathrm{out}}\times d_{\mathrm{in}}}$ and the learned LoRA effective update after task $t$ be $\Delta W_t$. Consider the SVDs
+$W = U_W S_W V_W^\top$
+and
+$\Delta W_t = U_{\Delta,t} S_{\Delta,t} V_{\Delta,t}^\top$.
+Fix the LoRA rank $r$, and denote by $U_W^{(r)}$ (resp.\ $V_W^{(r)}$) the matrices of the top-$r$ left (resp.\ right) singular vectors of $W$, and similarly $U_{\Delta,t}^{(r)},V_{\Delta,t}^{(r)}$ for $\Delta W_t$.
+
+\textbf{(a) Energy of $W$ in its own rank-$r$ subspace.}
+The ``self'' energy is
+$\|U_W^{(r)\top} W V_W^{(r)}\|_F
+= \|S_W^{(r)}\|_F
+= \big(\sum_{i=1}^r s_i(W)^2\big)^{1/2}$.
+We also report the normalized ratio
+$\mathrm{self\_ratio}(r)=\|S_W^{(r)}\|_F/\|W\|_F$.
+Note that $\mathrm{self\_ratio}(r)$ is not a projection onto the full $W$, but onto the \emph{top-$r$} subspace of $W$, and it can be far below $1$ when $W$ is high-rank and its singular energy is spread across many directions.
+
+\textbf{(b) Overlap between $W$ and the $\Delta W_t$ subspace (H.3).}
+We measure how much of $W$ lies in the bilinear rank-$r$ subspace induced by $\Delta W_t$:
+$\mathrm{proj\_norm}(t)=\|U_{\Delta,t}^{(r)\top} W V_{\Delta,t}^{(r)}\|_F$.
+A random baseline $\mathrm{rand\_norm}(t)$ is obtained by replacing $U_{\Delta,t}^{(r)},V_{\Delta,t}^{(r)}$ with random orthonormal bases of the same size. The gap $\mathrm{proj\_norm}(t)-\mathrm{rand\_norm}(t)$ indicates whether the overlap is structural or near-random.
+
+\textbf{(c) LoRA update strength and amplification factor (H.4).}
+Let $\mathrm{delta\_norm}(t)=\|\Delta W_t\|_F$ and define the amplification factor
+$\mathrm{amp}(t)=\|\Delta W_t\|_F/\|U_{\Delta,t}^{(r)\top} W V_{\Delta,t}^{(r)}\|_F$.
+This compares the magnitude of the learned update to the magnitude of $W$ restricted to the \emph{same} subspace selected by $\Delta W_t$. Values $\mathrm{amp}(t)>1$ indicate that the update dominates the pretrained weight in those directions, whereas $\mathrm{amp}(t)<1$ indicates a more conservative update within that subspace.
+
+\subparagraph{2.\ Curvature localization (projection of top curvature modes).}
+At the end of task $t$, we estimate a curvature proxy for the same block, denoted $C_t$ (e.g., empirical Fisher, GGN, or Hessian). Let $\{(\lambda_{t,i}, v_{t,i})\}_{i=1}^k$ be the top-$k$ eigenpairs of $C_t$, with $\|v_{t,i}\|_2=1$. Each eigenvector $v_{t,i}$ is a direction in the block's parameter space (vectorized matrix coordinates).
+
+We consider two rank-$r$ bilinear subspaces: the LoRA update subspace induced by $\Delta W_t$ and the backbone subspace induced by $W$. In implementation, this corresponds to projecting a direction (reshaped as a matrix) onto a bilinear rank-$r$ subspace. Abstractly, we denote the corresponding projectors in the vectorized space by $\Pi_{\Delta,t}$ and $\Pi_W$.
+
+We define the eigenvalue-weighted localization ratio of curvature modes onto a subspace projector $\Pi$ as
+$R_t^{(k)}(\Pi)
+=
+\big(\sum_{i=1}^k \lambda_{t,i}\|\Pi v_{t,i}\|_2^2\big)\big/\big(\sum_{i=1}^k \lambda_{t,i}\big)$.
+Concretely,
+$R_{\Delta,t}^{(k)}=R_t^{(k)}(\Pi_{\Delta,t})$
+corresponds to $\mathrm{delta\_w\_proj\_q\_ratio\_weighted}$, and
+$R_{W,t}^{(k)}=R_t^{(k)}(\Pi_W)$
+corresponds to $\mathrm{delta\_w\_proj\_w\_q\_ratio\_weighted}$.
+A random baseline $R_{\mathrm{rand},t}^{(k)}$ is obtained by replacing $\Pi$ with a random rank-$r$ projector.
+
+\subparagraph{3.\ Why the curvature-projection ratios can be numerically small.}
+Small absolute magnitudes (e.g., $0.5\%$--$2\%$) are expected and do not imply that alignment is negligible. First, the target bilinear rank-$r$ subspace is extremely low-dimensional compared to the full block parameter space of dimension $D=d_{\mathrm{out}}d_{\mathrm{in}}$, so the expected overlap of a random direction with that subspace is already small. Second, $R_t^{(k)}(\Pi)$ is a spectral-weighted average over the top-$k$ modes,
+$R_t^{(k)}(\Pi)=\sum_{i=1}^k (\lambda_{t,i}/\sum_{j=1}^k \lambda_{t,j})\cdot \|\Pi v_{t,i}\|_2^2$,
+so limited alignment beyond the leading mode can be diluted by weaker alignment of the remaining modes. Therefore, we interpret these ratios primarily through (i) comparison to the random baseline and (ii) trends across tasks and optimizers. A convenient standardized measure is the lift
+$\mathrm{Lift}_{\Delta,t}=R_{\Delta,t}^{(k)}/R_{\mathrm{rand},t}^{(k)}$,
+where even a small $R_{\Delta,t}^{(k)}$ may indicate strong structure if $\mathrm{Lift}_{\Delta,t}\gg 1$.
+
+\subparagraph{4.\ Connecting the two suites into a mechanism.}
+Curvature localization $R_{\Delta,t}^{(k)}$ quantifies whether the dominant sensitivity directions are controllable under PECL, i.e., whether they lie in the LoRA-reachable subspace. Weight--subspace correlation $\|U_{\Delta,t}^{(r)\top} W V_{\Delta,t}^{(r)}\|_F$ and amplification $\mathrm{amp}(t)$ quantify whether the learned update selects a structurally meaningful subspace and whether it applies sufficient magnitude along that subspace to realize task adaptation. Observing a strong increase in $R_{\Delta,t}^{(k)}$ together with $\mathrm{amp}(t)>1$ provides evidence that the optimizer both improves controllability of the dominant sensitivity modes and strengthens the effective task-specific update within the selected subspace.
+
+
+
+\end{document}
+
+
+ 

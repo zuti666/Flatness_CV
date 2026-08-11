@@ -1,0 +1,81 @@
+# AS^1 + trace-normalized Fisher on the EWC-LoRA paper ImageNet-R setting.
+# Aggressive task0 LR run: keep epochs/GAM fixed, raise only task0 LR.
+outputs_root: "outputs_logs/config_Expand_initlr_aggressive"
+prefix: as1normfisher_lam2000_imagenetr_t10c20_r10_sgd_initlr003_lr0015_e50_rho005_f100_s0
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+dataset: "imagenetr"
+class_shuffle: false
+init_cls: 20
+increment: 20
+nb_tasks: 10
+total_sessions: 10
+
+seed:
+  - 0
+
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+device:
+  - "0"
+
+model_name: "ewclora_normfisher_gam"
+lora_rank: 10
+
+lambda_flat: 1.0
+ewc_lambda: 2000
+ewc_gamma: 0.9
+ewc_eta: 0.0
+ewc_max_batches: 100
+ewc_normalize_fisher: true
+ewc_fisher_norm_eps: 1.0e-12
+ewc_dual_ascent: false
+
+mechanism_eval: true
+mechanism_grad_stats: true
+mechanism_top_fraction: 0.1
+mechanism_eps: 1.0e-12
+
+batch_size: 128
+optimizer: "sgd"
+gam_base_optimizer: "sgd"
+optimizer_type: "gam"
+optimizer_tag_override: "gam_sgd_initlr003_lr0015_e50_rho005_f100"
+gam_adaptive: false
+gam_grad_beta_1: 1.0
+gam_grad_beta_2: 1.0
+gam_grad_beta_3: 1.0
+gam_grad_gamma: 0.1
+gam_grad_rho: 0.05
+gam_grad_norm_rho: 0.1
+
+scheduler: "cosine"
+init_epoch: 50
+init_lr: 0.03
+init_momentum: 0
+init_weight_decay: 0.0
+
+epochs: 50
+lrate: 0.015
+momentum: 0
+weight_decay: 0.0
+
+linear_probe_eval_num_workers: 0
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+probe_train_mode: train
+probe_test_mode: test
+probe_fit_epochs: 20
+probe_fit_lr: 0.015
+probe_fit_moment: 0
+probe_fit_wd: 0.0005
+probe_fit_train_batch_size: 128
+
+flat_eval: false
+feature_flat_eval: false
+feature_cka_eval: false
+feature_proto_eval: false
+attention_probe_eval: false

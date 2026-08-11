@@ -1,0 +1,64 @@
+experiment_name: focus_stage2b_parameterization_smoke
+device: cpu
+output_root: outputs
+
+data:
+  name: synthetic
+  num_tasks: 2
+  angles: [-30, 30]
+  rotation_span: 60
+  train_subset: 128
+  test_subset: 64
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 8
+  num_classes: 10
+  activation: gelu
+  parameterization: factor_lora
+  task_a_parameterization: dense
+  rank: 2
+  subspace_dim: 28
+  lora_alpha: rank
+  lifecycle: persistent
+  subspace_seed: run_seed
+  balance_every: step
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/stage2b_smoke_base.pt
+  seed: 3407
+  epochs: 1
+  batch_size: 64
+  lr: 0.05
+  momentum: 0.0
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 2
+  batch_size: 64
+  optimizer: sgd
+  optimizer_schedule: null
+  lr: 0.01
+  momentum: 0.0
+  weight_decay: 0.0
+  sam_rho: 0.02
+  perturbation_metric: effective_weight
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 32
+  trajectory_eval: true
+  prospective_enabled: false
+  pathwise: true
+  path_granularity: epoch
+  geometry_enabled: false
+
+grid:
+  parameterizations:
+    [dense, random_subspace, fixed_mature_tangent, factor_lora, balanced_lora, projected_rank]
+  optimizer_schedules:
+    - [sgd, sgd]
+    - [sgd, sam]
+  seeds: [0]

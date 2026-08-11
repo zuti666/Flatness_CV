@@ -1,0 +1,79 @@
+# Functionally equivalent but optimization-inequivalent LoRA initialization.
+# The first 15 raw CIFAR-100 classes form three disjoint coarse-group tasks:
+# T1 aquatic mammals -> T2 vehicles 1 -> T3 fish.
+prefix: pgsr_original_prefix_s0
+outputs_root: "Project1-3 INitilization/results/original_idea_validation"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+dataset: cifar224
+data_root: /data/140-1/datasets
+class_shuffle: false
+class_order:
+  [4, 30, 55, 72, 95,
+   8, 13, 48, 58, 90,
+   1, 32, 67, 73, 91,
+   0, 2, 3, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19,
+   20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 33, 34, 35, 36,
+   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 49, 50, 51, 52,
+   53, 54, 56, 57, 59, 60, 61, 62, 63, 64, 65, 66, 68, 69, 70,
+   71, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+   88, 89, 92, 93, 94, 96, 97, 98, 99]
+init_cls: 5
+increment: 5
+max_train_tasks: 3
+seed: [0]
+all_or_inc: inc
+
+backbone_type: vit_base_patch16_224
+device: [0]
+model_name: pgsr_lora
+lora_rank: 4
+
+batch_size: 128
+train_num_workers: 0
+eval_num_workers: 0
+
+optimizer: sgd
+optimizer_type: sgd
+scheduler: constant
+init_epoch: 3
+init_lr: 0.01
+init_momentum: 0.0
+init_weight_decay: 0.0
+epochs: 3
+lrate: 0.01
+momentum: 0.0
+weight_decay: 0.0
+
+# Preview and held-out are disjoint subsets of the incoming task's train set.
+# Both are removed from the formal training subset.
+pgsr_preview_samples: 25
+pgsr_preview_batch_size: 25
+pgsr_heldout_samples: 250
+pgsr_heldout_batch_size: 125
+pgsr_function_check_samples: 300
+pgsr_probe_lr: 0.01
+pgsr_diagnostic_steps: [0, 1, 2, 5, 10, 18, 36, 54]
+pgsr_random_null_candidates: 32
+
+pgsr_fresh_prior: 0.5
+pgsr_gamma: 12.0
+pgsr_warmup_steps: 5
+pgsr_bank_max_tasks: 0
+pgsr_function_tolerance: 1.0e-6
+pgsr_max_train_steps: 0
+pgsr_selection_mode: raw_history
+pgsr_forced_history_task: -1
+pgsr_skip_nme: true
+
+flat_eval: false
+feature_flat_eval: false
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+attention_probe_eval: false
+ood_eval: false
+mechanism_eval: false
+save_final_model: false

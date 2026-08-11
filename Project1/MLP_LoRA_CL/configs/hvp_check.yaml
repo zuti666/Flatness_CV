@@ -1,0 +1,40 @@
+experiment_name: hvp_numerical_check
+seed: 0
+device: cuda
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 3
+  rotation_span: 60
+  train_subset: 5000
+  test_subset: 1000
+  num_workers: 2
+
+model:
+  activation: softplus
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  checkpoint: checkpoints/mnist_mlp_softplus_h32_seed3407.pt
+  epochs: 10
+
+training:
+  epochs_per_task: 3
+  optimizer: gam_fd
+  lr: 0.03
+  gam_radius: 0.01
+  gam_weight: 0.05
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 256
+  save_hvp_tensors: true
+  pathwise: false
+  hvp_fd_radii: [0.1, 0.03, 0.01, 0.003, 0.001]
+  hessian_lanczos_steps: 20
+  geometry_enabled: false

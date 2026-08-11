@@ -1,0 +1,171 @@
+% Task-wise NLP accuracy matrices - Order 3
+% Task order: Yahoo -> Amazon -> AGNews -> DBpedia
+% One table per model/method; 2 optimizers (Adam/SAM)
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-large} with \textbf{SeqLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5large_seqlora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 73.66 & $-$ & $-$ & $-$ & 73.66 \\
+ & 2-amazon & 66.71 & 60.64 & $-$ & $-$ & 63.68 \\
+ & 3-agnews & 48.51 & 57.17 & 89.62 & $-$ & 65.10 \\
+ & 4-dbpedia & 62.08 & 46.29 & 72.89 & 98.25 & 69.88 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 72.34 & 0.00 & 51.34 & 9.05 & 33.18 \\
+ & 2-amazon & 57.54 & 58.57 & 59.82 & 52.21 & 57.03 \\
+ & 3-agnews & 42.07 & 50.33 & 89.53 & 37.49 & 54.85 \\
+ & 4-dbpedia & 66.64 & 47.63 & 80.39 & 98.72 & 73.35 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-large} with \textbf{IncLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5large_inclora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 73.66 & $-$ & $-$ & $-$ & 73.66 \\
+ & 2-amazon & 67.09 & 59.74 & $-$ & $-$ & 63.41 \\
+ & 3-agnews & 59.50 & 58.28 & 89.55 & $-$ & 69.11 \\
+ & 4-dbpedia & 60.67 & 40.88 & 81.67 & 98.25 & 70.37 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 72.34 & $-$ & $-$ & $-$ & 72.34 \\
+ & 2-amazon & 65.28 & 58.21 & $-$ & $-$ & 61.74 \\
+ & 3-agnews & 61.79 & 57.70 & 89.62 & $-$ & 69.70 \\
+ & 4-dbpedia & 57.82 & 53.83 & 82.93 & 98.50 & 73.27 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-large} with \textbf{OLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5large_olora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 73.66 & $-$ & $-$ & $-$ & 73.66 \\
+ & 2-amazon & 72.04 & 55.24 & $-$ & $-$ & 63.64 \\
+ & 3-agnews & 71.80 & 49.07 & 87.29 & $-$ & 69.39 \\
+ & 4-dbpedia & 70.84 & 54.11 & 86.46 & 98.79 & 77.55 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 72.34 & $-$ & $-$ & $-$ & 72.34 \\
+ & 2-amazon & 70.46 & 54.51 & $-$ & $-$ & 62.49 \\
+ & 3-agnews & 71.71 & 51.12 & 89.53 & $-$ & 70.79 \\
+ & 4-dbpedia & 69.70 & 49.41 & 87.38 & 98.57 & 76.26 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-small} with \textbf{SeqLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5small_seqlora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 63.53 & $-$ & $-$ & $-$ & 63.53 \\
+ & 2-amazon & 11.08 & 43.12 & $-$ & $-$ & 27.10 \\
+ & 3-agnews & 18.84 & 24.86 & 82.46 & $-$ & 42.05 \\
+ & 4-dbpedia & 39.03 & 14.86 & 50.83 & 96.18 & 50.22 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 61.47 & $-$ & $-$ & $-$ & 61.47 \\
+ & 2-amazon & 46.14 & 36.37 & $-$ & $-$ & 41.26 \\
+ & 3-agnews & 20.96 & 35.34 & 80.51 & $-$ & 45.61 \\
+ & 4-dbpedia & 37.53 & 27.66 & 38.83 & 96.49 & 50.12 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-small} with \textbf{IncLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5small_inclora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 63.53 & $-$ & $-$ & $-$ & 63.53 \\
+ & 2-amazon & 23.93 & 38.14 & $-$ & $-$ & 31.04 \\
+ & 3-agnews & 21.45 & 35.32 & 83.13 & $-$ & 46.63 \\
+ & 4-dbpedia & 40.20 & 25.92 & 59.96 & 95.78 & 55.46 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 61.47 & $-$ & $-$ & $-$ & 61.47 \\
+ & 2-amazon & 51.01 & 35.72 & $-$ & $-$ & 43.37 \\
+ & 3-agnews & 22.71 & 34.76 & 80.59 & $-$ & 46.02 \\
+ & 4-dbpedia & 36.26 & 17.47 & 32.54 & 95.97 & 45.56 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[ht]
+\centering
+\caption{%
+  Task-wise accuracy matrix $A_{t,j}$ (\%) for \textbf{T5-small} with \textbf{OLoRA} under Order 3 (Yahoo -> Amazon -> AGNews -> DBpedia).
+  $A_{t,j}$: raw task-wise accuracy from the source log; ``$-$'' denotes tasks not yet seen in that row.
+  \textbf{Mean}: \texttt{Model\_Average} at step $t$; final row = FAA.
+}
+\label{tab:nlp_o3_t5small_olora}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{0.92}
+\scriptsize
+\begin{tabular}{@{}l l r r r r r@{}}
+\toprule
+\textbf{Opt.} & \textbf{After $t$} & \textbf{yahoo} & \textbf{amazon} & \textbf{agnews} & \textbf{dbpedia} & \textbf{Mean} \\
+\midrule
+\multirow{4}{*}{\textbf{Adam}} & 1-yahoo & 63.53 & $-$ & $-$ & $-$ & 63.53 \\
+ & 2-amazon & 59.55 & 35.20 & $-$ & $-$ & 47.38 \\
+ & 3-agnews & 49.70 & 31.87 & 71.75 & $-$ & 51.11 \\
+ & 4-dbpedia & 50.01 & 29.36 & 55.57 & 94.49 & 57.36 \\
+\addlinespace[2pt]
+\multirow{4}{*}{\textbf{SAM}} & 1-yahoo & 61.47 & $-$ & $-$ & $-$ & 61.47 \\
+ & 2-amazon & 56.29 & 33.68 & $-$ & $-$ & 44.99 \\
+ & 3-agnews & 52.91 & 32.24 & 71.30 & $-$ & 52.15 \\
+ & 4-dbpedia & 50.68 & 29.71 & 57.09 & 94.96 & 58.11 \\
+\bottomrule
+\end{tabular}
+\end{table*}

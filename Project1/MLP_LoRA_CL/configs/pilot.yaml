@@ -1,0 +1,61 @@
+experiment_name: rotated_mnist_pilot
+device: cuda
+output_root: outputs
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 5
+  rotation_span: 60
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 4
+
+model:
+  activation: gelu
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_seed3407.pt
+  seed: 3407
+  epochs: 10
+  batch_size: 256
+  lr: 0.05
+  momentum: 0.9
+
+training:
+  epochs_per_task: 5
+  batch_size: 128
+  optimizer: sgd
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 0.0
+  sam_rho: 0.05
+  gam_radius: 0.01
+  gam_weight: 0.05
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 128
+  save_hvp_tensors: false
+  pathwise: true
+  path_granularity: epoch
+  hessian_lanczos_steps: 12
+  geometry_enabled: true
+  geometry_immediate_only: true
+  ggn_damping: 0.01
+  safe_relative_threshold: 0.01
+  ggn_overlap_top_k: 16
+
+grid:
+  parameterizations: [dense, random_subspace, fixed_lora_tangent, factor_lora, balanced_lora]
+  ranks: [2, 4, 8]
+  lifecycles: [persistent]
+  optimizers: [sgd]
+  rotation_spans: [40, 120]
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

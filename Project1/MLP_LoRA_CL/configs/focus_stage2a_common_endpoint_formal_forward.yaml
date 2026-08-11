@@ -1,0 +1,68 @@
+experiment_name: focus_stage2a_common_endpoint_formal_forward
+device: cuda
+output_root: outputs
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 2
+  angles: [-30, 30]
+  rotation_span: 60
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: gelu
+  parameterization: factor_lora
+  task_a_parameterization: dense
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+  subspace_seed: run_seed
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_angle0_seed3407.pt
+  pretrain_angle: 0.0
+  seed: 3407
+  epochs: 10
+  batch_size: 256
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 5
+  batch_size: 128
+  optimizer: sgd
+  optimizer_schedule: null
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0
+  sam_rho: 0.02
+  perturbation_metric: effective_weight
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 128
+  trajectory_eval: true
+  prospective_enabled: true
+  pathwise: true
+  path_granularity: epoch
+  pathwise_immediate_only: true
+  geometry_enabled: false
+  hvp_fd_radii: []
+  hessian_lanczos_steps: 0
+
+grid:
+  parameterizations: [dense, factor_lora]
+  ranks: [4]
+  optimizer_schedules:
+    - [sgd, sgd]
+    - [sgd, sam]
+  seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119]

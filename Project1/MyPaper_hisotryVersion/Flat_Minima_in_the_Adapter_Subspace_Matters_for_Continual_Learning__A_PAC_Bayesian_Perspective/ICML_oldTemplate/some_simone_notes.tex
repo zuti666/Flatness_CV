@@ -1,0 +1,452 @@
+%%%%%%%% ICML 2025 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+% \usepackage{subcaption}
+\usepackage{multirow}
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks (sometimes temporarily if a hyperlink spans a page)
+% please comment out the following usepackage line and replace
+% \usepackage{icml2025} with \usepackage[nohyperref]{icml2025} above.
+\usepackage{hyperref}
+
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+\usepackage{icml2025}
+
+% If accepted, instead use the following line for the camera-ready submission:
+% \usepackage[accepted]{icml2025}
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line
+%    and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Simone Notes}
+
+\begin{document}
+
+\twocolumn[
+\icmltitle{Simone Notes}
+
+% It is OKAY to include author information, even for blind
+% submissions: the style file will automatically remove it for you
+% unless you've provided the [accepted] option to the icml2025
+% package.
+
+% List of affiliations: The first argument should be a (short)
+% identifier you will use later to specify author affiliations
+% Academic affiliations should list Department, University, City, Region, Country
+% Industry affiliations should list Company, City, Region, Country
+
+% You can specify symbols, otherwise they are numbered in order.
+% Ideally, you should not use this facility. Affiliations will be numbered
+% in order of appearance and this is the preferred way.
+% \icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+% % \icmlauthor{Firstname1 Lastname1}{equal,yyy}
+% % \icmlauthor{Firstname2 Lastname2}{equal,yyy,comp}
+% % \icmlauthor{Firstname3 Lastname3}{comp}
+% % \icmlauthor{Firstname4 Lastname4}{sch}
+% % \icmlauthor{Firstname5 Lastname5}{yyy}
+% % \icmlauthor{Firstname6 Lastname6}{sch,yyy,comp}
+% % \icmlauthor{Firstname7 Lastname7}{comp}
+% % %\icmlauthor{}{sch}
+% % \icmlauthor{Firstname8 Lastname8}{sch}
+% % \icmlauthor{Firstname8 Lastname8}{yyy,comp}
+% % %\icmlauthor{}{sch}
+% % %\icmlauthor{}{sch}
+\end{icmlauthorlist}
+
+% % \icmlaffiliation{yyy}{Department of XXX, University of YYY, Location, Country}
+% % \icmlaffiliation{comp}{Company Name, Location, Country}
+% % \icmlaffiliation{sch}{School of ZZZ, Institute of WWW, Location, Country}
+
+\icmlcorrespondingauthor{Firstname1 Lastname1}{first1.last1@xxx.edu}
+% % \icmlcorrespondingauthor{Firstname2 Lastname2}{first2.last2@www.uk}
+
+% % % You may provide any keywords that you
+% % % find helpful for describing your paper; these are used to populate
+% % % the "keywords" metadata in the PDF but will not be shown in the document
+% % \icmlkeywords{Machine Learning, ICML}
+
+% % \vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+
+% This command actually creates the footnote in the first column
+% listing the affiliations and the copyright notice.
+% The command takes one argument, which is text to display at the start of the footnote.
+% The \icmlEqualContribution command is standard text for equal contribution.
+% Remove it (just {}) if you do not need this facility.
+
+%\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+\printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+
+ 
+\section{Theorem explaination}
+
+\begin{theorem}[PAC-Bayes with time-varying hyperposterior]
+\label{thm:pathwise_pac}
+For any $\delta\in(0,1]$, with probability at least $1-\delta$ over $S_{1:T}$,
+\begin{equation*}
+\resizebox{\linewidth}{!}{$
+\begin{aligned} 
+&\quad\frac{1}{T} \sum_{t=1}^T \mathcal L_t
+\le  
+\frac{1}{T} \sum_{t=1}^T \hat{\mathcal L}_t  + \\
+&
+\sqrt{
+\frac{
+\displaystyle
+\sum_{t=1}^T
+\mathbb E_{P_t\sim\mathcal P_{t-1}}
+\mathrm{KL}\bigl(Q_t \,\Vert\, P_t\bigr)
++
+\sum_{t=1}^T
+\mathrm{KL}\bigl(\mathcal P_t\Vert\mathcal P_{t-1}\bigr)
++
+\log\frac{1}{\delta}}
+{2\displaystyle\sum_{t=1}^T (m_t - 1)}
+}.
+\end{aligned}
+$}
+\end{equation*}
+\end{theorem}
+
+This theorem states that the expected risk in continual learning is upper-bound by the average empirical loss achieved at each task, along the learning trajectory (i.e., when each task is learned), plus a complexity term.  This complexity accumulates two effects:  
+
+\begin{itemize}
+    \item $\sum_t \mathrm{KL}\bigl(Q_t \,\Vert\, P_t\bigr)$, which captures how much the model parameters need to change from one task to the next.
+    \item $\sum_t \mathrm{KL}\bigl(\mathcal P_t\Vert\mathcal P_{t-1}\bigr)$, which measure how much the distribution over plausible weights changes after learning each new task.
+\end{itemize}
+
+Now let us take into account Elastic Weight Consolidation (EWC). At task $t$, EWC augments the empirical loss with a quadratic penalty of the form
+\[
+\mathcal L_t^{\mathrm{EWC}}(w)
+=
+\hat L_{S_t}(w)
++
+\frac{\lambda}{2}
+(w - w_{t-1})^\top F_{t-1} (w - w_{t-1}),
+\]
+where $w_{t-1}$ denotes the parameters learned at the previous task and $F_{t-1}$ is the Fisher information matrix estimated on past data.  
+This loss penalizes deviations from the parameters of previous tasks in directions of high Fisher curvature, thereby discouraging updates that would strongly affect performance on earlier tasks. From the perspective of Theorem~\ref{thm:pathwise_pac}, this regularization can be interpreted as:
+\begin{itemize}
+\item $\hat L_{S_t}(w)$ explicitly minimize the loss of each task.
+    \item Explicitly minimizing the posterior--prior divergence term $\mathrm{KL}(Q_t \Vert P_t)$, by enforcing that task-specific updates remain close to the prior inherited from past tasks. The regularization term in EWC loss is exactly $\mathrm{KL}(Q_t \Vert P_t)$, assuming gaussian posteriors with weight centered in the weights and covariance given by the Fisher of the previous task.
+    \item Now I want to consider the term $\mathrm{KL}\bigl(\mathcal P_t\Vert\mathcal P_{t-1}\bigr)$. I find this term pretty interesting. This term "quantifies how the distribution over task priors evolves over time".  $\mathcal{P}_t$ is my belief after task $t$, about which priors will be good for future tasks.
+    \begin{itemize}
+        \item    In Elastic Weight Consolidation, this belief can be interpreted as answering the question: “How likely is it that a Fisher-based Gaussian prior learned from past tasks will remain a good prior for future tasks?”  In terms of probability:
+    \begin{align*}
+    &\mathcal P_t\!\left(P^{\mathrm{Fisher}}\right)
+    \;=\;\\
+    &\Pr\!\big(\text{Fisher prior is "good" for future tasks}
+    \;\big|\; S_1,..,S_t\big).
+    \end{align*}
+
+        where $S_1, \ldots, S_t$ are the past tasks.
+        \item  For example, if successive tasks are highly related (e.g., different object recognition tasks on similar image domains), the Fisher-based prior continues to explain new tasks well, and the belief in this prior remains high. In this case  $\mathcal{P}_t$ remains close to $\mathcal{P}_{t-1}$, and the corresponding KL term is small. In practice it represents the \textbf{Task Shift}: \textit{if the parameter directions emphasized by the Fisher remain reusable for subsequent tasks, the hyperposterior drift is small; otherwise, when new tasks require qualitatively different representations, this term can become large}.
+        \item The EWC algorithm does not model this KL term in the bound, so it nevers answer to the question "Are the directions that were previously flat / important / safe still the right ones for the next tasks?" Implicitly assuming that "yes they are". Using the mambo jambo bayesian: EWC implicitly assumes a fixed inductive bias across tasks and does not directly control the hyperposterior drift term $\mathrm{KL}(\mathcal P_t \Vert \mathcal P_{t-1})$ 
+    \end{itemize}
+\end{itemize}
+Considering \textbf{Full-finetuning}:
+\begin{itemize}
+  \item Only the task-specific empirical losses are explicitly minimized, with no additional regularization enforcing stability with respect to previous tasks.
+       \item As a consequence, the posterior--prior KL term $\mathrm{KL}(Q_t \Vert P_t)$ is not directly controlled: parameter updates are unconstrained and may move freely in directions that were important for past tasks, which typically leads to catastrophic forgetting.
+        \item The hyperposterior drift term $\mathrm{KL}(\mathcal P_t \Vert \mathcal P_{t-1})$ is also not modeled or constrained. Full fine-tuning \textbf{allows} the inductive bias to change, while EWC assumes a fixed inductive bias. Allowing change does not imply larger change for this term:
+        \begin{itemize}
+            \item   EWC may force a mismatch when tasks are incompatible
+            \item Full fine-tuning may naturally adapt to a new stable regime, yielding a smaller effective drift:
+            \begin{itemize}
+                \item The tasks change, but after some adaptation they stabilize around a new common structure
+                \item Full fine-tuning is free to move both the parameters and the inductive bias
+                \item After this move, future tasks may be again mutually compatible leading to $\mathcal{P}_t \approx \mathcal{P}_{t-1}$
+                \item In contrast, methods like EWC may prevent reaching that new stable regime, even if it exists. 
+            \end{itemize}
+        \end{itemize}
+         
+       
+     
+\end{itemize}
+\paragraph{Pre-trained model as initial condition.}
+All the previous discussion holds for any initialization of the model (pre-trained or random). Before moving to LoRA, let us discuss about the role of the pretraining initialization. Let us recap the previous theorem:
+\begin{theorem}[PAC-Bayes with time-varying hyperposterior]
+For any $\delta\in(0,1]$, with probability at least $1-\delta$ over $S_{1:T}$,
+\begin{equation*}
+\resizebox{\linewidth}{!}{$
+\begin{aligned} 
+&\quad\frac{1}{T} \sum_{t=1}^T \mathcal L_t
+\le  
+\frac{1}{T} \sum_{t=1}^T \hat{\mathcal L}_t  + \\
+&
+\sqrt{
+\frac{
+\displaystyle
+\sum_{t=1}^T
+\mathbb E_{P_t\sim\mathcal P_{t-1}}
+\mathrm{KL}\bigl(Q_t \,\Vert\, P_t\bigr)
++
+\sum_{t=1}^T
+\mathrm{KL}\bigl(\mathcal P_t\Vert\mathcal P_{t-1}\bigr)
++
+\log\frac{1}{\delta}}
+{2\displaystyle\sum_{t=1}^T (m_t - 1)}
+}.
+\end{aligned}
+$}
+\end{equation*}
+\end{theorem}
+
+
+We assume the continual learning process starts from a \textit{pre-trained model}. Let us define as
+
+\begin{itemize}
+    \item $Q_0$ the posterior over the parameter of the pretrained model:
+    \begin{equation}
+    Q_0 = Pr(w | S_{pre}),
+\end{equation}
+where $S_{pre}$ denotes the data used during pre-training. In practice, $Q_0$ is concentrated around pre-trained weights  $w_0$ (this is an instance of the random variable $w$), reflecting the fact that parameter are already optimized for the pre-training objective.
+\item  $P_0$ denotes the initial task-level prior before seeing any pre-training data. This prior is typically not relevant in continual learning, as pretraining is assumed to have already been performed. 
+\item $P_1$ is the first task-level prior used when learning the first downstream task. This prior is important because it encodes the assumption that good solutions for the first task are likely to lie close to the pre-trained parameters.
+\begin{itemize}
+    \item This prior influences the posterior $Q_1$ obtained after learning the first task, which represents the distribution over model parameters conditioned on the first task data and the prior induced by pretraining.
+    \item All subsequent learning steps follow the same mechanism, where each posterior $Q_t$
+ becomes the reference from which the next task-level prior $P_{t+1}$ is defined, All subsequent learning steps follow the same mechanism, where each posterior $Q_t$
+ becomes the reference from which the next task-level prior $P_{t+1}$ is defined, forming a sequence of prior–posterior pairs along the continual learning trajectory.
+\end{itemize}
+\item  $\mathcal P_0$, encoding the inductive bias inherited from the \textit{pre-trained model} (e.g., which representations, parameter directions, and geometric properties of the loss landscape are expected to be reusable for future tasks).
+\end{itemize}
+
+It is worth noting that $Q_0$ does not appear explicitly in the bound. This is because the bound is written starting from the first task-level prior $P_1$, which is typically derived from the \textit{pre-trained model}. In this sense, the effect of pre-training is not captured by a single term, but rather influences the entire learning trajectory: the initial inductive bias encoded in $\mathcal P_0$ determines which features and parameter directions are expected to be reusable, and this in turn affects how large the KL terms $\mathrm{KL}(Q_t \Vert P_t)$ become at each step (because $P_t$ is sampled from the hyperposterior $\mathcal{P}_{t-1}$, $P_1$ is sampled by $\mathcal{P}_0$). As a result, a good pre-training initialization reduces the cumulative complexity across tasks, even though it does not appear explicitly in the formula.
+
+
+
+\section{From Full-finetune to LoRA}
+
+We next impose the PECL constraint. In PECL, the parameter decomposes as
+$
+W_t \;=\; W_{\mathrm{frozen}} + \Delta W_t,
+$
+where $W_{\mathrm{frozen}}\in\mathbb{R}^d$ collects all parameters frozen while learning task $t$, and $\Delta W_t$ is the trainable LoRA increment. We denote by $\mathcal{W}_t \subseteq \mathbb{R}^d$ the set of admissible LoRA increments at task $t$, viewed as a linear subspace embedded in the full parameter space , and let $r_t:=\dim(\mathcal{W}_t)$ denote the number of trainable LoRA parameters.
+
+ 
+The following lemma shows that, under PECL, the PAC-Bayes complexity in the full parameter space reduces to the KL divergence on the LoRA update subspace.
+ 
+\begin{lemma}[KL in PECL is adapter-subspace KL]
+\label{lem:kl-decomp-pecl}
+Assume $Q_t^\Delta \ll P_t^\Delta$. Then $Q_t^{\mathrm{full}} \ll P_t^{\mathrm{full}}$ and
+$$
+\mathrm{KL}\bigl(Q_t^{\mathrm{full}} \,\Vert\, P_t^{\mathrm{full}}\bigr)
+\;=\;
+\mathrm{KL}\bigl(Q_t^\Delta \,\Vert\, P_t^\Delta\bigr).
+$$
+\end{lemma}
+Under PECL, the posterior can only deviate from the prior through the update coordinate $\Delta W_t\in\mathcal W_t$, so each taskwise KL term in Theorem~\ref{thm:pathwise_pac} is fully determined by the distribution of the update $\Delta W$. The effective complexity scale is governed by $r_t$ and by the amount of posterior drift within $\mathcal W_t$. In contrast, a full-space update allows posterior mass to move in more directions and the resulting KL necessarily budgets additional information for those directions.
+
+This allows us to rewrite the bound of Theorem~\ref{thm:pathwise_pac} under the PECL constraint. Plugging Lemma~\ref{lem:kl-decomp-pecl} into the PAC-Bayes bound, each taskwise KL term
+\[
+\mathrm{KL}(Q_t \Vert P_t)
+\]
+reduces to the KL divergence between the posterior and the prior on the LoRA update subspace $\mathcal W_t$. As a result, the bound becomes
+\begin{equation}
+\label{eq:pac-bayes-pecl}
+\resizebox{\linewidth}{!}{$
+\begin{aligned}
+\frac{1}{T} \sum_{t=1}^T \mathcal L_t
+\;\le\;
+\frac{1}{T} \sum_{t=1}^T \hat{\mathcal L}_t
++
+\sqrt{
+\frac{
+\displaystyle
+\sum_{t=1}^T
+\mathbb E_{P_t^\Delta\sim\mathcal P_{t-1}}
+\mathrm{KL}\bigl(Q_t^\Delta \Vert P_t^\Delta\bigr)
++
+\sum_{t=1}^T
+\mathrm{KL}\bigl(\mathcal P_t\Vert\mathcal P_{t-1}\bigr)
++
+\log\frac{1}{\delta}}
+{2\displaystyle\sum_{t=1}^T (m_t - 1)}
+}.
+\end{aligned}
+$}
+\end{equation}
+\section{Explanation}
+Now I want to clarify the notation, understand what is the impact of LoRa rank  understand on the terms of this bound. 
+
+\paragraph{Notation:} $\mathcal{W}_t \subseteq \mathbb{R}^{d}$ is a vector subspace. $\Delta W_t \in \mathcal{W}_t$ is a vector in this subspace of size $r_t \leq d$, where $d$ is the dimension of the frozen parameters $W_{frozen}$ (seen as a vector). Now, for a standard LoRa update we have:
+\begin{equation}
+    \Delta W_t = A_t B_t \,\,\, A_t \in \mathbb{R}^{d_{out} \times k_t}\;\, B_t \in \mathbb{R}^{{k_t} \times d_{in}},
+\end{equation}
+where \textbf{$k_t$ is the LoRa rank}. Now the PAC dimension $r_t$ defined above is :
+\begin{equation}
+    r_t = k_t (d_{out} + d_{in}) \,\, \text{(per layer)}
+\end{equation}
+\textbf{Now, I think that we previously mistakenly assumed that the effective dimension was $d_{out} \times d_{in}$, corresponding the full parametrization. 
+This is not correct: in LoRA, one must account for two factor matrices that are optimized during training.}
+
+Now I want to understand what is the role of the two KL terms in different LoRa organizations (that is SeqLora and IncLoRA).
+
+\subsection{Sequence LoRa}
+In SeqLoRA we reuse a single adapter across tasks, i.e., the trainable coordinates remain in the same
+subspace $\mathcal W$ (often with fixed rank $k$), and the posterior $Q_t^\Delta$ evolves over time as training proceeds.
+
+SeqLoRA does not introduce any explicit mechanism to update the prior across tasks.
+Therefore, in our PAC-Bayes analysis, we model SeqLoRA by keeping the hyperposterior fixed ( $\mathcal P_t\equiv \mathcal P_0$), which reflects the fact that the inductive bias induced by the pre-trained model remains unchanged throughout training.
+
+\emph{If we keep the hyperposterior fixed} (e.g., $\mathcal P_t\equiv \mathcal P_0$), then
+$\mathrm{KL}(\mathcal P_t\Vert\mathcal P_{t-1})=0$ and the only information cost is the task-wise
+$\mathbb E_{P_t^\Delta\sim\mathcal P_{t-1}} \mathrm{KL}(Q_t^\Delta\Vert P_t^\Delta)$.
+
+
+
+
+Then, I want to understand if this closed form can be used for some considerations on the forgetting. 
+\paragraph{$KL(Q_t^{\Delta}, P_t^{\Delta})$:closed form solution}
+I want now to try to write $KL(Q_t^{\Delta}, P_t^{\Delta})$ in function of $k_t$. \textbf{This analysis has the goal to clarify why larger LoRA ranks tend to induce more forgetting in continual learning, and want to distinguish the behaviour of SeqLoRA and IncLora.}.
+For Gaussian task posteriors and priors on the adapter coordinates,
+$Q_t^\Delta=\mathcal N(\mu_{Q,t},\Sigma_{Q,t})$ and
+$P_t^\Delta=\mathcal N(\mu_{P,t},\Sigma_{P,t})$,
+with $\dim(\mathcal W_t)=r_t=k_t(d_{\text{out}}+d_{\text{in}})$,
+the task-wise KL admits the closed form
+\begin{equation}
+    \begin{aligned}
+\mathrm{KL}(Q_t^\Delta\Vert P_t^\Delta)
+=
+\frac12\Big(
+&(\mu_{Q,t}-\mu_{P,t})^\top\Sigma_{P,t}^{-1}(\mu_{Q,t}-\mu_{P,t}) \\
+&+ \log\frac{|\Sigma_{P,t}|}{|\Sigma_{Q,t}|}
++ \operatorname{tr}(\Sigma_{P,t}^{-1}\Sigma_{Q,t})
+- r_t
+\Big).
+    \end{aligned}
+\end{equation}
+This formulation is taken from Lyiang. \textit{I am not sure how much is relevant the closed form. It may be relevant if we are able to measure this quantity in some way}. We now analyze how this quantity behaves under different LoRA training strategies:
+
+\paragraph{Independent SeqLoRa with different ranks}
+
+We compare two independent continual-learning runs employing LoRA adapters
+of different ranks:
+\begin{itemize}
+    \item $\Delta_1$: LoRa update with rank $k_1$ and dimension $r_1$
+    \item $\Delta_2$: LoRa update with rank $k_2$ and dimension $r_2$
+    \item $k_2 > k_1$ (equivalently $r_2 > r_1$)
+\end{itemize}
+The two adapters are trained independently and may span different subspaces of the parameter space. 
+Nevertheless, both posterior-prior pairs can be embedded into a common ambient space $\mathbb{R}^{r_2}$. In particular, the lower-rank posterior and prior can be represented in $\mathbb{R}^{r_2}$ by zero-padding the additional $r_2 - r_1$ coordinates:
+\[
+\tilde Q_t^{\Delta_1} := Q_t^{\Delta_1} \otimes \delta_0,
+\qquad
+\tilde P_t^{\Delta_1} := P_t^{\Delta_1} \otimes \delta_0,
+\]
+where $\delta_0$ denotes a point mass at zero. By construction, the KL divergence is invariant under this embedding:
+\begin{equation}
+      \mathrm{KL}(\tilde{Q}_t^{\Delta_1} || \tilde{P}_t^{\Delta_1}) = KL(Q_t^{\Delta_1}||P_t^{\Delta_1})
+\end{equation}
+Now consider the higher-rank posterior--prior pair
+\((Q_t^{\Delta_2}, P_t^{\Delta_2})\), defined on \(\mathbb{R}^{r_2}\). \textbf{In an optimistic scenario}, we assume that, after embedding into a common
+coordinate system, the posterior--prior pair associated with the
+higher-rank adapter factorizes into an $r_1$-dimensional component and an
+independent $(r_2 - r_1)$-dimensional component; equivalently, we assume
+that the corresponding LoRA parameter subspaces are nested.
+
+Under this assumption, the higher-rank update can be decomposed as: 
+ 
+\[
+\Delta_2 = (\Delta_1, \Delta_{\mathrm{extra}})
+\]
+and write the KL divergence additively:
+\begin{equation}
+\label{eq:kl_additivity_lora}
+\mathrm{KL}(Q_t^{\Delta_2} \Vert P_t^{\Delta_2})
+=
+\mathrm{KL}(\tilde Q_t^{\Delta_1} \Vert \tilde P_t^{\Delta_1})
++
+\mathrm{KL}(Q_t^{\Delta_{\mathrm{extra}}} \Vert P_t^{\Delta_{\mathrm{extra}}}).
+\end{equation}
+
+Short version: We can always zero-pad the direction of the lower LoRa rank to the bigger ones in the common space $r_2$. Since we assume independent runs, using the additivity and non-negativity of the KL we can obtain:
+\begin{equation}
+    \mathrm{KL}(Q_t^{\Delta_1} \Vert P_t^{\Delta_1})
+\le
+\mathrm{KL}(Q_t^{\Delta_2} \Vert P_t^{\Delta_2}).
+\end{equation}
+Some comments:
+
+- When equality holds? Equality holds if and only if the additional directions in $\Delta_2$ carry no task-specific information—meaning that the posterior matches the prior on the extra coordinates—and the posterior–prior distributions on the original adapter directions coincide. This is unlikely to happen in independent runs. 
+
+- \textbf{This paragraph shows that in general bigger rank forgets more in SeqLora. Note that high forgetting, does not mean higher accuracy: in the bound still we have the loss on the current task. I feel that this analysis should still hold for OLora and IncLora, since they have more plasticity they learn better the new tasks resulting in better accuracy on novel tasks. (This should be evident in Figure 4 in the main paper, but using forgetting plots)}
+
+
+\paragraph{Continual SeqLora}
+
+\paragraph{Continual SeqLoRa and Continual IncLora}
+
+For continual seqlora my actual intuition is how much of the space is reusable in the next steps. Can we measure Eq. 5 in some way? In ge 
+
+
+
+
+For continual inclora, how much of the previous space is reusable for the next task and the added dimensions how much drift. 
+
+I feel that everyting is related to the flatness, flatness allows to reuse more directions reusing old direction, adding few direction that keep this KL compact. 
+
+ 
+ 
+\section{Derivation of a measure of reusable directions}
+ 
+ 
+
+ 
+
+
+ 
+
+ 
+ 
+
+
+
+\end{document}
+
+
+ 

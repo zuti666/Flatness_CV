@@ -1,0 +1,21 @@
+Thank you for your careful reading. We are pleased the core argument is clear and address your technical questions directly.
+
+Q1 (Where does the log m term go?)
+
+The difference between Theorems 3.1 and 4.1 reflects a fundamental structural distinction: Theorem 3.1 (classical McAllester) is a single-task bound on i.i.d. risk — the kind used by Pentina & Lampert (ICML 2014) for multi-task learning, where tasks are i.i.d. from a fixed hyperdistribution. As our paper states and Figure 2 illustrates, this is structurally incompatible with CL, where "the prior used at step t is produced by a history-dependent rule that progressively incorporates information from earlier tasks." Theorem 4.1 is built for this sequential regime, and its proof technique differs accordingly.
+
+Theorem 3.1 has log(m/delta) = log m + log(1/delta). Theorem 4.1 has log(1/delta) only. Theorem 3.1 inverts a KL inequality (McAllester's technique); this produces log(m/delta) as a proof artifact. Theorem 4.1 instead uses a supermartingale tail bound: we construct a nonnegative supermartingale {M_t} via Donsker-Varadhan's variational KL inequality at both the model level (Step 1, within-task) and hyper level (Step 2, cross-task). Markov's inequality gives P(M_T >= 1/delta) <= delta, producing log(1/delta) only. The per-task Hoeffding-MGF step in Appendix B.1 yields (lambda*omega_t)^2 / (8*(m_t-1)); optimizing lambda gives sum(m_t-1) in the denominator without any log(m_t) factor. The martingale never union-bounds over individual samples, so log m never appears. The sequential bound is thus strictly tighter. We will add a clarifying remark to Appendix B.1.
+
+Q2 (IncLoRA/OLoRA subspace support assumption)
+
+W_{Delta,t} refers to the current task's adapter subspace only. In IncLoRA, at task t, only (A_t, B_t) is trainable — all previous pairs are frozen. So W_{Delta,t} = span(A_t, B_t): fixed dimension. Both P_t^Delta and Q_t^Delta are Gaussians on this same W_{Delta,t}, so Q_t^Delta << P_t^Delta is satisfied within each task. The global accumulation of adapter pairs across tasks does not affect the within-task support structure. For OLoRA, the orthogonality constraint shapes geometry within W_{Delta,t} but does not alter the support: both distributions remain on the same current W_{Delta,t}. We will add a clarifying remark to Appendix B.2.
+
+Q3 (Bound tightness)
+
+Theorem 4.4 is intended as a qualitative guide identifying which structural quantities — within-task sharpness TS_t^Delta and cross-task drift KL(P_t||P_{t-1}) — govern the stability-plasticity tradeoff. The curvature diagnostics in Table 1 (lambda_max(H), tr(H), lambda_max(F), tr(F)) provide complementary empirical validation that these quantities correlate with observed CL performance. We will add a clarifying remark in the paper to make this intended role explicit.
+
+Q4 (Figure 4 placement)
+
+We agree Figure 4 arrives too late to serve as intuitive illustration. In the revision, we will add a conceptual schematic earlier in Section 3.3 illustrating the geometric differences between RS(0), AS(0), and AS(1) — showing how each concentrates perturbations within W_{Delta,t} relative to principal curvature directions.
+
+Supplementary experiments include: ViT-B/16 on five fine-grained benchmarks (CUB200, Cars196, Flowers102, FGVC-Aircraft, OxfordPet) with a cross-domain CL scenario; T5-small/T5-large on NLP CL benchmarks; and two additional LoRA methods (InfLoRA, SD-LoRA). All results will be included in the revision.

@@ -1,0 +1,96 @@
+prefix: "exp_E_imagenetr_r16_t20_support_direction_seqlora_sam_factor"
+outputs_root: "outputs_logs"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+dataset: "imagenetr"
+class_shuffle: false
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20
+seed: [1993]
+all_or_inc: inc
+
+backbone_type: "vit_base_patch16_224"
+device: ["0"]
+
+model_name: "seqlora"
+lora_rank: 16
+batch_size: 128
+train_num_workers: 0
+eval_num_workers: 0
+compute_nme_class_means: false
+
+optimizer: "sgd"
+optimizer_type: "sam_factor"
+sam_rho: 0.05
+sam_adaptive: false
+sam_eps: 1.0e-12
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+linear_probe_eval_num_workers: 0
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+
+flat_eval: false
+flat_eval_task_indices: "all"
+flat_eval_data_source: "train"
+flat_eval_data_mode: "test"
+flat_eval_loader_shuffle: false
+flat_eval_batch_size: 32
+flat_eval_dataset_fraction: 0.1
+flat_eval_loss_max_batches: 2
+flat_eval_first_order_grad_batches: 2
+flat_eval_max_examples_per_batch: 64
+
+flat_eval_sharpness: false
+flat_eval_expected_sharpness: false
+flat_eval_hessian: false
+flat_eval_GGN: false
+flat_eval_fisher: false
+flat_eval_sharpness_radius: 0.05
+flat_eval_param_names: null
+flat_eval_include_frozen: false
+
+flat_eval_ab_sharpness: false
+flat_eval_ab_sharpness_radius: 0.05
+flat_eval_ab_sharpness_grad_batches: 2
+flat_eval_ab_param_names: ["linear_a", "linear_b"]
+flat_eval_ab_include_frozen: false
+
+flat_eval_delta_sharpness: false
+flat_eval_delta_sharpness_radius: 0.05
+flat_eval_delta_sharpness_grad_batches: 2
+flat_eval_delta_sharpness_eps: 1.0e-12
+flat_eval_delta_sharpness_basis_eps: 1.0e-6
+
+flat_eval_random_tangent_sharpness: false
+flat_eval_random_tangent_radius: 0.05
+flat_eval_random_tangent_grad_batches: 2
+flat_eval_random_tangent_seed: 1993
+
+flat_eval_frozen_sharpness: false
+flat_eval_frozen_sharpness_radius: 0.05
+flat_eval_frozen_sharpness_grad_batches: 1
+flat_eval_frozen_sharpness_match_delta_dim: false
+flat_eval_frozen_sharpness_seed: 1993
+
+weight_loss_land_1d: false
+weight_loss_land_2d: false
+feature_flat_eval: false
+feature_cka_eval: false
+feature_proto_eval: false
+attention_probe_eval: false
+ood_eval: false

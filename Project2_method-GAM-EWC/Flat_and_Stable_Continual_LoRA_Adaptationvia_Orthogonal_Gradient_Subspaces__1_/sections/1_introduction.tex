@@ -1,0 +1,81 @@
+\section{Introduction}
+\label{sec:intro}
+
+Parameter-efficient continual learning (PECL) with LoRA~\citep{hu2022lora} has become an appealing strategy for adapting large pretrained vision models to sequential tasks while updating only a small number of parameters~\citep{Wang_2022_CVPR,Gao_2023_ICCV,Smith2023CODA}.
+Among PECL variants, SeqLoRA is particularly memory-efficient because it keeps the pretrained backbone frozen and maintains a single shared low-rank adapter across the entire task sequence.
+This design avoids task-wise parameter growth, but it also creates a direct mechanism for catastrophic forgetting.
+Since every new task updates the same adapter, the effective adapter update $\Delta W=BA$ can drift away from configurations that supported earlier tasks.
+Without replay, task-specific adapter isolation, or an explicit stability constraint, the shared adapter has no structural protection against old-task degradation.
+
+Existing methods address this stability-plasticity tension from two complementary directions.
+Sharpness-aware optimization, such as SAM and GAM, improves current-task plasticity by biasing training toward flatter regions of the task loss landscape~\citep{foretSharpnessAwareMinimizationEfficiently2021,zhengGradientAwareminimizationDistributed2021}.
+Such flatness has also been linked to improved retention in continual learning~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021}.
+In contrast, Fisher-based regularization, including EWC and EWC-LoRA, improves stability by penalizing drift along directions that are important for previous tasks~\citep{EWC2017,zheng2025ewclora}.
+A natural response is to combine these two remedies.
+However, this combination is not automatically principled.
+If a sharpness-aware optimizer is applied directly to a summed task-plus-Fisher objective, the perturbation used to estimate flatness is influenced by both the current-task loss and the old-task Fisher penalty.
+As a result, the flatness correction no longer measures current-task sharpness alone.
+It becomes entangled with the stability constraint, making the resulting update difficult to interpret and potentially weakening the functional separation between plasticity and stability.
+
+This paper asks a method-design question: how should flatness control and Fisher stabilization be combined in continual LoRA adaptation?
+Our answer is that they should not be coupled inside a shared sharpness-aware perturbation closure.
+Instead, they should be computed as separate gradient channels with distinct roles.
+Current-task flatness should be estimated only from the current-task loss, while old-task stability should be imposed independently through a Fisher-weighted drift penalty in the effective adapter-update space.
+This separation is especially important in LoRA, where the trainable factors are only a reparameterization of the functional update.
+Regularizing raw factor coordinates can be sensitive to the non-uniqueness of the LoRA factorization, whereas constraining $\Delta W=BA$ directly better aligns the stability penalty with the adapter update that affects the model.
+
+We propose \textbf{Flat-Stable LoRA (FS-LoRA)}, a decoupled optimizer for continual LoRA adaptation.
+FS-LoRA has three core design choices.
+First, it computes an adapter-subspace first-order sharpness correction using only the current-task loss.
+This prevents the old-task Fisher penalty from contaminating the perturbation used for flatness estimation.
+Second, it applies Fisher regularization in the effective adapter-update space $\Delta W=BA$, rather than in the raw LoRA factor coordinates.
+This makes the stability constraint better aligned with the functional adapter update.
+Third, it trace-normalizes the Fisher estimate.
+This normalization is necessary because raw Fisher values in low-rank adapter space can be extremely small, which can make the Fisher gradient structurally inactive unless the regularization weight is heavily retuned for each dataset, rank, or task sequence.
+With trace normalization, the Fisher weight acts more like a relative stability coefficient rather than a compensation factor for arbitrary Fisher scale.
+We also provide a constrained optimization interpretation in which FS-LoRA minimizes current-task loss and first-order sharpness subject to a Fisher drift budget.
+This view yields an optional task-boundary dual-ascent controller for adapting the Fisher weight when the stability constraint is violated.
+
+The proposed decoupling is supported by a gradient-geometric diagnostic.
+We measure the cosine similarity between the first-order flatness correction and the Fisher gradient throughout training.
+Across six fine-grained continual recognition datasets, this cosine remains close to zero, approximately between $-0.03$ and $-0.001$.
+This finding suggests that the two components usually capture distinct update directions: the flatness correction responds to current-task curvature, whereas the Fisher gradient constrains old-task sensitive drift.
+We use this near-orthogonality as a diagnostic that supports the decoupled design, not as a hard assumption enforced by the optimizer.
+FS-LoRA does not perform gradient surgery or projection.
+Its key design choice is more basic: avoid mixing flatness and stability before the sharpness correction is computed.
+
+\begin{figure}[t]
+\centering
+\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{8cm}{0cm}}
+\caption{
+Cosine distribution between the first-order flatness correction and the Fisher stability gradient across all tasks and six fine-grained datasets.
+The values cluster near zero, indicating that the two components behave as distinct gradient channels.
+This diagnostic supports the FS-LoRA design choice of decoupling current-task flatness control from past-task Fisher stabilization.
+}
+\label{fig:cosine_histogram}
+\end{figure}
+
+Empirically, FS-LoRA shows that decoupled flatness and Fisher stabilization can improve continual LoRA adaptation, although its effect depends on dataset structure, Fisher activity, and the scale of the flatness correction.
+On six fine-grained recognition benchmarks with a frozen ViT-B/16 backbone, FS-LoRA improves final average accuracy over SeqLoRA+GAM on CUB200, Flowers, and ImageNet-R, with the largest gain on Flowers.
+The method shows mixed behavior on Cars196, Aircraft, and OxfordPet.
+The OxfordPet result exposes a failure mode in which the flatness correction can become too large relative to the clean task gradient, suggesting that adaptive perturbation scaling is an important future direction.
+On standard PECL benchmarks, the completed ImageNet-A run shows that an LR-tuned FS-LoRA configuration is within one percentage point of the EWC-LoRA reference, while CIFAR-100, ImageNet-R, and DomainNet runs remain preliminary.
+These results support the method design while also identifying the regimes where further robustness improvements are needed.
+
+Our contributions are as follows:
+\begin{enumerate}
+    \item \textbf{A decoupled flat-stable optimizer for continual LoRA adaptation.}
+    We propose FS-LoRA, which separates current-task first-order sharpness control from past-task Fisher stabilization.
+    Unlike coupled sharpness-aware Fisher regularization, FS-LoRA computes the sharpness correction only from the current-task loss and injects the Fisher gradient as an independent stability component.
+
+    \item \textbf{Trace-normalized Fisher regularization in effective adapter-update space.}
+    We define the Fisher penalty and drift reference in $\Delta W=BA$ rather than in raw LoRA factor coordinates, and introduce trace normalization to prevent Fisher gradients from becoming inactive under low-rank parameterization.
+
+    \item \textbf{A constrained optimization interpretation with optional dual control.}
+    We formulate FS-LoRA as a penalty-method approximation to minimizing current-task loss and first-order adapter-subspace sharpness subject to a Fisher drift budget.
+    This interpretation yields an optional dual-ascent controller for adapting the Fisher weight when the stability constraint becomes active.
+
+    \item \textbf{Gradient-geometric diagnostics and empirical evaluation.}
+    We systematically measure the interaction between the flatness correction and the Fisher gradient, finding near-orthogonality across six fine-grained datasets.
+    Experiments show that FS-LoRA improves performance in several settings, reveals failure cases caused by flatness-scale mismatch, and provides a practical diagnostic for designing joint plasticity-stability optimizers.
+\end{enumerate}

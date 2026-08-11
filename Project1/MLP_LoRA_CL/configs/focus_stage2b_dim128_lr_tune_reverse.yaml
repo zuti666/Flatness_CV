@@ -1,0 +1,63 @@
+experiment_name: focus_stage2b_dim128_lr_tune_reverse
+device: cuda
+output_root: outputs
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 2
+  angles: [30, -30]
+  rotation_span: 60
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: gelu
+  parameterization: random_subspace
+  task_a_parameterization: dense
+  rank: 4
+  subspace_dim: 128
+  lora_alpha: rank
+  lifecycle: persistent
+  subspace_seed: run_seed
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_angle0_seed3407.pt
+  pretrain_angle: 0.0
+  seed: 3407
+  epochs: 10
+  batch_size: 256
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 5
+  batch_size: 128
+  optimizer: sgd
+  optimizer_schedule: [sgd, sgd]
+  lr: 0.01
+  momentum: 0.0
+  task_a_lr: 0.01
+  task_a_momentum: 0.9
+  task_b_lr: 0.03
+  weight_decay: 0.0
+  sam_rho: 0.02
+  perturbation_metric: effective_weight
+
+diagnostics:
+  enabled: false
+  trajectory_eval: false
+  pathwise: false
+  geometry_enabled: false
+
+grid:
+  parameterizations: [random_subspace, fixed_lora_tangent]
+  task_b_learning_rates: [0.03, 0.1, 0.3]
+  seeds: [0, 1, 2, 3, 4]

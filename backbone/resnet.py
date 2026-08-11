@@ -267,7 +267,9 @@ def _resnet(arch, block, layers, pretrained, progress, **kwargs):
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls[arch],
                                               progress=progress)
-        model.load_state_dict(state_dict)
+        # backbone/resnet.py removes the fc head; drop those keys before loading
+        state_dict = {k: v for k, v in state_dict.items() if not k.startswith('fc.')}
+        model.load_state_dict(state_dict, strict=True)
     return model
 
 

@@ -1,0 +1,116 @@
+\section*{Appendix}
+
+\section{Scope and Notation}
+\label{app:notation}
+
+We use $\mathcal{M}(\mathcal{H})$ to denote the set of probability measures over $\mathcal{H}$.
+$\mathrm{KL}(Q \| P) = \int \log(dQ/dP)\,dQ$ is the KL divergence.
+$\Pi_{\Delta,t}$ denotes the orthogonal projector onto $\mathcal{W}_{\Delta,t}$.
+$C_t = C(\hat{W}_t; S_t)$ denotes a curvature operator (Hessian or Fisher) of $\hat{L}_{S_t}$ at $\hat{W}_t$.
+$C_{\Delta,t} = \Pi_{\Delta,t} C_t \Pi_{\Delta,t}$ is the restricted curvature.
+$U_{\Delta,t}$, $V_{\Delta,t}$ are the left and right singular vector matrices of the SVD of $\Delta W_t$.
+
+\section{Proofs}
+\label{app:proofs}
+
+\subsection{Proof of Theorem~\ref{thm:pathwise_pac}}
+\label{proof:theorem all}
+
+We follow the standard PAC-Bayesian approach applied to the hierarchical setting.
+For task $t$, we apply the data-dependent PAC-Bayes inequality: for any posterior $Q_t$ and prior $P_t$, with probability $1-\delta_t$ over $S_t$,
+\[
+\mathbb{E}_{W \sim Q_t} L_{\mathcal{D}_t}(W) \leq \mathbb{E}_{W \sim Q_t} \hat{L}_{S_t}(W) + \sqrt{\frac{\mathrm{KL}(Q_t \| P_t) + \log(1/\delta_t)}{2(m_t - 1)}}.
+\]
+Taking expectations over $P_t \sim \mathcal{P}_{t-1}$ and using Jensen's inequality and measurability of $\mathcal{P}_{t-1}$ with respect to $\mathcal{F}_{t-1}$:
+\[
+\mathcal{L}_t \leq \hat{\mathcal{L}}_t + \sqrt{\frac{\mathbb{E}_{P_t \sim \mathcal{P}_{t-1}}\mathrm{KL}(Q_t \| P_t) + \log(1/\delta_t)}{2(m_t-1)}}.
+\]
+The hyperposterior drift $\mathrm{KL}(\mathcal{P}_t \| \mathcal{P}_{t-1})$ enters through a second application of PAC-Bayes at the hyperposterior level.
+Summing over $t = 1, \ldots, T$, applying the union bound with $\delta_t = \delta/T$, and simplifying using $\sum_t \log(T/\delta) = T\log(T/\delta)$ yields the stated bound.
+\qed
+
+\subsection{Proof of Lemma~\ref{lem:kl-decomp-pecl}}
+\label{proof:Lemma1}
+
+Under the frozen-backbone decomposition $W_t = W_t^{\mathrm{froz}} + \Delta W_t$, the map $T_t : \mathcal{W}_{\Delta,t} \to W_t^{\mathrm{froz}} + \mathcal{W}_{\Delta,t}$ defined by $T_t(\Delta W_t) = W_t^{\mathrm{froz}} + \Delta W_t$ is a bijection.
+Since $Q_t = T_{t*} Q_t^\Delta$ and $P_t = T_{t*} P_t^\Delta$ (pushforward measures), and $T_t$ is a bijective affine map, the chain rule for KL divergence gives
+\[
+\mathrm{KL}(Q_t \| P_t) = \mathrm{KL}(T_{t*} Q_t^\Delta \| T_{t*} P_t^\Delta) = \mathrm{KL}(Q_t^\Delta \| P_t^\Delta),
+\]
+where the last equality uses the fact that the Radon-Nikodym derivative is invariant under bijective measurable transformations.
+The frozen component $W_t^{\mathrm{froz}}$ appears identically in both the numerator and denominator of the Radon-Nikodym ratio and cancels.
+\qed
+
+\subsection{Proof of Lemma~\ref{lem:subspace-loss-pecl}}
+\label{proof:lemma2}
+
+Under the Gaussian posterior $Q_t^\Delta = \mathcal{N}(\widehat{\Delta W}_t, \Sigma_t)$ supported on $\mathcal{W}_{\Delta,t}$, sampling $W_t \sim Q_t$ gives $W_t = W_t^{\mathrm{froz}} + \widehat{\Delta W}_t + \varepsilon$ with $\varepsilon \sim \mathcal{N}(0, \Sigma_t)$.
+Therefore,
+\begin{align*}
+\mathbb{E}_{W_t \sim Q_t}[\hat{L}_{S_t}(W_t)]
+&= \mathbb{E}_{\varepsilon \sim \mathcal{N}(0, \Sigma_t)}[\hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t + \varepsilon)] \\
+&= \hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t) + \mathrm{TS}_t^\Delta(\widehat{\Delta W}_t, \Sigma_t),
+\end{align*}
+by definition of $\mathrm{TS}_t^\Delta$.
+\qed
+
+\subsection{Proof of Theorem~\ref{thm:pecl-bound}}
+\label{proof:theorem}
+
+Substitute Lemma~\ref{lem:kl-decomp-pecl} and Lemma~\ref{lem:subspace-loss-pecl} into Theorem~\ref{thm:pathwise_pac}: replace $\mathrm{KL}(Q_t \| P_t)$ with $\mathrm{KL}(Q_t^\Delta \| P_t^\Delta)$ and $\hat{\mathcal{L}}_t$ with the expanded form $\mathbb{E}_{P_t^\Delta \sim \mathcal{P}_{t-1}}[\hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t) + \mathrm{TS}_t^\Delta]$.
+The hyperposterior drift term $\mathrm{KL}(\mathcal{P}_t \| \mathcal{P}_{t-1})$ is unchanged.
+This yields the stated bound.
+\qed
+
+\section{Bridging the Admissible Subspace and LoRA Implementation}
+\label{app:lora_subspace_bridge}
+
+For a weight matrix $W \in \mathbb{R}^{d_1 \times d_2}$, the LoRA parameterization defines $\Delta W = AB$ with $A \in \mathbb{R}^{d_1 \times r}$, $B \in \mathbb{R}^{r \times d_2}$.
+At a solution $(\hat{A}_t, \hat{B}_t)$, the Jacobian of the parameterization map $\theta \mapsto \Delta W(\theta)$ evaluated at $\hat\theta_{\Delta,t}$ is
+\[
+J_{\mathrm{LoRA}}(\hat\theta_{\Delta,t}) = [\hat{B}_t^\top \otimes I_{d_1},\; I_{d_2} \otimes \hat{A}_t] \in \mathbb{R}^{d_1 d_2 \times r(d_1 + d_2)}.
+\]
+The image of this Jacobian defines $\mathcal{W}_{\Delta,t}$: it is the set of weight-space perturbations realizable by small changes in the LoRA factors around $(\hat{A}_t, \hat{B}_t)$.
+This construction shows that flatness optimization in the $(A, B)$ factor coordinates is equivalent to controlling curvature within $\mathcal{W}_{\Delta,t}$ in weight space.
+
+\section{Feature Amplification and Curvature Projection Ratio}
+\label{app:weight_projection}
+
+Let $\Delta W_t = U_{\Delta,t} S_{\Delta,t} V_{\Delta,t}^\top$ be the rank-$r$ truncated SVD.
+The \emph{feature amplification factor} is $\alpha_t = \|\Delta W_t\|_F / \|U_{\Delta,t}^\top W_t^{\mathrm{froz}} V_{\Delta,t}\|_F$.
+
+For the curvature projection ratio, let $\{(\lambda_{t,i}, v_{t,i})\}_{i=1}^k$ be the top-$k$ eigenpairs of the curvature operator $C_t$.
+Define the localization score for a reference subspace $\mathcal{S}$:
+$R_{\mathcal{S},t} = \sum_{i=1}^k \lambda_{t,i} \|\Pi_\mathcal{S} v_{t,i}\|^2 / \sum_{i=1}^k \lambda_{t,i}$,
+where $\Pi_\mathcal{S}$ is the projector onto $\mathcal{S}$.
+We set $\mathcal{S} = \mathcal{W}_{\Delta,t}$ for $R_{\Delta,t}$ and $\mathcal{S} = \mathcal{W}_{W_t^{\mathrm{froz}},t}$ (the analogous backbone-induced subspace) for $R_{W_t^{\mathrm{froz}},t}$.
+The ratio $c_t = R_{\Delta,t} / R_{W_t^{\mathrm{froz}},t}$ measures relative curvature localization.
+
+\section{Implementation Details}
+\label{app:implementation}
+
+\noindent\textbf{Vision.}
+ViT-B/16 pretrained on ImageNet-21K.
+LoRA rank $r=16$ (unless varied in ablation).
+Task sequence: $T=20$ class-incremental tasks on ImageNet-R ($200$ classes).
+Perturbation radius $\rho=0.05$ for AS methods; isotropic Gaussian $\sigma \in \{0.05, 0.10, 0.15\}$ for scope ablation.
+Optimizer: SGD (baseline) or SAM/RWP/GAM with SGD inner step.
+Learning rate $1\times10^{-3}$, cosine schedule.
+
+\noindent\textbf{Language.}
+T5-small and T5-large evaluated on sequential text classification.
+Llama-3.2-1B and 3B evaluated on DBpedia, Amazon Reviews, Yahoo Answers, AG News in three random task orders.
+LoRA rank $r=8$ for all language experiments.
+Adam baseline; adapter-scoped SAM uses AdamW inner step.
+
+\section{Additional Experimental Results}
+\label{app:additional}
+
+\subsection{Task-Wise Accuracy Curves on ImageNet-R and ImageNet-C}
+
+Full task-wise accuracy curves $\operatorname{Acc}_t^{\mathrm{cls}}$ for all perturbation types across SeqLoRA, IncLoRA, and OLoRA are reported in the extended version.
+
+\subsection{Computational Cost Analysis}
+
+Adapter-scoped perturbation adds approximately $2\times$ the gradient computation of a standard forward-backward pass (one additional perturbation step), matching the overhead of standard SAM.
+Full-parameter perturbation has the same per-step cost but converges more slowly due to the scope mismatch, resulting in higher wall-clock time per unit of performance gain.

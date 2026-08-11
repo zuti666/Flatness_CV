@@ -1,35 +1,59 @@
+from functools import lru_cache
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+import sys
+
+
+@lru_cache(maxsize=None)
+def _load_learner_from_file(rel_path: str):
+    repo_root = Path(__file__).resolve().parents[1]
+    file_path = repo_root / rel_path
+    module_name = f"_dynamic_learner_{file_path.stem}"
+    spec = spec_from_file_location(module_name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load Learner from {file_path}")
+    module = module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module.Learner
+
+
 def get_model(model_name, args):
     name = model_name.lower()
     if name == "simplecil":
         from models_CL.simplecil import Learner
     elif name == "ogd":
-        from models_CL.OGD import Learner
+        from models_Project2.models_Full.OGD import Learner
     elif name == "ogd_collector":
-        from models_CL.OGD_collector import Learner
+        from models_Project2.models_Full.OGD_collector import Learner
     elif name == "ewc":
         from models_CL.EWC import Learner
     elif name == "ewcon":
         from models_CL.EWCon import Learner
+    elif name in {"ewcon_rwp_gaussian", "ewcon_rwp_gauss"}:
+        from models_CL.EWCon_RWP_Gaussian import Learner
+    elif name in {"ewcon_rwp_fisher", "ewcon_fisher"}:
+        from models_CL.EWCon_RWP_Fisher import Learner
     elif name in {"fo_so", "fo_so_noise", "ogd_noiseinject", "ogd_noise_inject"}:
-        from models_CL.OGD_noiseInject import Learner
+        from models_Project2.models_Full.OGD_noiseInject import Learner
     elif name in {"ogd_noiseinject_gaussian", "ogd_noise_inject_gaussian", "fo_so_noise_gaussian"}:
-        from models_CL.OGD_noiseInject_gaussian import Learner
+        from models_Project2.models_Full.OGD_noiseInject_gaussian import Learner
     elif name in {"ogd_rwp_gaussian", "ogd_rwp", "fo_so_rwp_gaussian"}:
-        from models_CL.OGD_RWP_Gaussian import Learner
+        from models_Project2.models_Full.OGD_RWP_Gaussian import Learner
     elif name in {"rwp_gaussian", "fo_so_rwp_gaussian_noogd"}:
         from models_CL.RWP_Gaussian import Learner
     elif name in {"ogd_rwp_fisher", "fo_so_rwp_fisher", "ogd_rwp_fisher_noise"}:
-        from models_CL.OGD_RWP_Fisher import Learner
+        from models_Project2.models_Full.OGD_RWP_Fisher import Learner
     elif name in {"rwp_fisher", "fo_so_rwp_fisher_noogd"}:
         from models_CL.RWP_Fisher import Learner
     elif name in {"ogd_rwp_fisher_2", "fo_so_rwp_fisher_2", "ogd_rwp_fisher_v2"}:
-        from models_CL.OGD_RWP_Fisher_2 import Learner
+        from models_Project2.models_Full.OGD_RWP_Fisher_2 import Learner
     elif name in {"ogd_fisher3", "ogd_rwp_fisher_3", "fo_so_rwp_fisher_3", "ogd_fisher_3"}:
-        from models_CL.OGD_Fisher3 import Learner
+        from models_Project2.models_Full.OGD_Fisher3 import Learner
     elif name in {"rwp_fisher_2", "fo_so_rwp_fisher_2_noogd", "rwp_fisher2"}:
         from models_CL.RWP_Fisher_2 import Learner
     elif name in {"fo_so_noise_optimizer", "fo_so_noise_opt", "ogd_noiseinject_optimizer", "ogd_noise_inject_optimizer"}:
-        from models_CL.OGD_noiseInject_optimizer import Learner
+        from models_Project2.models_Full.OGD_noiseInject_optimizer import Learner
     elif name == "si":
         from models_CL.SI import Learner
     elif name == "si_ewc":
@@ -37,47 +61,49 @@ def get_model(model_name, args):
     elif name == "si_ewcon":
         from models_CL.SI_EWCon import Learner
     elif name == "gpm":
-        from models_CL.GPM import Learner
+        from models_Project2.models_Full.GPM import Learner
     elif name == "gpm_ewc":
-        from models_CL.GPM_EWC import Learner
+        from models_Project2.models_Full.GPM_EWC import Learner
     elif name == "agem":
         from models_CL.AGEM import Learner
     elif name == "gem":
-        from models_CL.GEM import Learner
+        from models_Project2.models_Full.GEM import Learner
     elif name in {"gem_noise", "gem-noise", "gemnoise"}:
-        from models_CL.GEM_noise import Learner
+        from models_Project2.models_Full.GEM_noise import Learner
     elif name in {"gem_noise_pert", "gem-noise-pert", "gemnoisepert"}:
-        from models_CL.GEM_noise_pert import Learner
+        from models_Project2.models_Full.GEM_noise_pert import Learner
     elif name == "gem_ewc":
-        from models_CL.GEM_EWC import Learner
+        from models_Project2.models_Full.GEM_EWC import Learner
     elif name == "piece":
         from models_CL.PIECE import Learner
     elif name == "fopng":
-        from models_CL.FOPNG import Learner
+        from models_Project2.models_Full.FOPNG import Learner
     elif name == "flad":
-        from models_CL.FLAD import Learner
+        from models_Project2.models_Full.FLAD import Learner
     elif name in {"flad_filterogdfisher", "flad_filter_ogd_fisher", "flad-ogd-fisher"}:
-        from models_CL.FLAD_filterogdfisher import Learner
+        from models_Project2.models_Full.FLAD_filterogdfisher import Learner
     elif name in {"flad_approxminte", "flad_fd", "flad-fd"}:
-        from models_CL.FLAD_approxminte import Learner
+        from models_Project2.models_Full.FLAD_approxminte import Learner
     elif name in {
         "flad_secondpreviousfishercontrol",
         "flad_secondprevious_fisher_control",
         "flad_spfc",
         "flad-secondpreviousfishercontrol",
     }:
-        from models_CL.FLAD_SecondPreviousFisherControl import Learner
+        from models_Project2.models_Full.FLAD_SecondPreviousFisherControl import Learner
     elif name in {"sam_ogd", "samogd"}:
         from models_CL.SAM_OGD import Learner
     elif name in {"gam_ogd_fisher", "gam_ogd_fishermethod", "gamogdfisher"}:
-        from models_CL.GAM_OGD_FisherMethod import Learner
+        from models_Project2.models_Full.GAM_OGD_FisherMethod import Learner
     elif name == "geolora":
         from models.GeoLoRA import Learner
     # loraBased
     elif name == "sdlora":
         from models_LoRAbasedCL.sdlora import Learner
     elif name == "ogd_lora":
-        from models_LoRAbasedCL.OGD_LoRA import Learner
+        from models_LoRAbasedCL.OGD_LoRA2 import Learner
+    elif name in {"ogd_fisher_lora", "ogd-fisher-lora", "ogdfisherlora", "ogd_fishe_lora", "ogd-fishe-lora"}:
+        from models_LoRAbasedCL.OGD_Fisher_LoRA import Learner
     elif name == "ewc_lora":
         from models_LoRAbasedCL.EWC_LoRA_AB import Learner
     elif name == "ewc_lora_ab":
@@ -88,12 +114,67 @@ def get_model(model_name, args):
         from models_LoRAbasedCL.EWC_Yaoyue_LoRA_liying import Learner
     elif name == "ewclora_youyue_github":
         from models_LoRAbasedCL.ewclora_youyue_github import Learner
+    elif name in {"ewclora_youyue_fitarchitechture", "ewclora_youyue_fitarchitecture"}:
+        from models_LoRAbasedCL.ewclora_youyue_fitArchitechture import Learner
+    elif name in {
+        "ewclora_youyue_fitarchitechture_gam",
+        "ewclora_youyue_fitarchitecture_gam",
+        "ewclora_youyue_fitarch_gam",
+    }:
+        from models_LoRAbasedCL.ewclora_youyue_fitArchitechture_gam import Learner
+    elif name in {
+        "as1_normfisher_gam",
+        "as1_normfisher",
+        "ewclora_normfisher_gam",
+    }:
+        from models_LoRAbasedCL.as1_normfisher_gam import Learner
+    elif name in {
+        "as1_normfisher_gam_inclora",
+        "inclora_normfisher_gam",
+        "fs_lora_inclora",
+    }:
+        from models_LoRAbasedCL.as1_normfisher_gam_inclora import Learner
     elif name == "fo_so_lora":
         from models_LoRAbasedCL.OGD_EWC_LoRA import Learner
     elif name == "si_lora":
         from models_LoRAbasedCL.SI_AB_LoRA import Learner
     elif name == "seqlora":
         from models_LoRAbasedCL.seqlora import Learner
+    elif name in {"seqlora_ogd", "seqlora-ogd", "seq_lora_ogd", "seqloraogd"}:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_OGD.py")
+    elif name in {
+        "seqlora_ogd_new",
+        "seqlora-ogd-new",
+        "seq_lora_ogd_new",
+        "seqloraogdnew",
+        "seqlora_ogd_deltaw",
+        "seqlora-ogd-deltaw",
+    }:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_OGD_new.py")
+    elif name in {"seqlora_gem", "seqlora-gem", "seq_lora_gem", "seqloragem", "seqloragrem"}:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_GEM.py")
+    elif name in {
+        "seqlora_gem_new",
+        "seqlora-gem-new",
+        "seq_lora_gem_new",
+        "seqloragemnew",
+        "seqlora_gem_deltaw",
+        "seqlora-gem-deltaw",
+    }:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_GEM_new.py")
+    elif name in {"seqlora_ewc", "seqlora-ewc", "seq_lora_ewc", "seqloraewc", "seqlora_ewc_yaoyue", "seqlpra_ewc"}:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_EWC_yaoyue.py")
+    elif name in {
+        "seqlora_ewc_new",
+        "seqlora-ewc-new",
+        "seq_lora_ewc_new",
+        "seqloraewcnew",
+        "seqlora_ewc_deltaw",
+        "seqlora-ewc-deltaw",
+    }:
+        Learner = _load_learner_from_file("models_LoRA_drift-difussion/SeqLoRA_EWC_new.py")
+    elif name in {"pgsr_lora", "pgsr_inclora"}:
+        Learner = _load_learner_from_file("Project1-3 INitilization/pgsr_inclora.py")
     elif name == "inclora":
         from models_LoRAbasedCL.inclora import Learner
     elif name == "olora":
@@ -143,7 +224,9 @@ def get_model(model_name, args):
     elif name == "geolora":
         from models.GeoLoRA import Learner
     elif name == "geolora_slowmerge":
-        from models_LoRAbasedCL.GeoLoRA_SlowMerge import Learner
+        from models_Cl_merge.GeoLoRA_SlowMerge import Learner
+    elif name in {"geolora_uv_efm", "geolora-uv-efm", "geouv_efm"}:
+        from models_Cl_merge.GeoLoRA_UV_EFM import Learner
     elif name == "geolora_origin":
         from models_LoRAbasedCL.GeoLoRA_origin import Learner
     elif name == "geo_inc_lora":
@@ -157,7 +240,7 @@ def get_model(model_name, args):
     elif name == "finetune":
         from models_CL.finetune import Learner
     elif name in {"scm_finetune", "scmfinetune", "scm"}:
-        from models_CL.scm_finetune import Learner
+        from models_Cl_merge.scm_finetune import Learner
     elif name == "LPFT":
         from models_CL.LPFT import Learner
     elif name == "linearprobe":

@@ -1,0 +1,161 @@
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+
+
+prefix: "seqlora_CurveCompare_fullH_imagenetr_vitb16_r16—task10_withGGN-sgd-trc"
+dataset: "imagenetr"
+
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+seed: [1993]
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+device: ["7"]
+
+model_name: "seqlora"
+lora_rank: 16
+batch_size: 128
+# optimizer
+optimizer: "sgd"
+optimizer_type: "sgd"
+
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+# max_train_tasks: 2
+
+
+# Flatness / curvature (全参 Hessian)
+flat_eval: true
+
+flat_eval_sharpness: true
+flat_eval_hessian: false
+flat_eval_GGN: false
+flat_eval_fisher: false
+
+
+flat_eval_pretrain: false
+flat_eval_batch_size: 16
+flat_eval_dataset_fraction: 0.1
+flat_eval_sharpness_radius: 0.05
+flat_eval_esh_gaussian_std: null
+flat_eval_esh_samples: 100
+flat_eval_hessian_power_iters: 100
+flat_eval_hessian_trace_samples: 100
+eig_topk: 16
+eig_save_vectors: true
+
+linear_probe_softmax_joint_seen_eval: false
+
+# 关键：全参 HVP + 冻结参数参与
+flat_eval_param_names: null        # 或删除此行
+flat_eval_include_frozen: true
+
+# 曲率本地化（投影掩码仅标识 LoRA）
+flat_eval_curv_localization: true
+flat_eval_curv_topk: 16
+flat_eval_curv_param_names: ["linear_a", "linear_b", "wrapped_param"]
+flat_eval_curv_rayleigh_samples: 128
+flat_eval_curv_mvp: "ggn"
+flat_eval_curv_eig_method: "lanczos"
+flat_eval_disable_power: true
+flat_eval_task_indices: "all"
+
+# Delta-W projection (weight-space LoRA subspace; last block q/v)
+flat_eval_delta_w_projection: true
+flat_eval_delta_w_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_delta_w_block_index: 11
+flat_eval_delta_w_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+flat_eval_delta_w_topk: 16
+flat_eval_delta_w_rank: 16
+flat_eval_delta_w_backend: "ggn"
+flat_eval_delta_w_eig_method: "lanczos"
+flat_eval_delta_w_save_tensors: false
+flat_eval_delta_w_svd_eps: 1e-12
+
+# Delta-W full projection (param -> effective weight dW_full; uses A/B + W0)
+flat_eval_delta_w_full_projection: true
+flat_eval_delta_w_full_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_delta_w_full_block_index: 11
+flat_eval_delta_w_full_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+    a_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_a_q.weight"
+    b_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_b_q.weight"
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+    a_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_a_v.weight"
+    b_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_b_v.weight"
+flat_eval_delta_w_full_topk: 16
+flat_eval_delta_w_full_rank: 16
+flat_eval_delta_w_full_backend: "ggn"
+flat_eval_delta_w_full_eig_method: "lanczos"
+flat_eval_delta_w_full_save_tensors: false
+flat_eval_delta_w_full_svd_eps: 1e-12
+
+# W vs Delta-W alignment (LoRA 7.2/7.3 style)
+flat_eval_w_delta_alignment: true
+flat_eval_w_delta_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_w_delta_block_index: 11
+flat_eval_w_delta_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+flat_eval_w_delta_rank: 16
+flat_eval_w_delta_seed: 42
+flat_eval_w_delta_save_tensors: false
+flat_eval_w_delta_eps: 1e-12
+flat_eval_w_delta_effective_mode: sequential
+
+
+flat_eval_mean_drift: true
+flat_eval_mean_drift_block_index: 11
+flat_eval_mean_drift_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+flat_eval_mean_drift_sigma2: 1.0
+flat_eval_mean_drift_eps: 1e-12
+
+flat_eval_lora_kl: true
+flat_eval_lora_kl_block_index: 11
+flat_eval_lora_kl_blocks:
+  - tag: "q"
+  - tag: "v"
+flat_eval_lora_kl_lambda: 1.0
+flat_eval_lora_kl_damping: 1e-4
+flat_eval_lora_kl_max_batches: 20        # optional, defaults to flat_eval_loss_max_batches
+flat_eval_lora_kl_micro_bs: 1
+
+
+flat_eval_curv_noise: true
+flat_eval_curv_noise_backend: ggn      # ggn | hessian | emp_fisher
+flat_eval_curv_noise_eig_method: lanczos
+flat_eval_curv_noise_topk: 10
+flat_eval_curv_noise_max_batches: 20   # number of batches for gradient noise
+flat_eval_curv_noise_eps: 1e-12
+
+
+flat_eval_tr_hsigma: true
+flat_eval_tr_hsigma_topk: 16
+flat_eval_tr_hsigma_max_batches: 100
+flat_eval_tr_hsigma_center: true
+flat_eval_tr_hsigma_use_train_mode: true

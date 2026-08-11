@@ -1,0 +1,161 @@
+你说得对：在你这段实验描述里，**没有**“对 frozen 注入噪声更好”的结论。我之前把你更早对话里出现过的另一条经验（你曾提到过“origin 注入噪声更好”的现象）混进了这里，导致对你当前这段的判读出现偏差。以你现在给出的实验与分析为准：**full-scope（包含 frozen backbone）显著更差，adapter-scope 更好**。
+
+在这个前提下，你最后这段机制解释**总体是合理的**，而且与你定义的两个诊断量 (\alpha_t) 与 (c_t) 是一致的。下面我不再“反驳结论”，而是按审稿标准做两件事：
+
+1. 明确指出你这段论证已经满足的一致性
+2. 指出仍需要补上的**关键缺口**：你现在的“irreducible mismatch”在数学上还缺一条桥，把 (c_t,\alpha_t) 连接到 full-scope perturbation 的 sharpness 代价项
+
+---
+
+# 1) 你当前链条是否自洽：是的
+
+你的实验事实是：
+
+* adapter-scope 的 (\mathrm{RS}^{(0)}) 相对 SGD baseline 提升平均精度
+* full-scope (\mathrm{RS}^{(0)}) 显著损害，SeqLoRA 跌幅最大
+
+你的机制诊断是：
+
+* (\alpha_t) 随任务序列上升：(\Delta W_t) 对 task-specific directions 的放大增强
+* (c_t>1) 且上升：dominant curvature modes 更倾向于集中在 update-induced subspace 相对 backbone-reference subspace
+
+你的结论是：
+
+* 随着训练推进，**更新方向与曲率敏感性**越来越集中在 LoRA-permissible coordinates
+* 因此 adapter-scope perturbation 作用在“可控几何”上，可被 LoRA updates counteract
+* full-scope perturbation 把噪声放到不可更新的 frozen 部分，形成 scope mismatch，从而更快劣化
+
+从“现象 → 结构量趋势 → 机制性解释”的层次上，这段是连贯的。
+
+---
+
+# 2) 但“irreducible scope mismatch”要成立，你还缺一条严格桥梁
+
+你现在的桥梁主要是**几何集中**（(c_t)）与**结构放大**（(\alpha_t)）。它们解释了：
+
+* 为什么“任务相关的敏感方向”更贴近 update-induced subspace
+* 为什么“控制 LoRA 子空间内的扰动”更有效
+
+但它们还没有直接推出：
+
+> full-scope perturbations 一定更糟，因为它们在 frozen 部分引入了不可补偿的 sharpness 代价
+
+要把这句话从“合理直觉”升级为“可写进 theorem discussion 的机制”，你需要把 full-scope 噪声的代价明确写成一个**分解式**，并指出哪一部分在 PECL 下无法被更新抵消。
+
+---
+
+# 3) 给你一个最小补强：把 full-scope sharpness 写成 “可控 + 不可控” 两项
+
+令可更新子空间为 (\mathcal W_\Delta)，投影 (\Pi_\Delta)，补空间投影 (\Pi_\perp = I-\Pi_\Delta)。对 full-scope isotropic Gaussian：
+
+[
+\varepsilon \sim \mathcal N(0,\sigma^2 I),
+\quad
+\varepsilon_\Delta=\Pi_\Delta \varepsilon,\quad
+\varepsilon_\perp=\Pi_\perp \varepsilon.
+]
+
+在旧任务损失 (\hat L_{S_1}) 的局部二阶近似下，随机 sharpness（零阶）满足
+
+[
+\mathrm{RS}^{(0)}_{S_1}(\theta,\sigma^2 I)
+\approx
+\frac12 \operatorname{tr}!\big(C_1(\theta), \sigma^2 I\big)
+===========================================================
+
+\frac{\sigma^2}{2}\operatorname{tr}!\big(C_1(\theta)\big).
+]
+
+把 (\sigma^2 I) 按子空间分解（这是你段落最需要的一步）：
+
+[
+\sigma^2 I
+==========
+
+\sigma^2 \Pi_\Delta + \sigma^2 \Pi_\perp.
+]
+
+于是
+
+[
+\mathrm{RS}^{(0)}*{S_1}(\theta,\sigma^2 I)
+\approx
+\frac{\sigma^2}{2}\operatorname{tr}!\big(C_1(\theta)\Pi*\Delta\big)
++
+\frac{\sigma^2}{2}\operatorname{tr}!\big(C_1(\theta)\Pi_\perp\big).
+\tag{3}
+]
+
+其中第一项对应 adapter-scope（可控），第二项是 full-scope 额外引入的补空间代价（你想强调的 mismatch）：
+
+[
+\Delta \mathrm{RS}*{\text{scope}}
+\approx
+\frac{\sigma^2}{2}\operatorname{tr}!\big(C_1(\theta)\Pi*\perp\big).
+\tag{4}
+]
+
+现在“irreducible”就有了精确含义：在 PECL 约束下，更新 (\delta\in\mathcal W_\Delta) 只能直接影响 (\Pi_\Delta) 分量，无法直接将 (\operatorname{tr}(C_1\Pi_\perp)) 降到同等水平（至少在你把更新严格限制在 (\mathcal W_\Delta) 的模型里）。
+
+---
+
+# 4) 把你的 (c_t) 与这条分解式对齐：这是你现在缺的关键一句
+
+你定义的 (c_t=R_{\Delta,t}/R_{W^{\mathrm{froz}}_t,t}) 表达的是：dominant curvature modes 更“localize” 在 update-induced subspace。
+
+你现在应当把它解释为：随着任务推进，旧任务曲率在 (\Pi_\Delta) 上的质量更大，即（概念上）
+
+[
+\operatorname{tr}(C_1\Pi_\Delta)\ \text{相对更大，}\quad
+\operatorname{tr}(C_1\Pi_\perp)\ \text{相对更小/或难以被控制}.
+]
+
+因此：
+
+* adapter-scope 的 perturbation 主要命中 (\operatorname{tr}(C_1\Pi_\Delta)) 这一“可控项”
+* full-scope 额外引入 (\operatorname{tr}(C_1\Pi_\perp)) 这一“不可控项”，即 (4)
+
+这就把“曲率集中在 LoRA 坐标”与“full-scope 更糟”用同一个量串起来：**full-scope 相比 adapter-scope 的额外 sharpness 代价，正比于旧任务曲率在补空间上的 trace**。
+
+---
+
+# 5) 你原段落里我建议微调的地方（只改严谨性，不改结论）
+
+你原文最后一句：
+
+> creating an irreducible scope mismatch that accelerates performance degradation under the PECL constraint.
+
+建议改成更可证伪、更符合上面 (3)-(4) 的版本：
+
+* 把 “irreducible” 的对象说清楚：是 **parameter-space** 的直接可补偿性
+* 点出对应的额外项：full-scope 比 adapter-scope 多出的 (\operatorname{tr}(C_1\Pi_\perp))
+
+例如：
+
+> …whereas full-scope perturbations allocate variance to (\mathcal W_\Delta^\perp), introducing an additional curvature–noise cost proportional to (\operatorname{tr}(C_1\Pi_\perp)). Since PECL restricts admissible updates to (\mathcal W_\Delta), this extra term is not directly counteracted in parameter space, leading to faster degradation.
+
+这样你的机制陈述就从“直觉”变成了“二阶近似下的可写公式”。
+
+---
+
+# 6) 你还可以加一个非常强的“对照验证”来彻底封口
+
+如果你愿意加一个一行的诊断实验，会极大增强说服力：
+
+在相同 (\sigma^2) 下，测量
+
+[
+\Delta \mathrm{RS}*{\text{scope}}
+:=
+\mathrm{RS}^{(0)}(\sigma^2 I)-\mathrm{RS}^{(0)}(\sigma^2 \Pi*\Delta)
+\approx
+\frac{\sigma^2}{2}\operatorname{tr}(C_1\Pi_\perp).
+]
+
+如果你能展示这个差值随任务上升与 Acc 下降一致，且 SeqLoRA 最大，那你的“scope mismatch”就是实证闭环。
+
+---
+
+## 结论
+
+在你给出的实验事实下，你的段落结论是合理的；但要让它经得住顶会审稿，你需要在文字里补上 **full-scope sharpness 的“可控 + 不可控”trace 分解**，并把 (c_t) 与 (\operatorname{tr}(C_1\Pi_\perp)) 的含义连接起来。这样“irreducible scope mismatch”就不再是口号，而是明确的二阶项。

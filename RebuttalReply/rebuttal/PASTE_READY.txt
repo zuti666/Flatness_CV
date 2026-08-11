@@ -1,0 +1,61 @@
+*** DEPRECATED — DO NOT SUBMIT ***
+This file is the old combined draft (v1, 2026-03-24). It contains outdated language:
+"in preparation", "CIFAR100", "LLM+GAM", and TBC placeholders.
+Use the per-reviewer files instead:
+  RESPONSE_TSrA.txt / RESPONSE_ZRjU.txt / RESPONSE_mBoF.txt / RESPONSE_Hwkz.txt
+*** DEPRECATED — DO NOT SUBMIT ***
+
+We thank all reviewers. Three themes require clarification: (1) whether the perturbation-scope question is a genuine structural issue, not an implementation default; (2) theoretical novelty relative to prior PAC-Bayes work; (3) empirical scope. Supplementary experiments on CUB200, Cars196, CIFAR100, and LLM+GAM are in preparation.
+
+────────────────────────────────
+MOTIVATION: A STRUCTURAL DESIGN ISSUE (TSrA W1, Hwkz W1, mBoF Q1)
+────────────────────────────────
+
+We agree that, in standard implementations, SAM applied to a LoRA model with a frozen backbone perturbs only the trainable adapter parameters. However, this observation does not resolve the underlying question of how perturbations should be defined in LoRA-based models — specifically, whether flatness should be enforced within the adapter subspace or over the full parameter space.
+
+Existing works adopt fundamentally different answers. LoRA-SAM (NeurIPS 2024) restricts perturbations to adapter parameters; Flat-LoRA (ICML 2025) explicitly argues this is insufficient and advocates perturbing the full parameter space including the frozen backbone. This reveals an unresolved inconsistency in how flatness is defined for LoRA models.
+
+This inconsistency becomes structural in PECL, where updates are restricted to the task-permissible subspace due to the frozen backbone. Perturbations over the full parameter space extend beyond the admissible update directions, creating a mismatch between the perturbation domain and the optimization domain. Our contribution is a formal resolution: Theorem 4.4 shows that, under frozen backbone, the bound-relevant sharpness depends exclusively on perturbations within W_{Delta,t}. Extending perturbations beyond W_{Delta,t} introduces terms outside the update mechanism, explaining Table 2's consistent degradation (full-scope: DeltaAcc^cls = -2.00 to -6.84; adapter-scope: +0.05 to +0.86).
+
+Re mBoF Q1: Flat-LoRA's perturbation spans full W. Our analysis shows only W_{Delta,t} contributes to bound-relevant sharpness in frozen-backbone PECL — perturbations outside this subspace do not align with the permissible updates and are not controlled by the bound.
+
+────────────────────────────────
+THEORETICAL CONTRIBUTIONS (ZRjU Q1/Q2, Hwkz W2, TSrA W2/W3)
+────────────────────────────────
+
+Our framework differs from prior PAC-Bayes work on three structural dimensions:
+
+(1) Sequential hyperposterior vs. shared hyperprior [vs. Pentina & Lampert, ICML 2014]: P&L assumes i.i.d. tasks from a single time-invariant hyperdistribution — task ordering is irrelevant and shuffling the sequence leaves the bound unchanged. This is meta-learning, not CL. Our framework introduces a filtration-adapted hyperposterior process {P_t} where P_t is adapted to task history F_{t-1}, with an explicit drift penalty KL(P_t||P_{t-1}) that captures cross-task interference. P&L is a strict special case of our Theorem 4.1 when drift = 0 (stated explicitly in Section 4.1).
+
+(2) Genuine hierarchy vs. flat posterior chain [vs. Friedman & Meir, ICLR 2026 — concurrent work]: F&M uses P_t = Q_{t-1} (flat chain) and bounds only cumulative plasticity loss; their Corollary 3.1 is self-described as "a straightforward extension requiring no new technical tools." Three structural differences: (i) we introduce a genuine two-level hierarchy P_{t-1} in M(M(H)), not M(H) — F&M has no distribution over distributions; (ii) our decomposition separates within-task adaptation E[KL(Q_t||P_t)] from cross-task drift KL(P_t||P_{t-1}), directly capturing the stability-plasticity tradeoff — F&M's single KL(Q_t||Q_{t-1}) cannot distinguish these; (iii) F&M has no sharpness term and no subspace reduction.
+
+(3) Subspace reduction [absent from all prior PAC-Bayes work]: Lemma 4.2+4.3 → Theorem 4.4 shows KL(Q_t||P_t) = KL(Q_t^Delta||P_t^Delta) and sharpness reduces exactly to TS_t^Delta under frozen backbone. This PECL-specific reduction is entirely absent from both P&L and F&M.
+
+Re TSrA W3 ("no new method"): Resolving open structural questions with formal analysis is a recognized ICML contribution. The result — adapter-only perturbation is the theoretically correct choice in frozen-backbone PECL — is directly actionable for any LoRA-based method designer.
+
+ZRjU Q1 (log m): Theorem 3.1 (McAllester) has log(m/delta); Theorem 4.1 has log(1/delta) only. The log m term disappears because Theorem 4.1 uses a supermartingale tail bound (Donsker-Varadhan + Markov's inequality) rather than a union bound over samples. The per-task Hoeffding-MGF step yields (lambda*omega_t)^2/(8(m_t-1)); optimizing lambda produces log(1/delta) only. The sequential bound is thus strictly tighter. We will add a remark to Appendix B.1.
+
+ZRjU Q2 (IncLoRA/OLoRA support): At task t, only the current adapter pair (A_t, B_t) is trainable — all previous pairs are frozen. W_{Delta,t} = span(A_t, B_t) has fixed dimension. P_t^Delta and Q_t^Delta are Gaussians on this same W_{Delta,t}, satisfying Q_t^Delta << P_t^Delta. For OLoRA, the orthogonality penalty shapes geometry within W_{Delta,t} but does not alter the support structure. We will add a remark to Appendix B.2.
+
+────────────────────────────────
+EMPIRICAL SCOPE (TSrA W4, mBoF W1/W2, Hwkz W3)
+────────────────────────────────
+
+We are adding: ViT-B/16 on CUB200 (200 classes), Cars196 (196 classes), and CIFAR100 (100 classes) — three additional vision CL benchmarks spanning different fine-grained domains; and LLM experiments with GAM comparisons, covering a fundamentally different architecture and scale. Theorem 4.4 holds for any frozen-backbone PEFT with a well-defined W_{Delta,t}; the frozen-backbone condition, not model size, is the key structural requirement. We will discuss generalization to other PEFT methods in the revision (Hwkz W3).
+
+────────────────────────────────
+MINOR POINTS (ZRjU Q3/Q4, Hwkz W4)
+────────────────────────────────
+
+ZRjU Q3: Theorem 4.4 is a qualitative guide identifying which quantities govern stability-plasticity; Table 1 curvature diagnostics (lambda_max(H), tr(H)) provide complementary empirical validation. We will add a clarifying remark.
+
+ZRjU Q4: We will add an early schematic to Section 3.3 illustrating the geometric differences between RS(0), AS(0), and AS(1) within W_{Delta,t}.
+
+Hwkz W4: H denotes the hypothesis class (predictors f_W:X->Y). We will add an explicit definition at first use (page 2, line 101) and in Section 3.1.
+
+────────────────────────────────
+
+The core finding — adapter-only sharpness control formally resolves the Flat-LoRA vs. LoRA-SAM ambiguity in frozen-backbone PECL, backed by three structural novelties over prior PAC-Bayes work and consistent empirical evidence across Table 2 and Figs. 6-7 — provides both a principled theoretical framework and actionable guidance. The supplementary experiments on three new benchmarks and LLM settings substantially broaden empirical scope. We believe these clarifications address all main concerns.
+
+────────────────────────────────
+[CHARACTER COUNT: ~5050 chars | VENUE LIMIT: TBC — if limit is 5000, trim one paragraph from Theory section (2) or shorten ZRjU Q1 by 2 sentences]

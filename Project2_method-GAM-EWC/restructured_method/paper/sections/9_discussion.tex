@@ -1,0 +1,17 @@
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\paragraph{What this paper does not claim.}
+We do not claim that global flatness is harmful for continual learning in general, nor that it is irrelevant for all PECL scenarios.
+The claim is more specific: in frozen-backbone PECL, the generalization bound is governed by adapter-subspace flatness, not by curvature along frozen directions.
+Full-space flatness may correlate with adapter-subspace flatness (as suggested by Figure~\ref{fig:3d_loss_landscape}), but it is a consequence rather than the primary object.
+
+\paragraph{Conditions on which the analysis relies.}
+Theorem~\ref{thm:pecl-bound} requires: (1) a frozen backbone, so that $W_t^{\mathrm{froz}}$ contributes degenerate KL factors; (2) Gaussian posteriors supported on $\mathcal{W}_{\Delta,t}$, which is consistent with isotropic or structured Gaussian perturbation noise; (3) local linearization for the curvature approximation in the perturbation type analysis (Section~\ref{sec:pecl-spec}); and (4) that $\mathcal{W}_{\Delta,t}$ is correctly identified via the LoRA Jacobian construction (Section~\ref{sec:lora-bridge}).
+Violations of condition (1), such as partial backbone unfreezing, would weaken the reduction---consistent with prediction P4.
+
+\paragraph{Implications for method design.}
+The analysis suggests three actionable principles:
+(i) \emph{Scope should match the admissible geometry}: restrict perturbations to $\mathcal{W}_{\Delta,t}$, not to the full parameter space.
+(ii) \emph{Type should target curvature concentration}: AS$^{(1)}$ provides the strongest control by aligning perturbation mass with dominant restricted curvature directions.
+(iii) \emph{Organization should be understood as geometry-evolution}: SeqLoRA, IncLoRA, and OLoRA define how $\mathcal{W}_{\Delta,t}$ evolves across tasks, and this evolution determines how strongly the scope distinction matters.

@@ -1,0 +1,137 @@
+prefix: "seqlora_inr_sam_imagenetr_t20_rank16_1024"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+#----------- Dataset ---------------- 
+dataset: "imagenetr" 
+# dataset: "tiny_imagenetp"
+# dataset: "tiny_imagenetc"
+
+
+# task divided
+class_shuffle: true  # 是否打乱类别顺序
+init_cls: 10    #20  10 5 #初始任务包含类别数
+increment: 10    #20  10 5 #每个后续任务新增类别数
+nb_tasks: 20
+total_sessions: 20 
+
+
+seed:
+  - 1024
+  # - 521
+  # - 2048
+  # - 1993
+  # - 42
+
+
+
+all_or_inc: inc
+
+
+backbone_type: "vit_base_patch16_224" 
+
+# 训练使用的GPU
+device:
+  - "5"
+
+
+#---------- Method --------
+model_name: "seqlora"
+lora_rank: 16    #10 5 4 8
+
+
+#---------- Train --------
+
+#batch_size
+batch_size: 128
+
+# optimizer
+optimizer: "sgd"
+optimizer_type: "sam" #optial: sam cflat gam
+sam_rho: 0.05
+sam_adaptive: false
+
+
+
+scheduler: cosine # "constant"
+#第一次任务 init 阶段 
+init_epoch: 20 #训练轮数
+init_lr: 0.01 # 学习率
+init_momentum: 0 #0.9 
+init_weight_decay: 0 #0.9 
+
+
+epochs: 20
+lrate: 0.01 # 学习率
+momentum: 0 #0.9 
+weight_decay: 0 #0.9 
+
+
+
+
+#---------------------------- For evaluation ------------------------------------
+
+
+#-------------- # Linear Probe Evaluation , False------------------
+linear_probe_eval_num_workers: 0
+linear_probe_softmax_joint_seen_eval: true
+linear_probe_softmax_per_task_eval: true
+probe_train_mode: train
+probe_test_mode: test
+
+
+probe_fit_epochs: 20       
+probe_fit_lr: 0.015
+probe_fit_moment: 0 
+probe_fit_wd: 0.0005
+probe_fit_train_batch_size: 128
+
+
+
+
+#-------------- #  Weight Flatness ------------------
+flat_eval: true
+flat_eval_batch_size: 32
+flat_eval_dataset_fraction: 0.1  #  10% of TestDataset for flatness/lossland 
+# First and zero order Sharpness definition
+flat_eval_sharpness_radius: 0.05
+# E-sh definition
+flat_eval_esh_gaussian_std: null
+flat_eval_esh_samples: 100  
+# Hessian 
+flat_eval_hessian_power_iters: 100   
+flat_eval_hessian_trace_samples: 100  
+#  Loss landscape
+weight_loss_land_1d: true
+weight_loss_land_2d: true
+weight_loss_land_radius: 1            
+weight_loss_land_num_points: 41
+weight_loss_land_filter_norm: true     
+loss_land_modes: "full"
+loss_land_basis: "random"
+eig_save_vectors: false                   
+
+
+#-------------- # Feature Roubtness（EFM）------------------
+feature_flat_eval: true
+# feature_flat_max_batches: None
+feature_flat_topk: 200
+feature_flat_eps: 1e-12
+feature_flat_rank_tol: 1e-06
+feature_flat_save_path: null
+# CKA eval
+feature_cka_eval: true
+feature_cka_max_batches: 32         # CKA 锚点采样的最大 batch 数
+feature_cka_max_samples: 2048       # CKA 锚点采样的最大样本数
+feature_sep_max_samples: 2048       # 可分性指标的采样上限
+feature_margin_max_samples: 4096    # margin 统计采样上限
+# Prptotype drift
+feature_proto_eval: true
+feature_proto_max_batches: 32        # 原型漂移统计的最大批次数
+feature_proto_max_samples: 2048     # 原型漂移统计的最大样本数
+
+# for attention probe
+attention_probe_eval: false
+

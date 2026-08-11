@@ -1,0 +1,42 @@
+experiment_name: smoke
+seed: 0
+device: cpu
+output_root: outputs
+
+data:
+  name: synthetic
+  num_tasks: 2
+  rotation_span: 30
+  train_subset: 256
+  test_subset: 128
+  num_workers: 0
+
+model:
+  activation: gelu
+  parameterization: factor_lora
+  rank: 2
+  lora_alpha: rank
+  lifecycle: merge_reset
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/smoke_synthetic_base_h32.pt
+  epochs: 1
+  batch_size: 128
+  lr: 0.05
+
+training:
+  epochs_per_task: 1
+  batch_size: 64
+  optimizer: sgd
+  lr: 0.03
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 32
+  save_hvp_tensors: false
+  pathwise: true
+  path_granularity: epoch
+  hessian_lanczos_steps: 4
+  geometry_enabled: true
+  geometry_immediate_only: true

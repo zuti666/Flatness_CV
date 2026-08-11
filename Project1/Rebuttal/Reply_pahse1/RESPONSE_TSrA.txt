@@ -1,0 +1,40 @@
+Thank you for your review. We address each weakness and question directly.
+
+---
+
+W1: "I am not convinced that practitioners would use full-parameter perturbation when applying SAM to LoRA...frozen parameters typically do not produce gradients. Therefore, the practical importance of the problem studied in this paper appears limited."
+
+We respectfully disagree that this is an artificial setup. The motivation comes directly from an active disagreement in the published literature:
+
+- LoRA-SAM (NeurIPS 2024) restricts perturbations to adapter parameters and demonstrates effective regularization.
+- Flat-LoRA (ICML 2025) — which you cite — explicitly argues that restricting perturbations to the LoRA adapter alone is insufficient to guarantee flatness of the full model, and therefore advocates perturbing the entire parameter space, including the frozen backbone.
+
+Two peer-reviewed works advocate fundamentally different perturbation scopes for LoRA models. This inconsistency becomes structural in PECL, where the backbone is frozen by design — a practitioner following Flat-LoRA's recommendation would perturb the frozen backbone, precisely the design conflict our paper addresses.
+
+Theorem 4.4 provides the theoretical answer: the bound-relevant sharpness is exclusively within W_{Delta,t}. Table 2 provides empirical confirmation: full-scope consistently degrades accuracy (DeltaAcc^cls = -2.00 to -6.84 across all LoRA variants), while adapter-scope consistently improves it (+0.05 to +0.86). Figure 5 further confirms this: all three adapter-subspace perturbation types (RS, AS(0), AS(1)) consistently improve over the no-perturbation baseline, demonstrating robustness across perturbation strategies once the scope is correctly restricted to W_{Delta,t}.
+
+---
+
+W2: "The PAC-Bayes bound largely builds on prior work, and I did not see major technical challenges in the derivation."
+Q1: "Does this paper use novel proof techniques? What are the main technical challenges in the theoretical derivations?"
+
+Three specific novelties absent from all prior hierarchical PAC-Bayes work, each with distinct technical challenges:
+
+(1) Time-varying hyperposterior process: Prior work (Pentina & Lampert 2014) bounds the multi-task risk assuming i.i.d. tasks from a fixed time-invariant hyperdistribution — task ordering is irrelevant. As our paper states and Figure 2 illustrates: "in continual learning, the prior used at step t is produced by a history-dependent rule...rather than being generated from a single time-invariant hyperdistribution (Multi-task Learning)." Our framework introduces a filtration-adapted process {P_t} with drift penalty KL(P_t||P_{t-1}). Technical challenge: showing {P_t} is a valid adapted stochastic process and the bound holds pathwise under the sequential filtration.
+
+(2) Drift decomposition: Our bound separates within-task adaptation E[KL(Q_t||P_t)] from cross-task interference KL(P_t||P_{t-1}), directly capturing the stability-plasticity tradeoff. Technical challenge: the supermartingale-based proof (not McAllester's union bound) is required to avoid union-bounding over tasks — this is why log m disappears from Theorem 4.1 vs. Theorem 3.1.
+
+(3) Subspace reduction (Lemma 4.2+4.3 -> Theorem 4.4): Under frozen backbone, KL(Q_t||P_t) = KL(Q_t^Delta||P_t^Delta) and sharpness reduces exactly to TS_t^Delta. Technical challenge: requires a translation-invariance argument for the KL under the affine structure W_t^{froz} + W_{Delta,t}. This PECL-specific reduction is absent from all prior work.
+
+---
+
+W3: "The paper does not introduce a new method, but mainly validates the effectiveness of combining LoRA with different variants of SAM."
+
+Analysis papers establishing when and why a design principle is correct are a recognized contribution at ICML. The main contribution is establishing the formal criterion: adapter-only perturbation is both theoretically justified and empirically optimal in frozen-backbone PECL, resolving the Flat-LoRA vs. LoRA-SAM ambiguity. The curvature diagnostic framework (c_t, alpha_t) and ordered perturbation comparison (RS(0) < AS(0) < AS(1)) also provide a reusable analytical toolkit for any LoRA-based PECL method.
+
+---
+
+W4: "Experiments are conducted only in a single setting (ViT on ImageNet), and the scope and scale of evaluation are relatively limited."
+Q2: "Could the authors provide experimental results at a larger scale and under more diverse settings?"
+
+We are substantially expanding the empirical evaluation. Vision: ViT-B/16 on five fine-grained benchmarks (CUB200, Cars196, Flowers102, FGVC-Aircraft, OxfordPet) — all with significant domain gap from ImageNet-21K pretraining — plus a domain-incremental CL scenario using all five datasets sequentially, directly evaluating adapter-only sharpness under maximal cross-domain shift. NLP: T5-small and T5-large on standard and long-text CL benchmarks, covering sequence-to-sequence architecture at two model scales. We will report all results in the revision.

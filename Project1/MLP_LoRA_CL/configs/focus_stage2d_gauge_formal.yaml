@@ -1,0 +1,76 @@
+experiment_name: focus_stage2d_gauge_formal
+device: cuda
+output_root: outputs
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 2
+  angles: [-30, 30]
+  include_angles_in_run_name: true
+  rotation_span: 60
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: gelu
+  parameterization: factor_lora
+  task_a_parameterization: dense
+  rank: 4
+  lora_alpha: rank
+  factor_gauge_scale: 1.0
+  lifecycle: persistent
+  subspace_seed: run_seed
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_angle0_seed3407.pt
+  pretrain_angle: 0.0
+  seed: 3407
+  epochs: 10
+  batch_size: 256
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  epochs_per_task: 5
+  batch_size: 128
+  optimizer: sgd
+  optimizer_schedule: [sgd, sgd]
+  lr: 0.01
+  momentum: 0.0
+  task_a_lr: 0.01
+  task_a_momentum: 0.9
+  task_b_lr: 0.1
+  weight_decay: 0.0
+  sam_rho: 0.005
+  perturbation_metric: effective_weight
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 128
+  trajectory_eval: true
+  prospective_enabled: false
+  pathwise: true
+  path_granularity: epoch
+  pathwise_immediate_only: true
+  geometry_enabled: false
+  hvp_fd_radii: []
+  hessian_lanczos_steps: 0
+
+grid:
+  angle_pairs:
+    - [-30, 30]
+    - [30, -30]
+  factor_gauge_scales: [0.3, 1.0, 3.0]
+  optimizer_schedules:
+    - [sgd, sgd]
+    - [sgd, sam]
+  seeds: [400, 401, 402, 403, 404, 405, 406, 407, 408, 409,
+          410, 411, 412, 413, 414, 415, 416, 417, 418, 419]

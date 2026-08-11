@@ -1,0 +1,46 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented FS-LoRA, a method for continual LoRA adaptation that combines
+first-order adapter-subspace flatness (AS$^1$) and trace-normalized Fisher-EWC
+through a decoupled gradient update.
+The central finding is that these two objectives are near-orthogonal in the $(A,B)$ parameter space
+($\cosff \approx 0$), a consequence of the spectral separation between the current-task Hessian
+and the past-task Fisher in the effective adapter update space $\DeltaW = BA$,
+mediated by the approximate isotropy of the LoRA Jacobian $JJ^\top$.
+
+This orthogonality has a direct practical implication: the two gradient components
+can be designed and tuned independently, with neither substantially interfering with the other.
+FS-LoRA exploits this by keeping the GAM closure strictly on the current-task loss,
+adding the Fisher gradient as an independent term, and normalizing the Fisher by its
+trace to make the EWC hyperparameter dataset-agnostic.
+
+Experiments on six fine-grained recognition datasets confirm improvements
+in final average accuracy on four of six datasets relative to SeqLoRA+GAM,
+with consistent reductions in forgetting.
+The three-layer ablation (coupled~$\to$ decoupled~$\to$ trace-normalized)
+directly validates each design decision.
+On standard PECL benchmarks, LR-tuned results show FS-LoRA within $1$pp of EWC-LoRA
+on ImageNet-A ($58.92$ vs.\ $59.89$), and partial runs exceed EWC-LoRA on
+ImageNet-R ($+4.3$pp) and CIFAR-100 ($+0.5$pp at task~7).
+
+\textbf{Limitations.}
+FS-LoRA introduces two additional hyperparameters ($\lambdaflat$ and $\lambdaewc$) relative to SeqLoRA.
+OxfordPet demonstrates that an overly large perturbation radius can degrade performance
+when the task gradient scale is small.
+Track~2 results (except ImageNet-A) remain partial; full comparison against EWC-LoRA
+is pending run completion.
+The theoretical argument for near-orthogonality rests on two regularity conditions
+(spectral separation and Jacobian isotropy); the violation regime is not fully characterized,
+and Jacobian isotropy is a simplifying assumption rather than a direct empirical claim.
+
+\textbf{Future work.}
+Adaptive perturbation scaling that adjusts $\rho$ or $\lambdaflat$ to the task gradient norm
+would address the OxfordPet outlier and make FS-LoRA more robust across diverse task scales.
+The orthogonality principle may generalize to other joint objectives in continual learning
+beyond flatness and Fisher, providing a geometric criterion for principled component combination.
+
+\begin{ack}
+Use unnumbered first level headings for the acknowledgments.
+Do not include this section in the anonymized submission.
+\end{ack}

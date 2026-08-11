@@ -1,0 +1,48 @@
+experiment_name: teacher_smoke
+seed: 0
+device: cpu
+
+data:
+  name: teacher_student
+  num_tasks: 2
+  rotation_span: 0
+  train_subset: 128
+  test_subset: 64
+  num_workers: 0
+  teacher:
+    target_rank: 2
+    principal_angle_degrees: 45
+    update_strength: 2.0
+    seed: 917
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: softplus
+  parameterization: fixed_lora_tangent
+  rank: 2
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  mode: random
+  checkpoint: checkpoints/unused.pt
+  seed: 3407
+
+training:
+  epochs_per_task: 1
+  batch_size: 64
+  optimizer: sgd
+  lr: 0.03
+  momentum: 0.0
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 16
+  pathwise: true
+  path_granularity: step
+  hessian_lanczos_steps: 3
+  geometry_enabled: true
+  geometry_immediate_only: true
+  ggn_overlap_top_k: 4

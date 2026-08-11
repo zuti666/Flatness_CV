@@ -1,0 +1,99 @@
+prefix: "infoprob_gam_lora_imagenetr_t20_rank16_base_1993"
+
+memory_size: 200
+memory_per_class: 0
+fixed_memory: false
+
+dataset: "imagenetr"
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20
+
+seed:
+  - 1993
+
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+
+device:
+  - "5"
+
+model_name: "infoprob_gam_lora"
+lora_rank: 16
+
+batch_size: 128
+optimizer: "sgd"
+optimizer_type: "gam"
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+gam_adaptive: false
+gam_grad_reduce: "mean"
+gam_perturb_eps: 1e-12
+gam_grad_rho: 0.2
+gam_grad_norm_rho: 0.2
+gam_grad_beta_1: 1.0
+gam_grad_beta_2: 1.0
+gam_grad_beta_3: 1.0
+gam_grad_gamma: 0.1
+
+# ---- InfoProbabilisticCL ----
+ipb_enable: true
+ipb_topk: 16
+ipb_max_batches: 4
+ipb_tau_h: 1e-4
+ipb_tau_y: 1e-6
+ipb_eps: 1e-12
+ipb_whiten_h: true
+ipb_whiten_y: true
+
+ipb_past_tasks_per_step: 2
+ipb_mem_batches_per_task: 1
+ipb_mem_batch_size: 128
+ipb_aux_interval: 10
+ipb_spec_batches: 1
+ipb_spec_ridge: 1e-3
+
+ipb_use_nce: false
+ipb_nce_tau: 0.1
+ipb_nce_norm: true
+
+lambda_mix: 0.0
+lambda_spec: 0.0
+lambda_align: 0.0
+lambda_nce: 0.0
+lambda_taskkl: 0.0
+lambda_hyperkl: 0.0
+ipb_budget_eps: 1e-3
+
+ipb_task_kl_mode: "l2"
+ipb_hyper_kl_mode: "l2"
+
+ipb_save_json: true
+ipb_track_mechanism: true
+
+# ---- old-data source ----
+ipb_mem_source: "memory"
+ipb_mem_fallback_train: false
+
+# ---- eval toggles ----
+flat_eval: false
+feature_flat_eval: true
+feature_cka_eval: true
+feature_proto_eval: true
+feature_drift_eval: true
+attention_probe_eval: false
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+
+save_final_model: false

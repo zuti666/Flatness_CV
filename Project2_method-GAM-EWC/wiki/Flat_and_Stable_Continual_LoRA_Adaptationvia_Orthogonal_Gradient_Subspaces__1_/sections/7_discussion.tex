@@ -1,0 +1,67 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{OxfordPet outlier.}
+OxfordPet shows a flat/clean ratio of $204$, far above any other dataset (next highest: Cars196 at $13.6$).
+This means the AS$^1$ perturbation is disproportionately large relative to the task gradient scale,
+likely because OxfordPet has tiny per-class gradient magnitudes due to its small class count
+(37 classes $\to$ 4 classes per task).
+A dataset-adaptive $\lambdaflat$ or $\rho$ that scales with the task gradient norm would address this;
+we leave adaptive perturbation as future work.
+
+\paragraph{ImageNet-A: LR sensitivity, not method failure.}
+The $\mathrm{lr}=0.01$ setting yields FAA~$=45.999$, $13.9$pp below EWC-LoRA.
+With $\mathrm{init\_lr}=0.04$, $\mathrm{lr}=0.02$ (warm-start cosine), FAA improves to $58.92$
+($-0.97$pp vs.\ EWC-LoRA CNN), with NME-head FAA~$=64.45$ surpassing the EWC-LoRA reference.
+The root cause is that ImageNet-A has 10 tasks of 20 classes each with only 20 epochs:
+a $\mathrm{lr}=0.01$ schedule underfits each task, amplifying the plasticity deficit
+that the Fisher penalty exacerbates.
+A moderate warm-start ($\mathrm{init\_lr}=0.04$) restores sufficient task-level learning
+without destabilizing the Fisher constraint.
+
+\paragraph{When does Cars196 not benefit?}
+Cars196 shows a slightly negative $\Delta$FAA ($-0.46$pp) but positive $\Delta$AAA ($+0.85$pp).
+The flat/clean ratio is $13.6$---larger than typical---while fisher/clean is $0.19$,
+suggesting the Fisher constraint is active but the flatness perturbation may be pulling the
+adapter toward regions that are flat but not optimal for the final task.
+A lower $\lambdaflat$ or smaller $\rho$ for this dataset would likely recover the FAA improvement.
+
+\paragraph{Relationship to EWC-LoRA.}
+EWC-LoRA~\citep{zheng2025ewclora} is the stability component of FS-LoRA without flatness control.
+The comparison shows that adding decoupled AS$^1$ to EWC-LoRA consistently improves
+performance on datasets where the Fisher penalty is lightly active (Flowers, CUB200, Aircraft),
+and leaves performance similar when Fisher dominates.
+This is consistent with the orthogonality principle: AS$^1$ adds a genuinely new signal,
+not a redundant one.
+
+\paragraph{When does orthogonality break?}
+Orthogonality rests on spectral separation between current-task Hessian and past-task Fisher.
+This separation weakens when:
+(1)~Tasks share similar class distributions or visual concepts, reducing the geometric difference
+between $H_t$ and $F_{t'}$.
+(2)~The LoRA rank is very large, making the adapter space approach the full parameter space
+where the spectral gap shrinks.
+(3)~The backbone is partially unfrozen, mixing backbone and adapter gradients.
+Future work should characterize conditions under which $|\cosff|$ grows and whether
+the method degrades gracefully.
+
+\paragraph{Connection to theory.}
+The orthogonality finding connects to the sequential PAC-Bayesian analysis
+in~\citet{Anonymous2026PaperB}, which shows that both the KL complexity and
+sharpness terms in the continual generalization bound reduce to the admissible update
+subspace $\mathcal{W}_{\Delta,t}$.
+FS-LoRA implements both terms within $\DeltaW$-space, consistent with the theory's
+prescription that the relevant flatness and stability measures should be computed
+in the adapter geometry.
+The orthogonality finding is a \emph{new} empirical and mechanistic contribution
+beyond what the theory establishes.
+
+\paragraph{Dual ascent: principled but passive.}
+Section~\ref{sec:dual_ascent} presents dual ascent as the outer-loop Lagrangian update
+on $\lambdaewc$ (Eq.~\eqref{eq:dual_ascent}).
+On all benchmarks in Section~\ref{sec:experiments},
+$\Dtilde^{\mathrm{Fisher}}$ remained below $\delta$ throughout,
+consistent with the orthogonality principle: a near-orthogonal flatness update
+does not drive the adapter toward Fisher-sensitive directions.
+The dual ascent mechanism is inactive in all reported results but provides
+a principled adaptive extension for task sequences with high semantic overlap.

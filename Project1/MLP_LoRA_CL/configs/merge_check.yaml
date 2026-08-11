@@ -1,0 +1,43 @@
+experiment_name: rotated_mnist_merge_check
+device: cuda
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 5
+  rotation_span: 120
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 4
+
+model:
+  activation: gelu
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_seed3407.pt
+  epochs: 10
+
+training:
+  epochs_per_task: 5
+  optimizer: sgd
+  lr: 0.03
+  momentum: 0.9
+
+diagnostics:
+  max_samples_per_task: 128
+  pathwise: true
+  hessian_lanczos_steps: 12
+  geometry_immediate_only: true
+
+grid:
+  parameterizations: [factor_lora]
+  ranks: [4]
+  lifecycles: [persistent, merge_reset]
+  optimizers: [sgd, sam]
+  rotation_spans: [120]
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

@@ -1,0 +1,78 @@
+prefix: "infobudget_gam_lora_imagenetr_t20_rank16_proj_opt_sgd_nowhite_u_1993"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+ibg_mem_source: "stats"
+ibg_stats_bank_enable: true
+ibg_stats_basis_cap: 64
+
+dataset: "imagenetr"
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20
+
+seed:
+  - 1993
+
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+
+device:
+  - "0"
+
+model_name: "infobudget_gam_lora"
+lora_rank: 16
+
+batch_size: 128
+optimizer: "sgd"
+optimizer_type: "sgd"
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+# NoWhite-U: remove whitening when estimating U_t
+ibg_enable: true
+ibg_use_projection: true
+ibg_use_drift_penalty: false
+ibg_track_mechanism: true
+
+ibg_topk: 16
+ibg_max_batches: 4
+ibg_tau_h: 1e-4
+ibg_tau_y: 1e-6
+ibg_eps: 1e-12
+ibg_basis_cap: 128
+ibg_random_subspace: false
+ibg_shuffle_labels_subspace: false
+ibg_whiten_h: false
+ibg_whiten_y: false
+
+ibg_probe_batches: 2
+ibg_probe_topk: 8
+ibg_proj_basis_cap: 64
+ibg_random_protection_basis: false
+ibg_save_json: true
+
+# --- eval toggles ---
+feature_flat_eval: true
+
+feature_cka_eval: true
+feature_proto_eval: true
+feature_drift_eval: true
+feature_cache_tasks: [0]
+feature_drift_mode: "last_only"
+
+linear_probe_softmax_joint_seen_eval: true
+
+save_final_model: false

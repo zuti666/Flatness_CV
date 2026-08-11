@@ -1,0 +1,39 @@
+{
+  "round": 2,
+  "status": "completed",
+  "last_score": 5.5,
+  "last_verdict": "almost",
+  "pending_experiments": [
+    "track2_cifar100_final",
+    "track2_imagenetr_final",
+    "track2_domainnet_final",
+    "imageneta_lr_tuned_0.03-0.05",
+    "multiseed_cub200_aircraft_flowers",
+    "ewc_only_baseline_finegrained"
+  ],
+  "timestamp": "2026-05-07T00:00:00",
+  "summary": {
+    "round1_score": 4.0,
+    "round1_verdict": "not ready",
+    "round2_score": 5.5,
+    "round2_verdict": "almost",
+    "changes_implemented": [
+      "C1: Fixed critical mathematical error in orthogonality proof (sin->cos, theta_min->theta_i->pi/2)",
+      "C2: Fixed FAA values in tab:norm_ratio (76.310->73.845, 76.339->74.182)",
+      "C3: Fixed O-LoRA underline contradiction in ImageNet-R table",
+      "C4: Scoped contribution 1 claim to LoRA-CL specifically (not general CL)",
+      "C5: Added negative cosine interpretation (benign mild anti-alignment)",
+      "C6: Rewrote Section 3.2 AS^1 to be self-contained, demoted PaperB citation",
+      "C7: Updated abstract to mention Jacobian bridge and Track 2 partial results",
+      "C8: Added ImageNet-A gap and Track 2 incompleteness to conclusion limitations",
+      "C9: Added missing EWC-only baseline note to experiments section"
+    ],
+    "remaining_blockers": [
+      "B1: Track 2 experiments not complete (CIFAR-100, ImageNet-R, DomainNet blanks)",
+      "B2: ImageNet-A 14pp gap unresolved without lr-tuned results from config_Expand",
+      "B3: All results single-seed; CUB200 1pp gain lacks statistical significance",
+      "B4: Full 2x2 ablation (flatness x Fisher) not run on fine-grained datasets",
+      "B5: Condition 2 (Jacobian isotropy) lacks supporting evidence"
+    ]
+  }
+}

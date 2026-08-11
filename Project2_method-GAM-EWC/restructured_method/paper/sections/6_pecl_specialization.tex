@@ -1,0 +1,121 @@
+\section{PECL Specialization: Support Reduction onto $\mathcal{W}_{\Delta,t}$}
+\label{sec:pecl-spec}
+
+Theorem~\ref{thm:pathwise_pac} holds for any hypothesis class and any distribution family for the posterior.
+We now specialize it to frozen-backbone PECL by showing that both the KL complexity and the sharpness-dependent empirical term reduce exactly to quantities supported on the task-admissible subspace $\mathcal{W}_{\Delta,t}$.
+
+\subsection{KL Reduction}
+\label{sec:kl-reduction}
+
+In PECL, the task-$t$ parameters decompose as $W_t = W_t^{\mathrm{froz}} + \Delta W_t$ with $\Delta W_t \in \mathcal{W}_{\Delta,t}$.
+We place a Gaussian posterior over increments:
+\[
+Q_t^\Delta = \mathcal{N}(\widehat{\Delta W}_t, \Sigma_t),\quad \Sigma_t \text{ supported on } \mathcal{W}_{\Delta,t}.
+\]
+Sampling $W_t \sim Q_t$ on the affine class $W_t^{\mathrm{froz}} + \mathcal{W}_{\Delta,t}$ amounts to setting $W_t = W_t^{\mathrm{froz}} + \Delta W_t$ with $\Delta W_t = \widehat{\Delta W}_t + \varepsilon$ and $\varepsilon \sim \mathcal{N}(0, \Sigma_t)$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{figures_TRML/KLshiyi1.pdf}
+\caption{\textbf{KL reduction.}
+The posterior/prior defined on task-permissible subspaces $(Q_t^\Delta, P_t^\Delta)$ induce full-model distributions $(Q_t, P_t)$ satisfying $\mathrm{KL}(Q_t \| P_t) = \mathrm{KL}(Q_t^\Delta \| P_t^\Delta)$.
+The frozen backbone contributes only degenerate factors that cancel in the KL ratio, so full-model complexity depends only on the admissible subspace.}
+\label{fig:KL_decompose}
+\end{figure}
+
+\begin{lemma}[KL reduction under frozen backbone]
+\label{lem:kl-decomp-pecl}
+Assume $Q_t^\Delta \ll P_t^\Delta$. Then $Q_t \ll P_t$ and
+\[
+\mathrm{KL}(Q_t \| P_t) = \mathrm{KL}(Q_t^\Delta \| P_t^\Delta).
+\]
+\end{lemma}
+
+This follows because the frozen backbone contributes identical (degenerate) factors to both $Q_t$ and $P_t$, which cancel in the Radon–Nikodym derivative.
+The full-model KL divergence is therefore determined entirely by the distribution of the admissible increment $\Delta W_t$, not by any frozen directions.
+See Appendix~\ref{proof:Lemma1} for the proof.
+
+\subsection{Subspace Sharpness Decomposition}
+\label{sec:sharpness-decomp}
+
+We define the \emph{subspace sharpness} as the expected loss elevation under perturbations supported on $\mathcal{W}_{\Delta,t}$:
+\[
+\mathrm{TS}_t^\Delta(\widehat{\Delta W}_t, \Sigma_t) = \mathbb{E}_{\varepsilon \sim \mathcal{N}(0,\Sigma_t)} \bigl[\hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t + \varepsilon) - \hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t)\bigr],
+\]
+where $\varepsilon \in \mathcal{W}_{\Delta,t}$.
+
+\begin{lemma}[Subspace sharpness decomposition]
+\label{lem:subspace-loss-pecl}
+For each task $t$,
+\begin{align*}
+\mathbb{E}_{W_t \sim Q_t}\bigl[\hat{L}_{S_t}(W_t)\bigr]
+&= \hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t) + \mathrm{TS}_t^\Delta(\widehat{\Delta W}_t, \Sigma_t).
+\end{align*}
+\end{lemma}
+
+The expected loss under the Gaussian posterior equals the deterministic loss at the learned increment plus the subspace sharpness correction.
+Crucially, the sharpness term is supported entirely on $\mathcal{W}_{\Delta,t}$: the perturbation $\varepsilon$ probes only directions within the admissible subspace.
+See Appendix~\ref{proof:lemma2} for the proof.
+
+\subsection{PAC-Bayesian Bound for PECL}
+\label{sec:pecl-bound}
+
+Substituting Lemma~\ref{lem:kl-decomp-pecl} and Lemma~\ref{lem:subspace-loss-pecl} into Theorem~\ref{thm:pathwise_pac}, we obtain the main result:
+
+\begin{theorem}[PAC-Bayesian bound for PECL]
+\label{thm:pecl-bound}
+Consider a PECL model with frozen backbone $W_t^{\mathrm{froz}}$ and Gaussian posteriors $Q_t^\Delta = \mathcal{N}(\widehat{\Delta W}_t, \Sigma_t)$ supported on $\mathcal{W}_{\Delta,t}$.
+Let $P_t^\Delta$ be task priors sampled from a hyperposterior $\mathcal{P}_{t-1}$ over adapter distributions.
+For any $\delta \in (0,1]$, with probability at least $1 - \delta$ over $S_{1:T}$,
+\begin{equation*}
+\resizebox{\linewidth}{!}{$
+\begin{aligned}
+&\frac{1}{T}\sum_{t=1}^T \mathbb{E}_{P_t^\Delta \sim \mathcal{P}_{t-1}} \mathbb{E}_{W_t \sim Q_t} L_{\mathcal{D}_t}(W_t) \\
+&\leq
+\frac{1}{T}\sum_{t=1}^T \mathbb{E}_{P_t^\Delta \sim \mathcal{P}_{t-1}}
+\bigl[
+\hat{L}_{S_t}(W_t^{\mathrm{froz}} + \widehat{\Delta W}_t)
++ \mathrm{TS}_t^\Delta(\widehat{\Delta W}_t, \Sigma_t)
+\bigr] \\
+&\quad +
+\sqrt{
+\frac{
+\displaystyle\sum_{t=1}^T \mathbb{E}_{P_t^\Delta \sim \mathcal{P}_{t-1}}
+\mathrm{KL}(Q_t^\Delta \| P_t^\Delta)
++ \sum_{t=1}^T \mathrm{KL}(\mathcal{P}_t \| \mathcal{P}_{t-1})
++ \log\tfrac{1}{\delta}
+}{2\displaystyle\sum_{t=1}^T (m_t - 1)}
+}.
+\end{aligned}
+$}
+\end{equation*}
+\end{theorem}
+
+See Appendix~\ref{proof:theorem} for the proof.
+
+\textbf{Interpretation: adapter-subspace flatness is the bound-relevant notion.}
+Theorem~\ref{thm:pecl-bound} shows that, under frozen-backbone PECL, every quantity that governs the bound is supported on the admissible subspaces $\{\mathcal{W}_{\Delta,t}\}_{t=1}^T$.
+
+The \emph{KL complexity} depends on $\mathrm{KL}(Q_t^\Delta \| P_t^\Delta)$, the divergence between prior and posterior on admissible adapter increments.
+The frozen backbone contributes only a fixed translation and does not enter this term as an independently controllable complexity source.
+
+The \emph{sharpness-smoothed empirical term} involves $\mathrm{TS}_t^\Delta$, the expected loss elevation under perturbations in $\mathcal{W}_{\Delta,t}$.
+Curvature along frozen backbone directions is not directly governed by this term: those directions lie outside the admissible perturbation support.
+
+This yields the precise claim: in frozen-backbone PECL, admissible-update flatness is the \emph{bound-relevant} notion of flatness.
+This does not imply that full-space flatness is uninformative---it may correlate with adapter-subspace flatness, and empirical full-space probes may still reflect consequences of subspace-level flatness control.
+But full-space flatness is not the quantity directly governed by the PECL bound.
+
+\textbf{Perturbation scope follows from the bound.}
+Since the bound depends only on perturbations within $\mathcal{W}_{\Delta,t}$, perturbing the frozen backbone introduces noise along directions that contribute nothing to the bound and cannot be compensated by subsequent LoRA updates.
+This provides a theoretical rationale for restricting perturbation scope to the adapter subspace in PECL.
+
+\textbf{Perturbation type within the subspace.}
+Let $\Pi_{\Delta,t}$ be the projector onto $\mathcal{W}_{\Delta,t}$ and $C_{\Delta,t} = \Pi_{\Delta,t} C_t \Pi_{\Delta,t}$ be the restricted curvature operator.
+Under a local second-order approximation,
+\[
+\mathrm{TS}_t^\Delta(\widehat{\Delta W}_t, \Sigma_t) \approx \tfrac{1}{2}\operatorname{tr}(C_{\Delta,t} \Sigma_t),
+\]
+where $\Sigma_t$ is the perturbation covariance supported on $\mathcal{W}_{\Delta,t}$.
+Different perturbation types (RS$^{(0)}$, AS$^{(0)}$, AS$^{(1)}$) correspond to different choices of $\Sigma_t$: isotropic, adversarially concentrated, or gradient-aligned.
+Type AS$^{(1)}$ aligns perturbation mass with the dominant curvature directions, minimizing $\operatorname{tr}(C_{\Delta,t}\Sigma_t)$ most directly and thus exerting the strongest control on the bound.

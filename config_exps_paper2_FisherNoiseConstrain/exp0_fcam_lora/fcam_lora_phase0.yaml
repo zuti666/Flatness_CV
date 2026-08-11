@@ -1,0 +1,94 @@
+prefix: "fcam_lora_imagenetr_gam_phase0_1993"
+
+memory_size: 200
+memory_per_class: 0
+fixed_memory: false
+
+dataset: "imagenetr"
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20
+
+seed:
+  - 1993
+
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+
+device:
+  - "5"
+
+model_name: "fcam_lora"
+lora_rank: 16
+
+batch_size: 32
+train_num_workers: 0
+
+optimizer: "sgd"
+optimizer_type: "gam"
+
+scheduler: cosine
+init_epoch: 1
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 1
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+
+
+# ---- FCAM-LoRA ----
+fcam_enable: true
+fcam_topk: 16
+fcam_max_batches: 2
+fcam_tau_h: 1e-4
+fcam_tau_y: 1e-6
+fcam_eps: 1e-12
+fcam_whiten_h: true
+fcam_whiten_y: true
+fcam_hist_max_dim: 64
+fcam_subspace_solver: "gram_eig"
+
+fcam_past_tasks_per_step: 1
+fcam_mem_batch_size: 32
+fcam_aux_interval: 1
+
+lambda_cwo: 1.0e-2
+lambda_nce: 0.0
+lambda_reg: 0.0
+
+fcam_use_nce: false
+fcam_nce_tau: 0.1
+fcam_nce_norm: true
+fcam_weight_mode: "uniform"
+fcam_mem_mode: "test"
+fcam_cwo_ratio: true
+fcam_cwo_lam_norm: "l2"
+fcam_cwo_lam_clip: 0.0
+
+fcam_align_grad: true
+fcam_trace_taskids: true
+fcam_trace_max_steps: 5
+fcam_phase0_check: true
+
+fcam_save_json: true
+fcam_track_mechanism: true
+
+fcam_mem_source: "memory"
+fcam_mem_fallback_train: false
+
+# ---- eval toggles ----
+flat_eval: false
+feature_flat_eval: false
+feature_cka_eval: false
+feature_proto_eval: false
+feature_drift_eval: false
+attention_probe_eval: false
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+
+save_final_model: false

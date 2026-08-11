@@ -1,0 +1,39 @@
+Thank you for the careful reading. We address your technical questions directly.
+
+---
+
+Q1 (Where does the log m term go?)
+> "The classical bound in Theorem 4.1 contains a logm*logm term in the numerator inside the square root, which is absent in Theorem 4.4. Where does this term go in the sequential proof? Please provide a detailed accounting of this step."
+
+Conclusion first: the bound remains sample-size dependent through B_T=sum_t(m_t-1) and, before the final simplification, through omega_t=(m_t-1)/B_T on the task KL terms. What disappears is only the extra log m factor from classical McAllester KL inversion.
+
+The specific accounting is in Appendix B.1. Theorem 3.1 is the classical McAllester single-task bound, so its numerator contains log(m/delta) = log m + log(1/delta). In contrast, Theorem 4.1 is proved by a different route: Step 1 applies Donsker-Varadhan at the model level (Appendix B.1, Eqs. (2)-(4)); Step 2 applies Donsker-Varadhan again at the hyper level (Eqs. (5)-(7)); and Step 3 forms one nonnegative supermartingale from the conditional MGF bound (Eq. (8)). The only high-probability step is then Markov on M_T, which yields Eq. (9) and contributes only log(1/delta).
+
+The sample-size dependence enters through sum_t (lambda*omega_t)^2 / (8*(m_t-1)); after substituting omega_t=(m_t-1)/B_T and optimizing lambda, this becomes the denominator 2*sum_t(m_t-1) in Eqs. (10)-(11), with no log(m_t) term. The tighter intermediate form still contains sum_t omega_t E KL(Q_t||P_t); the final theorem upper-bounds this by unweighted sum_t E KL(Q_t||P_t) for interpretability. Thus, sample-size dependence is retained throughout, but the extra classical log m term is not produced because the sequential proof avoids McAllester-style KL inversion. We will add this step-by-step accounting explicitly to Appendix B.1.
+
+---
+
+Q2 (IncLoRA/OLoRA subspace support assumption)
+> "The lemma assumes Qt^Delta << Pt^Delta and implicitly requires the prior to be supported on the same subspace W^Delta_t as the posterior. For IncLoRA and OLoRA, where subspaces grow or are constrained across tasks, is this assumption actually satisfied? If not, how does this affect the KL decomposition?"
+
+This is the right concern. If, for task t, the prior lived on an old subspace while the posterior lived on the current one, then Q_t^Delta << P_t^Delta could fail, the subspace KL could become infinite, and Lemma 4.2 would not apply. Our derivation avoids this because Lemma 4.2 is within-task: for each fixed t, both P_t^Delta and Q_t^Delta are defined on the same measurable space (W_{Delta,t}, B(W_{Delta,t})). Appendix B.2 then uses the translation map T_t to prove KL(Q_t||P_t)=KL(Q_t^Delta||P_t^Delta).
+
+The remaining question is what W_{Delta,t} means for IncLoRA/OLoRA. Appendix C defines it as the current task's local tangent increment space Im(J_{LoRA}(theta_hat_{Delta,t})) (Eqs. (13)-(15)), not the union of historical adapter directions. Thus in IncLoRA only the current pair is trainable and previous pairs are frozen into W_t^{froz}; in OLoRA the orthogonality penalty changes geometry within the current tangent space but not its support. In both cases the prior and posterior for task t live on the same current W_{Delta,t}, so the KL decomposition remains valid. We will clarify this in Appendix B.2/C.
+
+---
+
+Q3 (Bound tightness)
+> "PAC-Bayes bounds are often too loose to be numerically meaningful. Are the authors able to evaluate how tight Theorem 4.4 is in any of their experimental settings, or is the bound intended primarily as a conceptual motivation for the empirical investigation?"
+
+We agree: Theorem 4.4 is a structural result identifying which quantities matter, not a numerically calibrated bound. Its qualitative implications are tested in Table 1 (restricted curvature diagnostics on W_{Delta,t}) and Table 2 + Fig. 4 (predicted orderings: adapter-scope > full-scope, RS(0) < AS(0) < AS(1)). We will state this role explicitly.
+
+---
+
+Q4 (Figure 4 placement)
+> "Figure 4: Arrives too late and is too technical to serve as an intuitive illustration of geometric differences between RS(0), AS(0), and AS(1)."
+
+We agree. Figure 4 is a post-hoc technical diagnostic — useful after the PECL bound, but not as the first intuitive explanation of RS(0), AS(0), AS(1). We will add a simple schematic earlier in Section 3.3 and keep Figure 4 as the mechanism-level visualization.
+
+---
+
+Supplementary experiments are now complete: five fine-grained vision datasets (SAM > SGD on all 5 datasets per method; GAM best on 4-5/5) and T5-small/T5-large. The T5-large averages improve by +4.8 pp (SeqLoRA), +6.2 pp (IncLoRA), and +0.6 pp (OLoRA); full T5-small/T5-large tables are provided at [ANON_LINK].

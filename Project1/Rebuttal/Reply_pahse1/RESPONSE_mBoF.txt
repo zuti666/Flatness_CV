@@ -1,0 +1,29 @@
+Thank you for your review. We address each concern in turn.
+
+Q1 (FlatLoRA and the generalization bound)
+
+This connects directly to the paper's motivation. Flat-LoRA's perturbation is defined over the full parameter space W, not W_{Delta,t}. Our analysis shows that, under a frozen backbone, the bound-relevant sharpness depends exclusively on perturbations within W_{Delta,t} (Theorem 4.4).
+
+Extending perturbations beyond W_{Delta,t} introduces terms that the bound does not control: perturbations in the frozen backbone directions affect the full-parameter loss landscape but cannot be compensated by LoRA updates confined to W_{Delta,t}. This is a mismatch between the perturbation domain and the optimization domain — Flat-LoRA optimizes full-space flatness that PECL updates cannot maintain across task transitions. Table 2 shows the consequence: full-scope degradation (DeltaAcc^cls = -2.00 to -6.84), adapter-scope improvement (+0.05 to +0.86). Theorem 4.4 is the formal explanation.
+
+W1 / Q2 / Q3 (Empirical scope: datasets, scale, cross-domain)
+
+We are substantially expanding the empirical evaluation on all three dimensions:
+
+(1) Diverse fine-grained vision benchmarks: ViT-B/16 on CUB200, Cars196, Flowers102, FGVC-Aircraft, and OxfordPet — five datasets spanning fundamentally different fine-grained domains (birds, vehicles, flowers, aircraft, pets), all with significant domain gap from ImageNet-21K pretraining. These cover per-domain incremental CL settings.
+
+(2) Cross-domain CL (directly addressing Q3): A domain-incremental scenario using all five datasets sequentially, evaluating the adapter-only sharpness advantage under maximal domain shift between tasks. This is a direct cross-dataset evaluation where each task comes from a different visual domain.
+
+(3) NLP — scale and architecture (addressing W2/Q2): T5-small and T5-large on standard and long-text NLP continual learning benchmarks — covering sequence-to-sequence architecture at two model scales, a fundamentally different paradigm from ViT-B/16. This directly addresses the scalability and architecture diversity concerns.
+
+W2 (Model complexity and scalability)
+
+The frozen-backbone condition, not model size, is the key structural requirement for Theorem 4.4. The subspace reduction holds for any W_{Delta,t} dimension. T5-small vs. T5-large provides two-scale evidence that the adapter-only > full-scope ordering is not size-dependent.
+
+W3 (Incremental contribution)
+
+The comparison is not "LoRA-based CL vs. full fine-tuning" but "adapter-only sharpness vs. full-parameter sharpness within LoRA-based PECL." The finding directly contradicts Flat-LoRA's published recommendation — showing it is incorrect in frozen-backbone PECL — and is backed by Theorem 4.4. The curvature diagnostic framework (c_t, alpha_t) and ordered comparison (RS(0) < AS(0) < AS(1)) provide reusable analytical tools beyond simple validation.
+
+Q4 (Domain gap)
+
+The domain gap affects pre-trained feature quality but not the theoretical framework — Theorem 4.4's subspace reduction depends only on the frozen-backbone constraint and LoRA structure. The five new fine-grained benchmarks and the cross-domain CL scenario (experiment 2 above) directly test performance under large domain gaps from ImageNet-21K. We will analyze this explicitly in the revision.

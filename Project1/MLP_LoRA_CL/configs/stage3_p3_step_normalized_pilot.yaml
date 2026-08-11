@@ -1,0 +1,100 @@
+experiment_name: stage3_p3_step_normalized_pilot
+device: cuda
+output_root: outputs
+deterministic: true
+
+data:
+  name: rotated_mnist
+  root: data
+  download: true
+  num_tasks: 2
+  angles: [-30, 30]
+  rotation_span: 60
+  train_subset: 10000
+  test_subset: 2000
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 32
+  num_classes: 10
+  activation: gelu
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  factor_gauge_scale: 1.0
+  subspace_seed: run_seed
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/mnist_mlp_gelu_h32_angle0_seed3407.pt
+  pretrain_angle: 0.0
+  seed: 3407
+  epochs: 10
+  batch_size: 256
+  lr: 0.05
+  momentum: 0.9
+  weight_decay: 0.0
+
+training:
+  batch_size: 128
+  lr: 0.1
+  momentum: 0.0
+  weight_decay: 0.0
+  sam_rho: 0.005
+  perturbation_metric: effective_weight
+  grad_clip: null
+
+diagnostics:
+  enabled: true
+  max_samples_per_task: 128
+  num_nonoverlap_batches: 2
+  pathwise: true
+
+mature_gauge:
+  task_a_epochs: 5
+  task_a_lr: 0.01
+  task_a_momentum: 0.9
+  warmup_epochs: 1
+  continuation_epochs: 4
+  task_b_lr: 0.1
+  task_b_momentum: 0.0
+  continuation_methods: [sgd, sam]
+  sam_radii: [0.005]
+  transformations:
+    - identity
+    - orthogonal
+    - scalar_0.5
+    - scalar_2
+  gauge_seed_offset: 70000
+  task_a_loader_seed_offset: 1000
+  warmup_loader_seed_offset: 2000
+  continuation_loader_seed_offset: 3000
+
+step_normalization:
+  # Frozen from P2b Identity-SGD seeds 705--707 before P3 seeds are run.
+  target_profile: configs/stage3_p3_target_profiles.json
+  # Select only by numerical reachability, direction preservation, common
+  # progress support and Taylor locality; never by old-loss benefit.
+  pilot_scales: [0.25, 0.5, 1.0]
+  maximum_alpha: 64.0
+  progress_interval_steps: 5
+  direction_diagnostic_interval_steps: 20
+  counterfactual_interval_steps: 20
+  progress_batch_size: 2000
+  # Frozen before inspecting P3 retention benefits. Select the largest scale
+  # satisfying every rule in both task directions.
+  selection_rules:
+    maximum_target_relative_error: 1.0e-5
+    maximum_candidate_closure_error: 5.0e-5
+    maximum_alpha: 16.0
+    minimum_raw_to_resolved_cosine: 0.995
+    maximum_counterfactual_median_abs_taylor_residual: 0.01
+    maximum_counterfactual_p90_abs_taylor_residual: 0.03
+    minimum_identity_progress_support_width: 0.05
+
+grid:
+  angle_pairs:
+    - [-30, 30]
+    - [45, -45]
+  seeds: [800, 801, 802, 803, 804]

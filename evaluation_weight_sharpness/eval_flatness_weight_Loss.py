@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 import torch
 import torch.nn as nn
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from torch.utils.data import DataLoader, Subset
 
 from evaluation_performance.probe import TunaEvalWrapper
@@ -136,6 +136,31 @@ class FlatnessConfig:
     flat_batch_size: Optional[float] = None
 
     max_examples_per_batch: Optional[int] = 128
+
+    # Adapter-restricted sharpness in the effective Delta-W tangent space.
+    # This is disabled by default to preserve the historical metric set.
+    delta_sharpness: bool = False
+    delta_sharpness_radius: Optional[float] = None
+    delta_sharpness_grad_batches: Optional[int] = None
+    delta_sharpness_task_id: Optional[int] = None
+    delta_sharpness_eps: float = 1e-12
+    delta_sharpness_basis_eps: float = 1e-6
+    ab_sharpness: bool = False
+    ab_sharpness_radius: Optional[float] = None
+    ab_sharpness_grad_batches: Optional[int] = None
+    ab_sharpness_param_names: Optional[List[str]] = None
+    ab_sharpness_include_frozen: bool = False
+    random_tangent_sharpness: bool = False
+    random_tangent_radius: Optional[float] = None
+    random_tangent_grad_batches: Optional[int] = None
+    random_tangent_seed: int = 42
+    frozen_sharpness: bool = False
+    frozen_sharpness_radius: Optional[float] = None
+    frozen_sharpness_grad_batches: Optional[int] = None
+    frozen_sharpness_match_delta_dim: bool = False
+    frozen_sharpness_seed: int = 42
+    lora_rescale_factor: Optional[float] = None
+    lora_rescale_task_id: Optional[int] = None
 
     # Optional persistence
     save_metrics_path: Optional[str] = None
@@ -320,6 +345,39 @@ class FlatnessConfig:
             "flat_eval_batch_size": "flat_batch_size",
             "flat_eval_max_examples_per_batch": "max_examples_per_batch",
             "flat_eval_include_frozen": "include_frozen_params",
+            "flat_eval_delta_sharpness": "delta_sharpness",
+            "flat_eval_sh_delta": "delta_sharpness",
+            "flat_eval_delta_sharpness_radius": "delta_sharpness_radius",
+            "flat_eval_sh_delta_radius": "delta_sharpness_radius",
+            "flat_eval_delta_sharpness_grad_batches": "delta_sharpness_grad_batches",
+            "flat_eval_sh_delta_grad_batches": "delta_sharpness_grad_batches",
+            "flat_eval_delta_sharpness_task_id": "delta_sharpness_task_id",
+            "flat_eval_sh_delta_task_id": "delta_sharpness_task_id",
+            "flat_eval_delta_sharpness_eps": "delta_sharpness_eps",
+            "flat_eval_delta_sharpness_basis_eps": "delta_sharpness_basis_eps",
+            "flat_eval_ab_sharpness": "ab_sharpness",
+            "flat_eval_sh_ab": "ab_sharpness",
+            "flat_eval_ab_sharpness_radius": "ab_sharpness_radius",
+            "flat_eval_sh_ab_radius": "ab_sharpness_radius",
+            "flat_eval_ab_sharpness_grad_batches": "ab_sharpness_grad_batches",
+            "flat_eval_sh_ab_grad_batches": "ab_sharpness_grad_batches",
+            "flat_eval_ab_param_names": "ab_sharpness_param_names",
+            "flat_eval_ab_include_frozen": "ab_sharpness_include_frozen",
+            "flat_eval_random_tangent_sharpness": "random_tangent_sharpness",
+            "flat_eval_rand_sharpness": "random_tangent_sharpness",
+            "flat_eval_random_tangent_radius": "random_tangent_radius",
+            "flat_eval_rand_sharpness_radius": "random_tangent_radius",
+            "flat_eval_random_tangent_grad_batches": "random_tangent_grad_batches",
+            "flat_eval_rand_sharpness_grad_batches": "random_tangent_grad_batches",
+            "flat_eval_random_tangent_seed": "random_tangent_seed",
+            "flat_eval_rand_sharpness_seed": "random_tangent_seed",
+            "flat_eval_frozen_sharpness": "frozen_sharpness",
+            "flat_eval_frozen_sharpness_radius": "frozen_sharpness_radius",
+            "flat_eval_frozen_sharpness_grad_batches": "frozen_sharpness_grad_batches",
+            "flat_eval_frozen_sharpness_match_delta_dim": "frozen_sharpness_match_delta_dim",
+            "flat_eval_frozen_sharpness_seed": "frozen_sharpness_seed",
+            "flat_eval_lora_rescale_factor": "lora_rescale_factor",
+            "flat_eval_lora_rescale_task_id": "lora_rescale_task_id",
 
             # weight loss landscape
             "loss_land_enabled": "loss_land_enabled",
@@ -352,6 +410,7 @@ class FlatnessConfig:
             "eig_patience": "eig_patience",
             "flat_eval_disable_power": "disable_power",
             "flat_eval_sharpness": "eval_sharpness",
+            "flat_eval_expected_sharpness": "eval_expected_sharpness",
             "flat_eval_hessian": "eval_hessian",
             "flat_eval_GGN": "eval_ggn",
             "flat_eval_ggn": "eval_ggn",
@@ -489,29 +548,36 @@ def _compute_grad_vector(
     known_classes: Optional[int] = None,
 ) -> torch.Tensor:
     """Return the flattened gradient of the empirical loss w.r.t. ``params``."""
-    model.train()
+    was_training = model.training
+    model.eval()
     for p in params:
         if p.grad is not None:
             p.grad = None
 
     criterion = nn.CrossEntropyLoss(reduction="mean")
     batches_processed = 0
-    with _sdp_disable_context():
-        for batch_idx, batch in enumerate(loader):
-            inputs, targets = _unwrap_batch(batch)
-            inputs = inputs.to(device, non_blocking=True)
-            targets = targets.to(device, non_blocking=True)
+    try:
+        with _sdp_disable_context():
+            for batch_idx, batch in enumerate(loader):
+                inputs, targets = _unwrap_batch(batch)
+                inputs = inputs.to(device, non_blocking=True)
+                targets = targets.to(device, non_blocking=True)
 
-            logits = _forward_logits_full(model, inputs, targets)
-            if known_classes is not None and known_classes > 0:
-                loss = criterion(logits[:, known_classes:], targets - known_classes)
-            else:
-                loss = criterion(logits, targets)
-            loss.backward()
-            batches_processed += 1
+                logits = _forward_logits_full(model, inputs, targets)
+                if known_classes is not None and known_classes > 0:
+                    loss = criterion(logits[:, known_classes:], targets - known_classes)
+                else:
+                    loss = criterion(logits, targets)
+                loss.backward()
+                batches_processed += 1
 
-            if max_batches is not None and batches_processed >= max_batches:
-                break
+                if max_batches is not None and batches_processed >= max_batches:
+                    break
+    finally:
+        if was_training:
+            model.train(True)
+        else:
+            model.eval()
 
     grads = []
     for p in params:
@@ -522,6 +588,1069 @@ def _compute_grad_vector(
 
     grad_vector = torch.cat(grads)
     return grad_vector
+
+
+def _evaluate_param_scope_sharpness(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    base_loss: float,
+    rho: float,
+    max_batches: Optional[int],
+    known_classes: Optional[int],
+    param_name_substrings: Optional[List[str]],
+    include_frozen: bool,
+    prefix: str,
+) -> Dict[str, float]:
+    substrs = param_name_substrings
+    if isinstance(substrs, str):
+        substrs = None if substrs.lower() in {"", "none", "all"} else [substrs]
+
+    saved_requires = []
+    if include_frozen:
+        for _name, param in model.named_parameters():
+            saved_requires.append((param, bool(param.requires_grad)))
+            if not param.requires_grad:
+                param.requires_grad_(True)
+
+    try:
+        params = _select_params_by_name(model, substrs, include_frozen=include_frozen)
+        if not params:
+            out = {
+                f"{prefix}_max": float("nan"),
+                f"{prefix}_first_order": float("nan"),
+                f"{prefix}_grad_norm": float("nan"),
+                f"{prefix}_num_params": 0,
+            }
+            if prefix == "sh_ab":
+                out.update(
+                    {
+                        "Sh_AB": float("nan"),
+                        "Sh_AB_first_order": float("nan"),
+                        "Sh_AB_grad_norm": float("nan"),
+                        "Sh_AB_num_params": 0,
+                    }
+                )
+            return out
+
+        param_backup = _clone_params(params)
+        grad_vector = _compute_grad_vector(
+            model,
+            loader,
+            device,
+            params,
+            max_batches=max_batches,
+            known_classes=known_classes,
+        )
+        grad_norm = float(grad_vector.norm().item())
+        if grad_norm <= 1e-12:
+            out = {
+                f"{prefix}_max": 0.0,
+                f"{prefix}_first_order": 0.0,
+                f"{prefix}_grad_norm": 0.0,
+                f"{prefix}_perturbed_loss": float(base_loss),
+                f"{prefix}_num_params": len(params),
+            }
+            if prefix == "sh_ab":
+                out.update(
+                    {
+                        "Sh_AB": 0.0,
+                        "Sh_AB_first_order": 0.0,
+                        "Sh_AB_grad_norm": 0.0,
+                        "Sh_AB_perturbed_loss": float(base_loss),
+                        "Sh_AB_num_params": len(params),
+                    }
+                )
+            return out
+
+        direction = grad_vector / (grad_norm + 1e-12)
+        perturb = direction * float(rho)
+        _add_vector_to_params(params, perturb)
+        try:
+            perturbed_loss = _compute_loss(
+                model,
+                loader,
+                device,
+                max_batches=max_batches,
+                known_classes=known_classes,
+            )
+        finally:
+            _restore_params(params, param_backup)
+
+        sh_max = max(0.0, float(perturbed_loss - base_loss))
+        out = {
+            f"{prefix}_max": sh_max,
+            f"{prefix}_first_order": float(rho) * grad_norm,
+            f"{prefix}_grad_norm": grad_norm,
+            f"{prefix}_perturbed_loss": float(perturbed_loss),
+            f"{prefix}_num_params": len(params),
+            f"{prefix}_radius": float(rho),
+        }
+        if prefix == "sh_ab":
+            out.update(
+                {
+                    "Sh_AB": sh_max,
+                    "Sh_AB_first_order": float(rho) * grad_norm,
+                    "Sh_AB_grad_norm": grad_norm,
+                    "Sh_AB_perturbed_loss": float(perturbed_loss),
+                    "Sh_AB_num_params": len(params),
+                    "Sh_AB_radius": float(rho),
+                }
+            )
+        return out
+    finally:
+        for param, old in saved_requires:
+            if bool(param.requires_grad) != bool(old):
+                param.requires_grad_(old)
+
+
+def _evaluate_frozen_scope_sharpness(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    base_loss: float,
+    rho: float,
+    max_batches: Optional[int],
+    known_classes: Optional[int],
+    match_dim: bool = False,
+    match_dim_count: Optional[int] = None,
+    seed: int = 42,
+    frozen_param_ids: Optional[Iterable[int]] = None,
+) -> Dict[str, float]:
+    params: List[torch.nn.Parameter] = []
+    saved_requires: List[Tuple[torch.nn.Parameter, bool]] = []
+    frozen_id_set = set(frozen_param_ids) if frozen_param_ids is not None else None
+    for _name, param in model.named_parameters():
+        if frozen_id_set is not None:
+            if id(param) not in frozen_id_set:
+                continue
+        elif param.requires_grad:
+            continue
+        saved_requires.append((param, bool(param.requires_grad)))
+        if not param.requires_grad:
+            param.requires_grad_(True)
+        params.append(param)
+
+    try:
+        if not params:
+            return {
+                "sh_frozen_max": float("nan"),
+                "Sh_frozen_coords": float("nan"),
+                "Sh_frozen_coords_num_params": 0,
+            }
+
+        param_backup = _clone_params(params)
+        grad_vector = _compute_grad_vector(
+            model,
+            loader,
+            device,
+            params,
+            max_batches=max_batches,
+            known_classes=known_classes,
+        )
+        selected_dim = int(grad_vector.numel())
+        if bool(match_dim) and match_dim_count is not None and int(match_dim_count) > 0:
+            selected_dim = min(int(match_dim_count), int(grad_vector.numel()))
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(int(seed))
+            indices = torch.randperm(int(grad_vector.numel()), generator=generator)[:selected_dim].to(grad_vector.device)
+            selected_grad = torch.zeros_like(grad_vector)
+            selected_grad[indices] = grad_vector[indices]
+            grad_for_perturb = selected_grad
+        else:
+            grad_for_perturb = grad_vector
+
+        grad_norm = float(grad_for_perturb.norm().item())
+        if grad_norm <= 1e-12:
+            return {
+                "sh_frozen_max": 0.0,
+                "Sh_frozen_coords": 0.0,
+                "Sh_frozen_coords_first_order": 0.0,
+                "Sh_frozen_coords_grad_norm": 0.0,
+                "Sh_frozen_coords_perturbed_loss": float(base_loss),
+                "Sh_frozen_coords_num_params": len(params),
+                "Sh_frozen_coords_total_dim": int(grad_vector.numel()),
+                "Sh_frozen_coords_selected_dim": int(selected_dim),
+                "Sh_frozen_coords_dim_matched": bool(match_dim),
+                "Sh_frozen_coords_radius": float(rho),
+            }
+
+        perturb = (grad_for_perturb / (grad_norm + 1e-12)) * float(rho)
+        _add_vector_to_params(params, perturb)
+        try:
+            perturbed_loss = _compute_loss(
+                model,
+                loader,
+                device,
+                max_batches=max_batches,
+                known_classes=known_classes,
+            )
+        finally:
+            _restore_params(params, param_backup)
+
+        sh = max(0.0, float(perturbed_loss - base_loss))
+        return {
+            "sh_frozen_max": sh,
+            "Sh_frozen_coords": sh,
+            "Sh_frozen_coords_first_order": float(rho) * grad_norm,
+            "Sh_frozen_coords_grad_norm": grad_norm,
+            "Sh_frozen_coords_perturbed_loss": float(perturbed_loss),
+            "Sh_frozen_coords_num_params": len(params),
+            "Sh_frozen_coords_total_dim": int(grad_vector.numel()),
+            "Sh_frozen_coords_selected_dim": int(selected_dim),
+            "Sh_frozen_coords_dim_matched": bool(match_dim),
+            "Sh_frozen_coords_radius": float(rho),
+        }
+    finally:
+        for param, old in saved_requires:
+            if bool(param.requires_grad) != bool(old):
+                param.requires_grad_(old)
+
+
+def _coerce_optional_task_id(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"", "none", "null", "current", "latest", "auto"}:
+            return None
+        try:
+            return int(lowered)
+        except Exception:
+            return None
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def _scale_value(scale_module: Any) -> float:
+    if scale_module is None:
+        return 1.0
+    if hasattr(scale_module, "param"):
+        param = getattr(scale_module, "param")
+        if torch.is_tensor(param):
+            try:
+                return float(param.detach().view(-1)[0].item())
+            except Exception:
+                return 1.0
+    if torch.is_tensor(scale_module):
+        try:
+            return float(scale_module.detach().view(-1)[0].item())
+        except Exception:
+            return 1.0
+    return 1.0
+
+
+def _scale_value_at(scale_modules: Any, index: int) -> float:
+    if scale_modules is None:
+        return 1.0
+    try:
+        return _scale_value(scale_modules[int(index)])
+    except Exception:
+        return _scale_value(scale_modules)
+
+
+def _apply_scale_module(scale_module: Any, tensor: torch.Tensor) -> torch.Tensor:
+    if scale_module is None:
+        return tensor
+    try:
+        return scale_module(tensor)
+    except Exception:
+        return tensor * _scale_value(scale_module)
+
+
+def _saved_lora_task_ids(qkv_module: nn.Module) -> List[int]:
+    saved_A = getattr(qkv_module, "saved_A", {}) or {}
+    saved_B = getattr(qkv_module, "saved_B", {}) or {}
+    ids: List[int] = []
+    for key in saved_A.keys():
+        if not str(key).startswith("saved_A_"):
+            continue
+        try:
+            idx = int(str(key).split("saved_A_", 1)[1])
+        except Exception:
+            continue
+        if f"saved_B_{idx}" in saved_B:
+            ids.append(idx)
+    return sorted(set(ids))
+
+
+def _collect_delta_lora_qkv_modules(model: nn.Module) -> List[nn.Module]:
+    modules: List[nn.Module] = []
+    for module in model.modules():
+        qkv = getattr(module, "qkv", None)
+        weight = getattr(qkv, "weight", None)
+        if weight is None or not torch.is_tensor(weight):
+            continue
+        has_current = all(
+            hasattr(module, attr)
+            for attr in ("linear_a_q", "linear_b_q", "linear_a_v", "linear_b_v")
+        )
+        has_saved = bool(_saved_lora_task_ids(module))
+        if has_current or has_saved:
+            modules.append(module)
+    return modules
+
+
+def _get_saved_lora_factors(
+    qkv_module: nn.Module,
+    tag: str,
+    task_id: Optional[int],
+    *,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> Optional[Tuple[torch.Tensor, torch.Tensor, float]]:
+    if tag not in {"q", "v"}:
+        return None
+    task_ids = _saved_lora_task_ids(qkv_module)
+    if not task_ids:
+        return None
+    use_task_id = int(task_id) if task_id is not None else int(task_ids[-1])
+    if use_task_id not in task_ids:
+        return None
+
+    saved_A = getattr(qkv_module, "saved_A", {}) or {}
+    saved_B = getattr(qkv_module, "saved_B", {}) or {}
+    A_list = saved_A.get(f"saved_A_{use_task_id}")
+    B_list = saved_B.get(f"saved_B_{use_task_id}")
+    if A_list is None or B_list is None:
+        return None
+
+    block_index = getattr(qkv_module, "t_layer_i", None)
+    if block_index is None:
+        return None
+    list_index = int(block_index) * 2 + (0 if tag == "q" else 1)
+    if list_index >= len(A_list) or list_index >= len(B_list):
+        return None
+
+    try:
+        A = A_list[list_index].weight.detach().to(device=device, dtype=dtype)
+        B = B_list[list_index].weight.detach().to(device=device, dtype=dtype)
+    except Exception:
+        return None
+
+    current_task_id = getattr(qkv_module, "task_id", None)
+    if current_task_id is not None and int(use_task_id) == int(current_task_id):
+        scale = _scale_value(getattr(qkv_module, "scaling_factor", None))
+    else:
+        scale = _scale_value_at(getattr(qkv_module, "scaling_factor_prev", None), int(use_task_id))
+    return A, B, scale
+
+
+def _get_lora_factors(
+    qkv_module: nn.Module,
+    tag: str,
+    task_id: Optional[int],
+    *,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> Optional[Tuple[torch.Tensor, torch.Tensor, float]]:
+    if tag not in {"q", "v"}:
+        return None
+
+    saved = _get_saved_lora_factors(qkv_module, tag, task_id, device=device, dtype=dtype)
+    if task_id is not None and saved is not None:
+        return saved
+
+    if tag == "q":
+        attrs = ("linear_a_q", "linear_b_q")
+    else:
+        attrs = ("linear_a_v", "linear_b_v")
+
+    if all(hasattr(qkv_module, attr) for attr in attrs):
+        try:
+            A = getattr(qkv_module, attrs[0]).weight.detach().to(device=device, dtype=dtype)
+            B = getattr(qkv_module, attrs[1]).weight.detach().to(device=device, dtype=dtype)
+            scale = _scale_value(getattr(qkv_module, "scaling_factor", None))
+            return A, B, scale
+        except Exception:
+            pass
+
+    return saved
+
+
+def _rescale_lora_pair(
+    A_param: torch.nn.Parameter,
+    B_param: torch.nn.Parameter,
+    factor: float,
+    backups: List[Tuple[torch.nn.Parameter, torch.Tensor, torch.nn.Parameter, torch.Tensor]],
+    seen: set,
+) -> None:
+    key = (id(A_param), id(B_param))
+    if key in seen:
+        return
+    seen.add(key)
+    backups.append((A_param, A_param.detach().clone(), B_param, B_param.detach().clone()))
+    with torch.no_grad():
+        A_param.data.mul_(float(factor))
+        B_param.data.div_(float(factor))
+
+
+@contextmanager
+def _temporary_lora_factor_rescale(
+    model: nn.Module,
+    factor: Optional[Any],
+    task_id: Optional[Any] = None,
+):
+    if factor is None:
+        yield 0
+        return
+    try:
+        factor_f = float(factor)
+    except Exception:
+        yield 0
+        return
+    if abs(factor_f - 1.0) <= 1e-12:
+        yield 0
+        return
+    if factor_f <= 0.0:
+        raise ValueError(f"flat_eval_lora_rescale_factor must be positive, got {factor_f}")
+
+    target_task_id = _coerce_optional_task_id(task_id)
+    backups: List[Tuple[torch.nn.Parameter, torch.Tensor, torch.nn.Parameter, torch.Tensor]] = []
+    seen = set()
+    try:
+        for module in _collect_delta_lora_qkv_modules(model):
+            if all(hasattr(module, attr) for attr in ("linear_a_q", "linear_b_q")):
+                _rescale_lora_pair(
+                    module.linear_a_q.weight,
+                    module.linear_b_q.weight,
+                    factor_f,
+                    backups,
+                    seen,
+                )
+            if all(hasattr(module, attr) for attr in ("linear_a_v", "linear_b_v")):
+                _rescale_lora_pair(
+                    module.linear_a_v.weight,
+                    module.linear_b_v.weight,
+                    factor_f,
+                    backups,
+                    seen,
+                )
+
+            task_ids = _saved_lora_task_ids(module)
+            if not task_ids:
+                continue
+            use_task_id = target_task_id if target_task_id in task_ids else task_ids[-1]
+            saved_A = getattr(module, "saved_A", {}) or {}
+            saved_B = getattr(module, "saved_B", {}) or {}
+            A_list = saved_A.get(f"saved_A_{use_task_id}")
+            B_list = saved_B.get(f"saved_B_{use_task_id}")
+            block_index = getattr(module, "t_layer_i", None)
+            if A_list is None or B_list is None or block_index is None:
+                continue
+            base_idx = int(block_index) * 2
+            for offset in (0, 1):
+                idx = base_idx + offset
+                if idx >= len(A_list) or idx >= len(B_list):
+                    continue
+                try:
+                    _rescale_lora_pair(
+                        A_list[idx].weight,
+                        B_list[idx].weight,
+                        factor_f,
+                        backups,
+                        seen,
+                    )
+                except Exception:
+                    continue
+        yield len(backups)
+    finally:
+        with torch.no_grad():
+            for A_param, A_saved, B_param, B_saved in backups:
+                A_param.data.copy_(A_saved.to(device=A_param.device, dtype=A_param.dtype))
+                B_param.data.copy_(B_saved.to(device=B_param.device, dtype=B_param.dtype))
+
+
+def _orthonormal_columns(mat: torch.Tensor, eps: float) -> torch.Tensor:
+    if mat.ndim != 2 or mat.numel() == 0:
+        rows = int(mat.shape[0]) if mat.ndim >= 1 else 0
+        return mat.new_zeros((rows, 0))
+    mat_f = mat.float()
+    try:
+        u, s, _ = torch.linalg.svd(mat_f, full_matrices=False)
+    except Exception:
+        try:
+            u, _ = torch.linalg.qr(mat_f, mode="reduced")
+            return u.to(dtype=mat.dtype)
+        except Exception:
+            return mat.new_zeros((int(mat.shape[0]), 0))
+    if s.numel() == 0:
+        return mat.new_zeros((int(mat.shape[0]), 0))
+    tol = float(eps) * max(float(s.max().item()), 1.0)
+    keep = s > tol
+    if not bool(keep.any()):
+        return mat.new_zeros((int(mat.shape[0]), 0))
+    return u[:, keep].to(dtype=mat.dtype)
+
+
+def _project_to_lora_tangent(
+    grad_w: torch.Tensor,
+    A: torch.Tensor,
+    B: torch.Tensor,
+    *,
+    basis_eps: float,
+) -> torch.Tensor:
+    """Project a W-space gradient onto {B dA + dB A}.
+
+    The projection uses the closed form for the tangent space of a rank-r
+    factorization: P_T(G) = P_B G + G P_A - P_B G P_A, where P_B projects onto
+    col(B) and P_A projects onto row(A).
+    """
+    if grad_w.ndim != 2 or A.ndim != 2 or B.ndim != 2:
+        return torch.zeros_like(grad_w)
+    U = _orthonormal_columns(B.to(device=grad_w.device, dtype=grad_w.dtype), basis_eps)
+    V = _orthonormal_columns(A.t().to(device=grad_w.device, dtype=grad_w.dtype), basis_eps)
+
+    proj = torch.zeros_like(grad_w)
+    left = None
+    if U.numel() > 0:
+        left = U @ (U.t() @ grad_w)
+        proj = proj + left
+    right = None
+    if V.numel() > 0:
+        right = (grad_w @ V) @ V.t()
+        proj = proj + right
+    if U.numel() > 0 and V.numel() > 0:
+        proj = proj - U @ (U.t() @ grad_w @ V) @ V.t()
+    return proj
+
+
+def _saved_lora_contribution(
+    qkv_module: nn.Module,
+    x: torch.Tensor,
+    tag: str,
+    task_id: int,
+    *,
+    use_current_scale: bool = False,
+) -> Optional[torch.Tensor]:
+    factors = _get_saved_lora_factors(
+        qkv_module,
+        tag,
+        int(task_id),
+        device=x.device,
+        dtype=x.dtype,
+    )
+    if factors is None:
+        return None
+    A, B, _ = factors
+    delta = B @ A
+    out = x @ delta.t()
+    if use_current_scale:
+        return _apply_scale_module(getattr(qkv_module, "scaling_factor", None), out)
+    scale_modules = getattr(qkv_module, "scaling_factor_prev", None)
+    try:
+        return _apply_scale_module(scale_modules[int(task_id)], out)
+    except Exception:
+        return out * _scale_value_at(scale_modules, int(task_id))
+
+
+def _differentiable_saved_lora_forward(qkv_module: nn.Module, x: torch.Tensor) -> torch.Tensor:
+    qkv = qkv_module.qkv(x)
+    dim = int(getattr(qkv_module, "dim", qkv.shape[-1] // 3))
+    new_q = None
+    new_v = None
+
+    task_id = int(getattr(qkv_module, "task_id", 0) or 0)
+    for old_task_id in range(task_id):
+        q_contrib = _saved_lora_contribution(qkv_module, x, "q", old_task_id, use_current_scale=False)
+        v_contrib = _saved_lora_contribution(qkv_module, x, "v", old_task_id, use_current_scale=False)
+        if q_contrib is None or v_contrib is None:
+            continue
+        new_q = q_contrib if new_q is None else new_q + q_contrib
+        new_v = v_contrib if new_v is None else new_v + v_contrib
+
+    q_contrib = _saved_lora_contribution(qkv_module, x, "q", task_id, use_current_scale=True)
+    v_contrib = _saved_lora_contribution(qkv_module, x, "v", task_id, use_current_scale=True)
+    if q_contrib is not None and v_contrib is not None:
+        new_q = q_contrib if new_q is None else new_q + q_contrib
+        new_v = v_contrib if new_v is None else new_v + v_contrib
+
+    if new_q is None or new_v is None:
+        return qkv
+    qkv = qkv.clone()
+    qkv[:, :, :dim] = qkv[:, :, :dim] + new_q
+    qkv[:, :, -dim:] = qkv[:, :, -dim:] + new_v
+    return qkv
+
+
+@contextmanager
+def _patch_saved_lora_eval_forwards(modules: List[nn.Module]):
+    patched: List[Tuple[nn.Module, Any]] = []
+    for module in modules:
+        has_current = all(
+            hasattr(module, attr)
+            for attr in ("linear_a_q", "linear_b_q", "linear_a_v", "linear_b_v")
+        )
+        if has_current or not _saved_lora_task_ids(module):
+            continue
+        old_forward = getattr(module, "forward", None)
+        if old_forward is None:
+            continue
+        patched.append((module, old_forward))
+        module.forward = lambda x, _m=module: _differentiable_saved_lora_forward(_m, x)
+    try:
+        yield
+    finally:
+        for module, old_forward in patched:
+            module.forward = old_forward
+
+
+def _evaluate_delta_tangent_sharpness(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    base_loss: float,
+    rho: float,
+    max_batches: Optional[int],
+    known_classes: Optional[int],
+    task_id: Optional[int],
+    eps: float,
+    basis_eps: float,
+) -> Dict[str, float]:
+    modules = _collect_delta_lora_qkv_modules(model)
+    if not modules:
+        return {
+            "sh_delta_max": float("nan"),
+            "sh_delta_first_order": float("nan"),
+            "sh_delta_grad_norm": float("nan"),
+            "sh_delta_num_modules": 0,
+            "sh_delta_num_directions": 0,
+            "Sh_Delta_tangent": float("nan"),
+            "Sh_Delta/W_tangent": float("nan"),
+            "Sh_Delta_tangent_first_order": float("nan"),
+            "Sh_Delta_tangent_grad_norm": float("nan"),
+            "Sh_Delta_tangent_num_modules": 0,
+            "Sh_Delta_tangent_num_directions": 0,
+        }
+
+    weight_states = []
+    for module in modules:
+        weight = module.qkv.weight
+        old_grad = None if weight.grad is None else weight.grad.detach().clone()
+        weight_states.append((weight, bool(weight.requires_grad), old_grad))
+        weight.requires_grad_(True)
+        weight.grad = None
+
+    was_training = model.training
+    records: List[Tuple[torch.nn.Parameter, int, int, torch.Tensor]] = []
+    num_directions = 0
+    norm2 = None
+    criterion = nn.CrossEntropyLoss(reduction="mean")
+    batches_processed = 0
+    max_batches_int = None if max_batches is None else max(int(max_batches), 0)
+    if max_batches_int == 0:
+        max_batches_int = None
+
+    try:
+        with _patch_saved_lora_eval_forwards(modules):
+            model.eval()
+            model.zero_grad(set_to_none=True)
+            with torch.enable_grad(), _sdp_disable_context():
+                for batch_idx, batch in enumerate(loader):
+                    inputs, targets = _unwrap_batch(batch)
+                    inputs = inputs.to(device, non_blocking=True)
+                    targets = targets.to(device, non_blocking=True)
+
+                    logits = _forward_logits_full(model, inputs, targets)
+                    if known_classes is not None and known_classes > 0:
+                        loss = criterion(logits[:, known_classes:], targets - known_classes)
+                    else:
+                        loss = criterion(logits, targets)
+                    loss.backward()
+                    batches_processed += 1
+
+                    if max_batches_int is not None and batch_idx + 1 >= max_batches_int:
+                        break
+
+            for module in modules:
+                weight = module.qkv.weight
+                grad = weight.grad
+                if grad is None or grad.ndim != 2:
+                    continue
+                dim = int(getattr(module, "dim", grad.shape[0] // 3))
+                row_specs = {
+                    "q": (0, dim),
+                    "v": (grad.shape[0] - dim, grad.shape[0]),
+                }
+                for tag, (row_start, row_end) in row_specs.items():
+                    factors = _get_lora_factors(
+                        module,
+                        tag,
+                        task_id,
+                        device=grad.device,
+                        dtype=grad.dtype,
+                    )
+                    if factors is None:
+                        continue
+                    A, B, scale = factors
+                    if abs(float(scale)) <= float(eps):
+                        continue
+                    grad_block = grad[row_start:row_end, :].detach()
+                    projected = _project_to_lora_tangent(
+                        grad_block,
+                        A,
+                        B,
+                        basis_eps=float(basis_eps),
+                    )
+                    if not torch.isfinite(projected).all():
+                        continue
+                    block_norm2 = torch.sum(projected * projected)
+                    norm2 = block_norm2 if norm2 is None else norm2 + block_norm2
+                    records.append((weight, row_start, row_end, projected))
+                    num_directions += 1
+
+            if norm2 is None:
+                return {
+                    "sh_delta_max": float("nan"),
+                    "sh_delta_first_order": float("nan"),
+                    "sh_delta_grad_norm": float("nan"),
+                    "sh_delta_num_modules": len(modules),
+                    "sh_delta_num_directions": 0,
+                    "sh_delta_grad_batches": int(batches_processed),
+                    "Sh_Delta_tangent": float("nan"),
+                    "Sh_Delta/W_tangent": float("nan"),
+                    "Sh_Delta_tangent_first_order": float("nan"),
+                    "Sh_Delta_tangent_grad_norm": float("nan"),
+                    "Sh_Delta_tangent_num_modules": len(modules),
+                    "Sh_Delta_tangent_num_directions": 0,
+                    "Sh_Delta_tangent_grad_batches": int(batches_processed),
+                }
+
+            grad_norm = float(torch.sqrt(norm2).detach().item())
+            if grad_norm <= float(eps):
+                return {
+                    "sh_delta_max": 0.0,
+                    "sh_delta_first_order": 0.0,
+                    "sh_delta_grad_norm": 0.0,
+                    "sh_delta_perturbed_loss": float(base_loss),
+                    "sh_delta_num_modules": len(modules),
+                    "sh_delta_num_directions": int(num_directions),
+                    "sh_delta_grad_batches": int(batches_processed),
+                    "sh_delta_radius": float(rho),
+                    "Sh_Delta_tangent": 0.0,
+                    "Sh_Delta/W_tangent": 0.0,
+                    "Sh_Delta_tangent_first_order": 0.0,
+                    "Sh_Delta_tangent_grad_norm": 0.0,
+                    "Sh_Delta_tangent_perturbed_loss": float(base_loss),
+                    "Sh_Delta_tangent_num_modules": len(modules),
+                    "Sh_Delta_tangent_num_directions": int(num_directions),
+                    "Sh_Delta_tangent_grad_batches": int(batches_processed),
+                    "Sh_Delta_tangent_radius": float(rho),
+                }
+
+            injected: List[Tuple[torch.nn.Parameter, int, int, torch.Tensor]] = []
+            scale = float(rho) / (grad_norm + float(eps))
+            with torch.no_grad():
+                for weight, row_start, row_end, projected in records:
+                    perturb = projected * scale
+                    weight.data[row_start:row_end, :].add_(perturb)
+                    injected.append((weight, row_start, row_end, perturb))
+            try:
+                perturbed_loss = _compute_loss(
+                    model,
+                    loader,
+                    device,
+                    max_batches=max_batches_int,
+                    known_classes=known_classes,
+                )
+            finally:
+                with torch.no_grad():
+                    for weight, row_start, row_end, perturb in injected:
+                        weight.data[row_start:row_end, :].sub_(perturb)
+
+            sh_delta = max(0.0, float(perturbed_loss - base_loss))
+            return {
+                "sh_delta_max": sh_delta,
+                "sh_delta_first_order": float(rho) * grad_norm,
+                "sh_delta_grad_norm": grad_norm,
+                "sh_delta_perturbed_loss": float(perturbed_loss),
+                "sh_delta_num_modules": len(modules),
+                "sh_delta_num_directions": int(num_directions),
+                "sh_delta_grad_batches": int(batches_processed),
+                "sh_delta_radius": float(rho),
+                "Sh_Delta_tangent": sh_delta,
+                "Sh_Delta/W_tangent": sh_delta,
+                "Sh_Delta_tangent_first_order": float(rho) * grad_norm,
+                "Sh_Delta_tangent_grad_norm": grad_norm,
+                "Sh_Delta_tangent_perturbed_loss": float(perturbed_loss),
+                "Sh_Delta_tangent_num_modules": len(modules),
+                "Sh_Delta_tangent_num_directions": int(num_directions),
+                "Sh_Delta_tangent_grad_batches": int(batches_processed),
+                "Sh_Delta_tangent_radius": float(rho),
+            }
+    finally:
+        if was_training:
+            model.train(True)
+        else:
+            model.eval()
+        for weight, old_requires_grad, old_grad in weight_states:
+            weight.requires_grad_(old_requires_grad)
+            weight.grad = old_grad
+        model.zero_grad(set_to_none=True)
+
+
+def _stable_seed_from_parts(base_seed: int, parts: Iterable[Any]) -> int:
+    seed = int(base_seed) & 0x7FFFFFFF
+    for part in parts:
+        if isinstance(part, str):
+            val = sum((idx + 1) * ord(ch) for idx, ch in enumerate(part))
+        elif isinstance(part, (tuple, list)):
+            val = 0
+            for idx, item in enumerate(part):
+                try:
+                    val += (idx + 1) * int(item)
+                except Exception:
+                    val += (idx + 1) * sum(ord(ch) for ch in str(item))
+        else:
+            try:
+                val = int(part)
+            except Exception:
+                val = sum(ord(ch) for ch in str(part))
+        seed = (seed * 1315423911 + val) & 0x7FFFFFFF
+    return int(seed)
+
+
+def _random_orthonormal_bases(
+    out_dim: int,
+    in_dim: int,
+    rank: int,
+    *,
+    seed: int,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    rank = max(0, min(int(rank), int(out_dim), int(in_dim)))
+    if rank <= 0:
+        return (
+            torch.zeros((out_dim, 0), device=device, dtype=dtype),
+            torch.zeros((in_dim, 0), device=device, dtype=dtype),
+        )
+    generator = torch.Generator(device="cpu")
+    generator.manual_seed(int(seed))
+    rand_u = torch.randn(out_dim, rank, generator=generator, dtype=torch.float32)
+    rand_v = torch.randn(in_dim, rank, generator=generator, dtype=torch.float32)
+    q_u, _ = torch.linalg.qr(rand_u, mode="reduced")
+    q_v, _ = torch.linalg.qr(rand_v, mode="reduced")
+    return q_u.to(device=device, dtype=dtype), q_v.to(device=device, dtype=dtype)
+
+
+def _project_to_random_matched_tangent(
+    grad_block: torch.Tensor,
+    *,
+    rank: int,
+    seed: int,
+) -> torch.Tensor:
+    out_dim, in_dim = int(grad_block.shape[0]), int(grad_block.shape[1])
+    U, V = _random_orthonormal_bases(
+        out_dim,
+        in_dim,
+        rank,
+        seed=seed,
+        device=grad_block.device,
+        dtype=grad_block.dtype,
+    )
+    if U.shape[1] == 0 and V.shape[1] == 0:
+        return torch.zeros_like(grad_block)
+    if U.shape[1] == 0:
+        return (grad_block @ V) @ V.t()
+    if V.shape[1] == 0:
+        return U @ (U.t() @ grad_block)
+    p_u_g = U @ (U.t() @ grad_block)
+    g_p_v = (grad_block @ V) @ V.t()
+    p_u_g_p_v = U @ (U.t() @ grad_block @ V) @ V.t()
+    return p_u_g + g_p_v - p_u_g_p_v
+
+
+def _evaluate_random_matched_tangent_sharpness(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    base_loss: float,
+    rho: float,
+    max_batches: Optional[int],
+    known_classes: Optional[int],
+    task_id: Optional[int],
+    eps: float,
+    seed: int,
+) -> Dict[str, float]:
+    modules = _collect_delta_lora_qkv_modules(model)
+    if not modules:
+        return {
+            "Sh_rand_tangent": float("nan"),
+            "Sh_rand/W_tangent": float("nan"),
+            "Sh_rand_tangent_num_modules": 0,
+            "Sh_rand_tangent_num_directions": 0,
+        }
+
+    weight_states = []
+    for module in modules:
+        weight = module.qkv.weight
+        old_grad = None if weight.grad is None else weight.grad.detach().clone()
+        weight_states.append((weight, bool(weight.requires_grad), old_grad))
+        weight.requires_grad_(True)
+        weight.grad = None
+
+    was_training = model.training
+    records: List[Tuple[torch.nn.Parameter, int, int, torch.Tensor]] = []
+    norm2 = None
+    num_directions = 0
+    criterion = nn.CrossEntropyLoss(reduction="mean")
+    batches_processed = 0
+    max_batches_int = None if max_batches is None else max(int(max_batches), 0)
+    if max_batches_int == 0:
+        max_batches_int = None
+
+    try:
+        with _patch_saved_lora_eval_forwards(modules):
+            model.eval()
+            model.zero_grad(set_to_none=True)
+            with torch.enable_grad(), _sdp_disable_context():
+                for batch_idx, batch in enumerate(loader):
+                    inputs, targets = _unwrap_batch(batch)
+                    inputs = inputs.to(device, non_blocking=True)
+                    targets = targets.to(device, non_blocking=True)
+                    logits = _forward_logits_full(model, inputs, targets)
+                    if known_classes is not None and known_classes > 0:
+                        loss = criterion(logits[:, known_classes:], targets - known_classes)
+                    else:
+                        loss = criterion(logits, targets)
+                    loss.backward()
+                    batches_processed += 1
+                    if max_batches_int is not None and batch_idx + 1 >= max_batches_int:
+                        break
+
+            for module_idx, module in enumerate(modules):
+                weight = module.qkv.weight
+                grad = weight.grad
+                if grad is None or grad.ndim != 2:
+                    continue
+                dim = int(getattr(module, "dim", grad.shape[0] // 3))
+                row_specs = {
+                    "q": (0, dim),
+                    "v": (grad.shape[0] - dim, grad.shape[0]),
+                }
+                for tag, (row_start, row_end) in row_specs.items():
+                    factors = _get_lora_factors(
+                        module,
+                        tag,
+                        task_id,
+                        device=grad.device,
+                        dtype=grad.dtype,
+                    )
+                    if factors is None:
+                        continue
+                    A, _B, scale = factors
+                    if abs(float(scale)) <= float(eps):
+                        continue
+                    rank = int(A.shape[0]) if A.ndim == 2 else 0
+                    grad_block = grad[row_start:row_end, :].detach()
+                    projected = _project_to_random_matched_tangent(
+                        grad_block,
+                        rank=rank,
+                        seed=_stable_seed_from_parts(seed, (module_idx, getattr(module, "t_layer_i", 0), tag, tuple(grad_block.shape), rank)),
+                    )
+                    if not torch.isfinite(projected).all():
+                        continue
+                    block_norm2 = torch.sum(projected * projected)
+                    norm2 = block_norm2 if norm2 is None else norm2 + block_norm2
+                    records.append((weight, row_start, row_end, projected))
+                    num_directions += 1
+
+            if norm2 is None:
+                return {
+                    "Sh_rand_tangent": float("nan"),
+                    "Sh_rand/W_tangent": float("nan"),
+                    "Sh_rand_tangent_first_order": float("nan"),
+                    "Sh_rand_tangent_grad_norm": float("nan"),
+                    "Sh_rand_tangent_num_modules": len(modules),
+                    "Sh_rand_tangent_num_directions": 0,
+                    "Sh_rand_tangent_grad_batches": int(batches_processed),
+                }
+
+            grad_norm = float(torch.sqrt(norm2).detach().item())
+            if grad_norm <= float(eps):
+                return {
+                    "Sh_rand_tangent": 0.0,
+                    "Sh_rand/W_tangent": 0.0,
+                    "Sh_rand_tangent_first_order": 0.0,
+                    "Sh_rand_tangent_grad_norm": 0.0,
+                    "Sh_rand_tangent_perturbed_loss": float(base_loss),
+                    "Sh_rand_tangent_num_modules": len(modules),
+                    "Sh_rand_tangent_num_directions": int(num_directions),
+                    "Sh_rand_tangent_grad_batches": int(batches_processed),
+                    "Sh_rand_tangent_radius": float(rho),
+                }
+
+            injected: List[Tuple[torch.nn.Parameter, int, int, torch.Tensor]] = []
+            scale = float(rho) / (grad_norm + float(eps))
+            with torch.no_grad():
+                for weight, row_start, row_end, projected in records:
+                    perturb = projected * scale
+                    weight.data[row_start:row_end, :].add_(perturb)
+                    injected.append((weight, row_start, row_end, perturb))
+            try:
+                perturbed_loss = _compute_loss(
+                    model,
+                    loader,
+                    device,
+                    max_batches=max_batches_int,
+                    known_classes=known_classes,
+                )
+            finally:
+                with torch.no_grad():
+                    for weight, row_start, row_end, perturb in injected:
+                        weight.data[row_start:row_end, :].sub_(perturb)
+
+            sh_rand = max(0.0, float(perturbed_loss - base_loss))
+            return {
+                "Sh_rand_tangent": sh_rand,
+                "Sh_rand/W_tangent": sh_rand,
+                "Sh_rand_tangent_first_order": float(rho) * grad_norm,
+                "Sh_rand_tangent_grad_norm": grad_norm,
+                "Sh_rand_tangent_perturbed_loss": float(perturbed_loss),
+                "Sh_rand_tangent_num_modules": len(modules),
+                "Sh_rand_tangent_num_directions": int(num_directions),
+                "Sh_rand_tangent_grad_batches": int(batches_processed),
+                "Sh_rand_tangent_radius": float(rho),
+            }
+    finally:
+        if was_training:
+            model.train(True)
+        else:
+            model.eval()
+        for weight, old_requires_grad, old_grad in weight_states:
+            weight.requires_grad_(old_requires_grad)
+            weight.grad = old_grad
+        model.zero_grad(set_to_none=True)
+
+
+def _estimate_lora_tangent_dimension(model: nn.Module, task_id: Optional[int] = None) -> int:
+    total = 0
+    for module in _collect_delta_lora_qkv_modules(model):
+        for tag in ("q", "v"):
+            factors = _get_lora_factors(
+                module,
+                tag,
+                task_id,
+                device=getattr(module.qkv.weight, "device", torch.device("cpu")),
+                dtype=getattr(module.qkv.weight, "dtype", torch.float32),
+            )
+            if factors is None:
+                continue
+            A, B, _scale = factors
+            if A.ndim != 2 or B.ndim != 2:
+                continue
+            rank = int(A.shape[0])
+            in_dim = int(A.shape[1])
+            out_dim = int(B.shape[0])
+            total += max(0, rank * (out_dim + in_dim - rank))
+    return int(total)
 
 def _hessian_vector_product(
     model: nn.Module,
@@ -939,8 +2068,9 @@ def evaluate_flatness_metrics(
 ) -> Dict[str, float]:
     """Compute a suite of sharpness/flatness proxies for the current model.
 
-    ``base_loss`` and ``sh0_max`` map onto zeroth-order sharpness definitions,
-    ``grad_norm`` / ``first_order_sharpness`` correspond to ``Sh^{(1)}``, while
+    ``base_loss`` and ``Sh_param_full`` map onto the legacy zeroth-order
+    parameter-space sharpness definition, ``grad_norm`` /
+    ``first_order_sharpness`` correspond to ``Sh^{(1)}``, while
     ``lambda_max`` / ``hessian_trace`` approximate the curvature of the second
     order Taylor expansion. The Monte-Carlo term provides the distributional
     sharpness ``E-Sh``.
@@ -953,7 +2083,7 @@ def evaluate_flatness_metrics(
     # params = [p for p in wrapped_model.parameters() if p.requires_grad]
 
     wrapped_model = network.module if isinstance(network, torch.nn.DataParallel) else network
-    if getattr(config,"model_name", "").lower() == "tuna":
+    if str(getattr(config, "model_name", "") or "").lower() == "tuna":
         module = wrapped_model._network
         module = module.module if hasattr(module, "module") else module
         bb = getattr(module, "backbone", None)
@@ -962,6 +2092,7 @@ def evaluate_flatness_metrics(
 
     substrs = getattr(config, "param_name_substrings", None)
     include_frozen = bool(getattr(config, "include_frozen_params", False))
+    originally_frozen_param_ids = {id(_p) for _name, _p in wrapped_model.named_parameters() if not _p.requires_grad}
     if isinstance(substrs, str):
         if substrs.lower() in {"none", "all", ""}:
             substrs = None
@@ -991,10 +2122,18 @@ def evaluate_flatness_metrics(
     if not params:
         return {"base_loss": 0.0}
 
+    rescale_factor = getattr(config, "lora_rescale_factor", None)
+    rescale_task_id = getattr(config, "lora_rescale_task_id", None)
+    rescale_ctx = _temporary_lora_factor_rescale(wrapped_model, rescale_factor, rescale_task_id)
+    rescale_count = rescale_ctx.__enter__()
+
     prev_max_examples = _get_max_examples_per_batch()
     _set_max_examples_per_batch(config.max_examples_per_batch)
     try:
         flat_metrics: Dict[str, float] = {}
+        if rescale_count:
+            flat_metrics["lora_rescale_factor"] = float(rescale_factor)
+            flat_metrics["lora_rescale_num_pairs"] = int(rescale_count)
         vals_power = None
         vecs_power = None
         param_backup = _clone_params(params)
@@ -1071,14 +2210,16 @@ def evaluate_flatness_metrics(
             grad_norm = grad_vector.norm().item()
             flat_metrics["grad_norm"] = grad_norm
             flat_metrics["first_order_sharpness"] = config.sharpness_radius * grad_norm
+            flat_metrics["Sh_param_full_grad_norm"] = grad_norm
+            flat_metrics["Sh_param_full_first_order"] = config.sharpness_radius * grad_norm
             logging.info(
                 "[FlatEval] Done grad_norm=%.6f, Sh1=%.6f",
                 grad_norm,
                 flat_metrics["first_order_sharpness"],
             )
 
-            # max sharpness
-            logging.info("[FlatEval] Start Sh0_max along grad (rho=%.4f)", float(config.sharpness_radius))
+            # Legacy sh0_max is now reported as Sh_param_full.
+            logging.info("[FlatEval] Start Sh_param_full along raw parameter grad (rho=%.4f)", float(config.sharpness_radius))
             if grad_norm > 0:
                 direction = grad_vector / (grad_norm + 1e-12)
                 perturb = direction * config.sharpness_radius
@@ -1086,13 +2227,21 @@ def evaluate_flatness_metrics(
                 perturbed_loss = _compute_loss(
                     wrapped_model, loader, device, max_batches=config.loss_eval_max_batches, known_classes=known_classes
                 )
-                sh0 = perturbed_loss - base_loss
+                sh0 = max(0.0, float(perturbed_loss - base_loss))
                 flat_metrics["sh0_perturbed_loss"] = float(perturbed_loss)
                 flat_metrics["sh0_max"] = float(sh0)
+                flat_metrics["Sh_param_full_perturbed_loss"] = float(perturbed_loss)
+                flat_metrics["Sh_param_full"] = float(sh0)
+                flat_metrics["Sh_param_full_radius"] = float(config.sharpness_radius)
+                flat_metrics["Sh_param_full_num_params"] = int(len(params))
                 _restore_params(params, param_backup)
             else:
                 flat_metrics["sh0_max"] = 0.0
-            logging.info("[FlatEval] Done Sh0_max=%.6f", flat_metrics.get("sh0_max", 0.0))
+                flat_metrics["Sh_param_full"] = 0.0
+                flat_metrics["Sh_param_full_perturbed_loss"] = float(base_loss)
+                flat_metrics["Sh_param_full_radius"] = float(config.sharpness_radius)
+                flat_metrics["Sh_param_full_num_params"] = int(len(params))
+            logging.info("[FlatEval] Done Sh_param_full=%.6f", flat_metrics.get("Sh_param_full", 0.0))
 
             # Random expectation sharpness
             if bool(getattr(config, "eval_expected_sharpness", False)):
@@ -1125,6 +2274,219 @@ def evaluate_flatness_metrics(
             logging.info("[FlatEval] Done sharpness eval (metrics_json=%s)", metrics_json_path)
         else:
             logging.info("[FlatEval] Skip sharpness eval (disabled)")
+
+        if bool(getattr(config, "ab_sharpness", False)):
+            ab_rho = getattr(config, "ab_sharpness_radius", None)
+            if ab_rho is None:
+                ab_rho = getattr(config, "sharpness_radius", 0.05)
+            ab_grad_batches = getattr(config, "ab_sharpness_grad_batches", None)
+            if ab_grad_batches is None:
+                ab_grad_batches = getattr(config, "first_order_grad_batches", None)
+            if ab_grad_batches is None:
+                ab_grad_batches = getattr(config, "loss_eval_max_batches", None)
+            ab_param_names = getattr(config, "ab_sharpness_param_names", None)
+            if ab_param_names is None:
+                ab_param_names = ["linear_a", "linear_b"]
+            logging.info(
+                "[FlatEval] Start raw A/B sharpness (rho=%.6f, grad_batches=%s, params=%s)",
+                float(ab_rho),
+                str(ab_grad_batches),
+                str(ab_param_names),
+            )
+            try:
+                ab_metrics = _evaluate_param_scope_sharpness(
+                    wrapped_model,
+                    loader,
+                    device,
+                    base_loss=float(base_loss),
+                    rho=float(ab_rho),
+                    max_batches=ab_grad_batches,
+                    known_classes=known_classes,
+                    param_name_substrings=ab_param_names,
+                    include_frozen=bool(getattr(config, "ab_sharpness_include_frozen", False)),
+                    prefix="sh_ab",
+                )
+                flat_metrics.update(ab_metrics)
+                logging.info(
+                    "[FlatEval] Done raw A/B sharpness Sh_AB=%.6f",
+                    float(flat_metrics.get("Sh_AB", flat_metrics.get("sh_ab_max", float("nan")))),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.exception("[FlatEval] raw A/B sharpness failed: %s", exc)
+                flat_metrics.update(
+                    {
+                        "sh_ab_max": float("nan"),
+                        "sh_ab_first_order": float("nan"),
+                        "sh_ab_grad_norm": float("nan"),
+                        "sh_ab_num_params": 0,
+                        "Sh_AB": float("nan"),
+                        "Sh_AB_first_order": float("nan"),
+                        "Sh_AB_grad_norm": float("nan"),
+                        "Sh_AB_num_params": 0,
+                    }
+                )
+        else:
+            logging.info("[FlatEval] Skip raw A/B sharpness eval (disabled)")
+
+        if bool(getattr(config, "delta_sharpness", False)):
+            delta_rho = getattr(config, "delta_sharpness_radius", None)
+            if delta_rho is None:
+                delta_rho = getattr(config, "sharpness_radius", 0.05)
+            delta_grad_batches = getattr(config, "delta_sharpness_grad_batches", None)
+            if delta_grad_batches is None:
+                delta_grad_batches = getattr(config, "first_order_grad_batches", None)
+            if delta_grad_batches is None:
+                delta_grad_batches = getattr(config, "loss_eval_max_batches", None)
+            delta_task_id = _coerce_optional_task_id(getattr(config, "delta_sharpness_task_id", None))
+            logging.info(
+                "[FlatEval] Start Delta-W tangent sharpness (rho=%.6f, grad_batches=%s, task_id=%s)",
+                float(delta_rho),
+                str(delta_grad_batches),
+                str(delta_task_id),
+            )
+            try:
+                delta_metrics = _evaluate_delta_tangent_sharpness(
+                    wrapped_model,
+                    loader,
+                    device,
+                    base_loss=float(base_loss),
+                    rho=float(delta_rho),
+                    max_batches=delta_grad_batches,
+                    known_classes=known_classes,
+                    task_id=delta_task_id,
+                    eps=float(getattr(config, "delta_sharpness_eps", 1e-12)),
+                    basis_eps=float(getattr(config, "delta_sharpness_basis_eps", 1e-6)),
+                )
+                flat_metrics.update(delta_metrics)
+                logging.info(
+                    "[FlatEval] Done Delta-W tangent sharpness Sh_Delta/W_tangent=%.6f",
+                    float(flat_metrics.get("Sh_Delta/W_tangent", flat_metrics.get("Sh_Delta_tangent", flat_metrics.get("sh_delta_max", float("nan"))))),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.exception("[FlatEval] Delta-W tangent sharpness failed: %s", exc)
+                flat_metrics.update(
+                    {
+                        "sh_delta_max": float("nan"),
+                        "sh_delta_first_order": float("nan"),
+                        "sh_delta_grad_norm": float("nan"),
+                        "sh_delta_num_modules": 0,
+                        "sh_delta_num_directions": 0,
+                        "Sh_Delta_tangent": float("nan"),
+                        "Sh_Delta/W_tangent": float("nan"),
+                        "Sh_Delta_tangent_first_order": float("nan"),
+                        "Sh_Delta_tangent_grad_norm": float("nan"),
+                        "Sh_Delta_tangent_num_modules": 0,
+                        "Sh_Delta_tangent_num_directions": 0,
+                    }
+                )
+        else:
+            logging.info("[FlatEval] Skip Delta-W tangent sharpness eval (disabled)")
+
+        if bool(getattr(config, "random_tangent_sharpness", False)):
+            rand_rho = getattr(config, "random_tangent_radius", None)
+            if rand_rho is None:
+                rand_rho = getattr(config, "delta_sharpness_radius", None)
+            if rand_rho is None:
+                rand_rho = getattr(config, "sharpness_radius", 0.05)
+            rand_grad_batches = getattr(config, "random_tangent_grad_batches", None)
+            if rand_grad_batches is None:
+                rand_grad_batches = getattr(config, "delta_sharpness_grad_batches", None)
+            if rand_grad_batches is None:
+                rand_grad_batches = getattr(config, "first_order_grad_batches", None)
+            if rand_grad_batches is None:
+                rand_grad_batches = getattr(config, "loss_eval_max_batches", None)
+            rand_task_id = _coerce_optional_task_id(getattr(config, "delta_sharpness_task_id", None))
+            logging.info(
+                "[FlatEval] Start random matched tangent sharpness (rho=%.6f, grad_batches=%s, task_id=%s)",
+                float(rand_rho),
+                str(rand_grad_batches),
+                str(rand_task_id),
+            )
+            try:
+                rand_metrics = _evaluate_random_matched_tangent_sharpness(
+                    wrapped_model,
+                    loader,
+                    device,
+                    base_loss=float(base_loss),
+                    rho=float(rand_rho),
+                    max_batches=rand_grad_batches,
+                    known_classes=known_classes,
+                    task_id=rand_task_id,
+                    eps=float(getattr(config, "delta_sharpness_eps", 1e-12)),
+                    seed=int(getattr(config, "random_tangent_seed", 42)),
+                )
+                flat_metrics.update(rand_metrics)
+                logging.info(
+                    "[FlatEval] Done random matched tangent sharpness Sh_rand/W_tangent=%.6f",
+                    float(flat_metrics.get("Sh_rand/W_tangent", flat_metrics.get("Sh_rand_tangent", float("nan")))),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.exception("[FlatEval] random matched tangent sharpness failed: %s", exc)
+                flat_metrics.update(
+                    {
+                        "Sh_rand_tangent": float("nan"),
+                        "Sh_rand/W_tangent": float("nan"),
+                        "Sh_rand_tangent_first_order": float("nan"),
+                        "Sh_rand_tangent_grad_norm": float("nan"),
+                        "Sh_rand_tangent_num_modules": 0,
+                        "Sh_rand_tangent_num_directions": 0,
+                    }
+                )
+        else:
+            logging.info("[FlatEval] Skip random matched tangent sharpness eval (disabled)")
+
+        if bool(getattr(config, "frozen_sharpness", False)):
+            frozen_rho = getattr(config, "frozen_sharpness_radius", None)
+            if frozen_rho is None:
+                frozen_rho = getattr(config, "sharpness_radius", 0.05)
+            frozen_grad_batches = getattr(config, "frozen_sharpness_grad_batches", None)
+            if frozen_grad_batches is None:
+                frozen_grad_batches = getattr(config, "first_order_grad_batches", None)
+            if frozen_grad_batches is None:
+                frozen_grad_batches = getattr(config, "loss_eval_max_batches", None)
+            logging.info(
+                "[FlatEval] Start frozen-coordinate sharpness (rho=%.6f, grad_batches=%s)",
+                float(frozen_rho),
+                str(frozen_grad_batches),
+            )
+            try:
+                frozen_task_id = _coerce_optional_task_id(getattr(config, "delta_sharpness_task_id", None))
+                frozen_match_dim = bool(getattr(config, "frozen_sharpness_match_delta_dim", False))
+                frozen_match_count = (
+                    _estimate_lora_tangent_dimension(wrapped_model, frozen_task_id)
+                    if frozen_match_dim
+                    else None
+                )
+                frozen_metrics = _evaluate_frozen_scope_sharpness(
+                    wrapped_model,
+                    loader,
+                    device,
+                    base_loss=float(base_loss),
+                    rho=float(frozen_rho),
+                    max_batches=frozen_grad_batches,
+                    known_classes=known_classes,
+                    match_dim=frozen_match_dim,
+                    match_dim_count=frozen_match_count,
+                    seed=int(getattr(config, "frozen_sharpness_seed", 42)),
+                    frozen_param_ids=originally_frozen_param_ids,
+                )
+                flat_metrics.update(frozen_metrics)
+                logging.info(
+                    "[FlatEval] Done frozen-coordinate sharpness Sh_frozen_coords=%.6f",
+                    float(flat_metrics.get("Sh_frozen_coords", float("nan"))),
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.exception("[FlatEval] frozen-coordinate sharpness failed: %s", exc)
+                flat_metrics.update(
+                    {
+                        "sh_frozen_max": float("nan"),
+                        "Sh_frozen_coords": float("nan"),
+                        "Sh_frozen_coords_first_order": float("nan"),
+                        "Sh_frozen_coords_grad_norm": float("nan"),
+                    }
+                )
+        else:
+            logging.info("[FlatEval] Skip frozen-coordinate sharpness eval (disabled)")
 
         
         if bool(getattr(config, "eval_hessian", False)):
@@ -2400,6 +3762,7 @@ def evaluate_flatness_metrics(
         except Exception:
             pass
         _set_max_examples_per_batch(prev_max_examples)
+        rescale_ctx.__exit__(None, None, None)
 
 
 # ---------------------------------------------------------------------------

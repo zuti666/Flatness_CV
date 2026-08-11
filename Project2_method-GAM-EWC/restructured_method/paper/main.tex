@@ -1,0 +1,75 @@
+% ICML 2026 Paper: Revisiting Sharpness in Low-rank Subspaces for Continual Learning
+
+\documentclass{article}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{multirow}
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+\usepackage{icml2026}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+\newcommand{\minisection}[1]{\vspace{0.04in}\noindent{\bf #1}}
+
+\usepackage[capitalize,noabbrev]{cleveref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\crefname{assumption}{Assumption}{Assumptions}
+
+\input{math_commands.tex}
+
+\icmltitlerunning{Revisiting Sharpness in Low-rank Subspaces for Continual Learning}
+
+\begin{document}
+
+\twocolumn[
+  \icmltitle{Revisiting Sharpness in Low-rank Subspaces for Continual Learning}
+
+  \begin{icmlauthorlist}
+    \icmlauthor{Anonymous Authors}{}
+  \end{icmlauthorlist}
+
+  \vskip 0.3in
+]
+
+\printAffiliationsAndNotice{\icmlEqualContribution}
+
+\begin{abstract}
+\input{sections/0_abstract}
+\end{abstract}
+
+\input{sections/1_introduction}
+\input{sections/2_related_work}
+\input{sections/3_pecl_geometry}
+\input{sections/4_which_flatness}
+\input{sections/5_pac_bayes}
+\input{sections/6_pecl_specialization}
+\input{sections/7_predictions}
+\input{sections/8_experiments}
+\input{sections/9_discussion}
+\input{sections/10_conclusion}
+
+\bibliography{references}
+\bibliographystyle{icml2026}
+
+\newpage
+\appendix
+\input{sections/A_appendix}
+
+\end{document}

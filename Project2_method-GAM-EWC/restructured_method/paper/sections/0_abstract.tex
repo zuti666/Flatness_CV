@@ -1,0 +1,12 @@
+Flat minima in the loss landscape have long been associated with improved generalization and reduced catastrophic forgetting in continual learning.
+In LoRA-based continual learning, adaptation is confined to task-conditioned low-rank update directions while the backbone remains frozen, so existing flatness prescriptions inherited from full-parameter training measure curvature over directions the model can never modify.
+This raises a precise question: once continual adaptation is subspace-confined, which notion of flatness is actually relevant to generalization and forgetting?
+
+We answer this question through a sequential hierarchical PAC-Bayesian analysis for LoRA-based continual learning.
+We introduce a time-varying hyperposterior process over task priors and derive a bound with an explicit hyperposterior drift term that captures sequential belief updates across tasks.
+Under a frozen backbone with adapter-supported posteriors, we show that both the KL complexity and the sharpness-dependent empirical term reduce exactly to quantities supported on the task-admissible LoRA update subspace $\mathcal{W}_{\Delta,t}$.
+This identifies adapter-subspace flatness as the bound-relevant notion of flatness in this regime, rather than an arbitrary full-space property.
+
+The reduction yields testable predictions about perturbation design.
+We verify these predictions on vision and language benchmarks across SeqLoRA, IncLoRA, and OLoRA organizations: adapter-scoped sharpness-aware optimization consistently improves continual accuracy, while perturbations extending into frozen backbone parameters degrade performance.
+Curvature diagnostics further confirm that lower admissible-subspace sharpness correlates with higher continual accuracy and reduced forgetting across tasks.

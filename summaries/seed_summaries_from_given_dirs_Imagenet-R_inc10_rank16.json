@@ -1,0 +1,1602 @@
+{
+  "rows": [
+    {
+      "Method": "seqlora",
+      "Optimizer": "sam",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "seqlora_inr_sam_imagenetr_t20_rank16",
+      "Increment": "10",
+      "FAA": 68.091,
+      "AAA": 71.39866666666667,
+      "BWT": -9.164210526315792,
+      "NME_FAA": 74.914,
+      "NME_AAA": 77.41633333333334,
+      "NME_BWT": -5.730526315789474,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "Sh_param_full": NaN,
+      "Sh_param_full_first_order": NaN,
+      "Sh_param_full_grad_norm": NaN,
+      "Sh_param_full_perturbed_loss": NaN,
+      "Sh_AB": NaN,
+      "Sh_AB_first_order": NaN,
+      "Sh_AB_grad_norm": NaN,
+      "Sh_AB_perturbed_loss": NaN,
+      "Sh_Delta/W_tangent": NaN,
+      "Sh_Delta_tangent": NaN,
+      "Sh_Delta_tangent_first_order": NaN,
+      "Sh_Delta_tangent_grad_norm": NaN,
+      "Sh_Delta_tangent_perturbed_loss": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "sh_ab_max": NaN,
+      "sh_ab_perturbed_loss": NaN,
+      "sh_delta_max": NaN,
+      "sh_delta_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN,
+      "Sh_param_full_num_params": NaN,
+      "Sh_AB_num_params": NaN,
+      "sh_ab_first_order": NaN,
+      "sh_ab_grad_norm": NaN,
+      "sh_ab_num_params": NaN,
+      "Sh_Delta_tangent_num_modules": NaN,
+      "Sh_Delta_tangent_num_directions": NaN,
+      "sh_delta_first_order": NaN,
+      "sh_delta_grad_norm": NaN,
+      "sh_delta_num_modules": NaN,
+      "sh_delta_num_directions": NaN,
+      "lora_rescale_factor": NaN,
+      "lora_rescale_num_pairs": NaN
+    },
+    {
+      "Method": "seqlora",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "seqlora_inr_sgd_imagenetr_t20_rank16_1993_redo",
+      "Increment": "10",
+      "FAA": 61.44100000000001,
+      "AAA": 67.75376190476192,
+      "BWT": -13.343684210526314,
+      "NME_FAA": 72.03449999999998,
+      "NME_AAA": 76.63085714285714,
+      "NME_BWT": -7.905263157894736,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": 77.45000123977661,
+      "LP_base_model": 68.83333325386047,
+      "LP_per_task_avg_final": 91.88733756542206,
+      "LP_per_task_avg_base": 86.28103107213974,
+      "base_loss": 1.9077693557739257,
+      "grad_norm": 54.378173828125,
+      "first_order_sharpness": 2.7189086914062504,
+      "Sh_param_full": 0.1650343068440756,
+      "Sh_param_full_first_order": 2.7189086914062504,
+      "Sh_param_full_grad_norm": 54.378173828125,
+      "Sh_param_full_perturbed_loss": 2.0728036626180013,
+      "Sh_AB": NaN,
+      "Sh_AB_first_order": NaN,
+      "Sh_AB_grad_norm": NaN,
+      "Sh_AB_perturbed_loss": NaN,
+      "Sh_Delta/W_tangent": NaN,
+      "Sh_Delta_tangent": NaN,
+      "Sh_Delta_tangent_first_order": NaN,
+      "Sh_Delta_tangent_grad_norm": NaN,
+      "Sh_Delta_tangent_perturbed_loss": NaN,
+      "sh0_max": 0.1650343068440756,
+      "sh0_perturbed_loss": 2.0728036626180013,
+      "sh_ab_max": NaN,
+      "sh_ab_perturbed_loss": NaN,
+      "sh_delta_max": NaN,
+      "sh_delta_perturbed_loss": NaN,
+      "esh_mean": 2.19120665860828e-05,
+      "esh_std": 0.0001622294948901981,
+      "lambda_max(H)": 33.82384490966797,
+      "lambda_max_power(H)": 33.82384490966797,
+      "lambda_max_lanczos(H)": 33.53512677351253,
+      "tr(H)": 1764.8586108398438,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": 796.54150390625,
+      "ggn_lambda_max_lanczos": 796.5280161832798,
+      "ggn_trace": 52403.0461328125,
+      "fisher_lambda_max_power": 796.54150390625,
+      "fisher_lambda_max_lanczos": 796.5280161832798,
+      "fisher_trace": 52403.0461328125,
+      "fisher_rao_norm": 228.91711629498678,
+      "emp_fisher_lambda_max_power": 42.42302322387695,
+      "emp_fisher_lambda_max_lanczos": 42.42280763830722,
+      "emp_fisher_trace": 1553.4866674804687,
+      "Sh1_norm": 54.378173828125,
+      "Sh0_norm": 3.3006861368815117,
+      "ESh_trace_per_dim": 0.017529653268866234,
+      "tr(E)": 0.7319341569017689,
+      "rho(E)": 0.01786646397357519,
+      "frobenius_norm(E)": 0.06695096949605558,
+      "rank(E)": 199.0,
+      "num_samples(E)": 600.0,
+      "effective_rank(E)": 119.51716659558308,
+      "anisotropy_index(E)": 18.74682877950414,
+      "eig_top1": 0.01786646397357519,
+      "eig_top5_mean": 0.01467264515287953,
+      "eig_top10_mean": 0.012777862549155885,
+      "eig_tail_mean": 0.0031797658622985843,
+      "proto_drift_l2_mean": 20.299228286743165,
+      "proto_drift_l2_std": 2.320752579880531,
+      "proto_drift_cos_mean": 0.3812895089387894,
+      "proto_drift_cos_std": 0.10772944747799759,
+      "proto_n_classes": 10.0,
+      "cka_stab_seen_first": 0.6859062910079956,
+      "cka_n_pairs": 317.0,
+      "Sh_param_full_num_params": NaN,
+      "Sh_AB_num_params": NaN,
+      "sh_ab_first_order": NaN,
+      "sh_ab_grad_norm": NaN,
+      "sh_ab_num_params": NaN,
+      "Sh_Delta_tangent_num_modules": NaN,
+      "Sh_Delta_tangent_num_directions": NaN,
+      "sh_delta_first_order": NaN,
+      "sh_delta_grad_norm": NaN,
+      "sh_delta_num_modules": NaN,
+      "sh_delta_num_directions": NaN,
+      "lora_rescale_factor": NaN,
+      "lora_rescale_num_pairs": NaN
+    },
+    {
+      "Method": "seqlora",
+      "Optimizer": "sgd",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "seqlora_inr_sgd_imagenetr_t20_rank16",
+      "Increment": "10",
+      "FAA": 61.44100000000001,
+      "AAA": 67.75509523809524,
+      "BWT": -13.343684210526314,
+      "NME_FAA": 72.06299999999999,
+      "NME_AAA": 76.63014285714287,
+      "NME_BWT": -7.8900000000000015,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": NaN,
+      "LP_base_model": NaN,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "Sh_param_full": NaN,
+      "Sh_param_full_first_order": NaN,
+      "Sh_param_full_grad_norm": NaN,
+      "Sh_param_full_perturbed_loss": NaN,
+      "Sh_AB": NaN,
+      "Sh_AB_first_order": NaN,
+      "Sh_AB_grad_norm": NaN,
+      "Sh_AB_perturbed_loss": NaN,
+      "Sh_Delta/W_tangent": NaN,
+      "Sh_Delta_tangent": NaN,
+      "Sh_Delta_tangent_first_order": NaN,
+      "Sh_Delta_tangent_grad_norm": NaN,
+      "Sh_Delta_tangent_perturbed_loss": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "sh_ab_max": NaN,
+      "sh_ab_perturbed_loss": NaN,
+      "sh_delta_max": NaN,
+      "sh_delta_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN,
+      "Sh_param_full_num_params": NaN,
+      "Sh_AB_num_params": NaN,
+      "sh_ab_first_order": NaN,
+      "sh_ab_grad_norm": NaN,
+      "sh_ab_num_params": NaN,
+      "Sh_Delta_tangent_num_modules": NaN,
+      "Sh_Delta_tangent_num_directions": NaN,
+      "sh_delta_first_order": NaN,
+      "sh_delta_grad_norm": NaN,
+      "sh_delta_num_modules": NaN,
+      "sh_delta_num_directions": NaN,
+      "lora_rescale_factor": NaN,
+      "lora_rescale_num_pairs": NaN
+    },
+    {
+      "Method": "seqlora",
+      "Optimizer": "gam",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "seqlora_inr_gam_imagenetr_t20_rank16",
+      "Increment": "10",
+      "FAA": 73.83300000000001,
+      "AAA": 76.82119047619047,
+      "BWT": -8.786315789473685,
+      "NME_FAA": 75.886,
+      "NME_AAA": 78.69638095238096,
+      "NME_BWT": -5.835789473684213,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": 78.4500002861023,
+      "LP_base_model": 68.83333325386047,
+      "LP_per_task_avg_final": 93.18915456533432,
+      "LP_per_task_avg_base": 86.28103107213974,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "Sh_param_full": NaN,
+      "Sh_param_full_first_order": NaN,
+      "Sh_param_full_grad_norm": NaN,
+      "Sh_param_full_perturbed_loss": NaN,
+      "Sh_AB": NaN,
+      "Sh_AB_first_order": NaN,
+      "Sh_AB_grad_norm": NaN,
+      "Sh_AB_perturbed_loss": NaN,
+      "Sh_Delta/W_tangent": NaN,
+      "Sh_Delta_tangent": NaN,
+      "Sh_Delta_tangent_first_order": NaN,
+      "Sh_Delta_tangent_grad_norm": NaN,
+      "Sh_Delta_tangent_perturbed_loss": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "sh_ab_max": NaN,
+      "sh_ab_perturbed_loss": NaN,
+      "sh_delta_max": NaN,
+      "sh_delta_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": 10.247621250152587,
+      "proto_drift_l2_std": 1.0580263252706332,
+      "proto_drift_cos_mean": 0.21297228336334229,
+      "proto_drift_cos_std": 0.09511619225851072,
+      "proto_n_classes": 10.0,
+      "cka_stab_seen_first": 0.7973858714103699,
+      "cka_n_pairs": 317.0,
+      "Sh_param_full_num_params": NaN,
+      "Sh_AB_num_params": NaN,
+      "sh_ab_first_order": NaN,
+      "sh_ab_grad_norm": NaN,
+      "sh_ab_num_params": NaN,
+      "Sh_Delta_tangent_num_modules": NaN,
+      "Sh_Delta_tangent_num_directions": NaN,
+      "sh_delta_first_order": NaN,
+      "sh_delta_grad_norm": NaN,
+      "sh_delta_num_modules": NaN,
+      "sh_delta_num_directions": NaN,
+      "lora_rescale_factor": NaN,
+      "lora_rescale_num_pairs": NaN
+    },
+    {
+      "Method": "seqlora",
+      "Optimizer": "rwp",
+      "Dataset": "imagenetr",
+      "Seed": "1993",
+      "Tag": "seqlora_inr_rwp_imagenetr_t20_rank16",
+      "Increment": "10",
+      "FAA": 65.35500000000002,
+      "AAA": 69.82761904761904,
+      "BWT": -10.611052631578945,
+      "NME_FAA": 74.18799999999999,
+      "NME_AAA": 77.06495238095238,
+      "NME_BWT": -6.326315789473684,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": 78.08333039283752,
+      "LP_base_model": 68.83333325386047,
+      "LP_per_task_avg_final": 92.63604998588562,
+      "LP_per_task_avg_base": 86.28103107213974,
+      "base_loss": NaN,
+      "grad_norm": NaN,
+      "first_order_sharpness": NaN,
+      "Sh_param_full": NaN,
+      "Sh_param_full_first_order": NaN,
+      "Sh_param_full_grad_norm": NaN,
+      "Sh_param_full_perturbed_loss": NaN,
+      "Sh_AB": NaN,
+      "Sh_AB_first_order": NaN,
+      "Sh_AB_grad_norm": NaN,
+      "Sh_AB_perturbed_loss": NaN,
+      "Sh_Delta/W_tangent": NaN,
+      "Sh_Delta_tangent": NaN,
+      "Sh_Delta_tangent_first_order": NaN,
+      "Sh_Delta_tangent_grad_norm": NaN,
+      "Sh_Delta_tangent_perturbed_loss": NaN,
+      "sh0_max": NaN,
+      "sh0_perturbed_loss": NaN,
+      "sh_ab_max": NaN,
+      "sh_ab_perturbed_loss": NaN,
+      "sh_delta_max": NaN,
+      "sh_delta_perturbed_loss": NaN,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": NaN,
+      "Sh0_norm": NaN,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": NaN,
+      "rho(E)": NaN,
+      "frobenius_norm(E)": NaN,
+      "rank(E)": NaN,
+      "num_samples(E)": NaN,
+      "effective_rank(E)": NaN,
+      "anisotropy_index(E)": NaN,
+      "eig_top1": NaN,
+      "eig_top5_mean": NaN,
+      "eig_top10_mean": NaN,
+      "eig_tail_mean": NaN,
+      "proto_drift_l2_mean": 16.926282501220705,
+      "proto_drift_l2_std": 2.492876255182075,
+      "proto_drift_cos_mean": 0.3185564637184143,
+      "proto_drift_cos_std": 0.11882672652541132,
+      "proto_n_classes": 10.0,
+      "cka_stab_seen_first": 0.7100988030433655,
+      "cka_n_pairs": 317.0,
+      "Sh_param_full_num_params": NaN,
+      "Sh_AB_num_params": NaN,
+      "sh_ab_first_order": NaN,
+      "sh_ab_grad_norm": NaN,
+      "sh_ab_num_params": NaN,
+      "Sh_Delta_tangent_num_modules": NaN,
+      "Sh_Delta_tangent_num_directions": NaN,
+      "sh_delta_first_order": NaN,
+      "sh_delta_grad_norm": NaN,
+      "sh_delta_num_modules": NaN,
+      "sh_delta_num_directions": NaN,
+      "lora_rescale_factor": NaN,
+      "lora_rescale_num_pairs": NaN
+    }
+  ],
+  "avg_by_method_opt": {
+    "Method": [
+      "seqlora",
+      "seqlora",
+      "seqlora",
+      "seqlora"
+    ],
+    "Optimizer": [
+      "gam",
+      "rwp",
+      "sam",
+      "sgd"
+    ],
+    "FAA": [
+      73.83300000000001,
+      65.35500000000002,
+      68.091,
+      61.44100000000001
+    ],
+    "AAA": [
+      76.82119047619047,
+      69.82761904761904,
+      71.39866666666667,
+      67.75442857142858
+    ],
+    "BWT": [
+      -8.786315789473685,
+      -10.611052631578945,
+      -9.164210526315792,
+      -13.343684210526314
+    ],
+    "NME_FAA": [
+      75.886,
+      74.18799999999999,
+      74.914,
+      72.04874999999998
+    ],
+    "NME_AAA": [
+      78.69638095238096,
+      77.06495238095238,
+      77.41633333333334,
+      76.63050000000001
+    ],
+    "NME_BWT": [
+      -5.835789473684213,
+      -6.326315789473684,
+      -5.730526315789474,
+      -7.897631578947369
+    ],
+    "LP_LA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      78.4500002861023,
+      78.08333039283752,
+      NaN,
+      77.45000123977661
+    ],
+    "LP_base_model": [
+      68.83333325386047,
+      68.83333325386047,
+      NaN,
+      68.83333325386047
+    ],
+    "LP_per_task_avg_final": [
+      93.18915456533432,
+      92.63604998588562,
+      NaN,
+      91.88733756542206
+    ],
+    "LP_per_task_avg_base": [
+      86.28103107213974,
+      86.28103107213974,
+      NaN,
+      86.28103107213974
+    ],
+    "base_loss": [
+      NaN,
+      NaN,
+      NaN,
+      1.9077693557739257
+    ],
+    "grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      54.378173828125
+    ],
+    "first_order_sharpness": [
+      NaN,
+      NaN,
+      NaN,
+      2.7189086914062504
+    ],
+    "Sh_param_full": [
+      NaN,
+      NaN,
+      NaN,
+      0.1650343068440756
+    ],
+    "Sh_param_full_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      2.7189086914062504
+    ],
+    "Sh_param_full_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      54.378173828125
+    ],
+    "Sh_param_full_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      2.0728036626180013
+    ],
+    "Sh_AB": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta/W_tangent": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_max": [
+      NaN,
+      NaN,
+      NaN,
+      0.1650343068440756
+    ],
+    "sh0_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      2.0728036626180013
+    ],
+    "sh_ab_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_mean": [
+      NaN,
+      NaN,
+      NaN,
+      2.19120665860828e-05
+    ],
+    "esh_std": [
+      NaN,
+      NaN,
+      NaN,
+      0.0001622294948901981
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN,
+      NaN,
+      33.82384490966797
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN,
+      NaN,
+      33.82384490966797
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN,
+      NaN,
+      33.53512677351253
+    ],
+    "tr(H)": [
+      NaN,
+      NaN,
+      NaN,
+      1764.8586108398438
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      796.54150390625
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      796.5280161832798
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN,
+      NaN,
+      52403.0461328125
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      796.54150390625
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      796.5280161832798
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      52403.0461328125
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN,
+      NaN,
+      228.91711629498678
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      42.42302322387695
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      42.42280763830722
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      1553.4866674804687
+    ],
+    "Sh1_norm": [
+      NaN,
+      NaN,
+      NaN,
+      54.378173828125
+    ],
+    "Sh0_norm": [
+      NaN,
+      NaN,
+      NaN,
+      3.3006861368815117
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN,
+      NaN,
+      0.017529653268866234
+    ],
+    "tr(E)": [
+      NaN,
+      NaN,
+      NaN,
+      0.7319341569017689
+    ],
+    "rho(E)": [
+      NaN,
+      NaN,
+      NaN,
+      0.01786646397357519
+    ],
+    "frobenius_norm(E)": [
+      NaN,
+      NaN,
+      NaN,
+      0.06695096949605558
+    ],
+    "rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      199.0
+    ],
+    "num_samples(E)": [
+      NaN,
+      NaN,
+      NaN,
+      600.0
+    ],
+    "effective_rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      119.51716659558308
+    ],
+    "anisotropy_index(E)": [
+      NaN,
+      NaN,
+      NaN,
+      18.74682877950414
+    ],
+    "eig_top1": [
+      NaN,
+      NaN,
+      NaN,
+      0.01786646397357519
+    ],
+    "eig_top5_mean": [
+      NaN,
+      NaN,
+      NaN,
+      0.01467264515287953
+    ],
+    "eig_top10_mean": [
+      NaN,
+      NaN,
+      NaN,
+      0.012777862549155885
+    ],
+    "eig_tail_mean": [
+      NaN,
+      NaN,
+      NaN,
+      0.0031797658622985843
+    ],
+    "proto_drift_l2_mean": [
+      10.247621250152587,
+      16.926282501220705,
+      NaN,
+      20.299228286743165
+    ],
+    "proto_drift_l2_std": [
+      1.0580263252706332,
+      2.492876255182075,
+      NaN,
+      2.320752579880531
+    ],
+    "proto_drift_cos_mean": [
+      0.21297228336334229,
+      0.3185564637184143,
+      NaN,
+      0.3812895089387894
+    ],
+    "proto_drift_cos_std": [
+      0.09511619225851072,
+      0.11882672652541132,
+      NaN,
+      0.10772944747799759
+    ],
+    "proto_n_classes": [
+      10.0,
+      10.0,
+      NaN,
+      10.0
+    ],
+    "cka_stab_seen_first": [
+      0.7973858714103699,
+      0.7100988030433655,
+      NaN,
+      0.6859062910079956
+    ],
+    "cka_n_pairs": [
+      317.0,
+      317.0,
+      NaN,
+      317.0
+    ],
+    "Sh_param_full_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_num_modules": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_num_directions": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_num_modules": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_num_directions": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lora_rescale_factor": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lora_rescale_num_pairs": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ]
+  },
+  "std_by_method_opt": {
+    "Method": [
+      "seqlora",
+      "seqlora",
+      "seqlora",
+      "seqlora"
+    ],
+    "Optimizer": [
+      "gam",
+      "rwp",
+      "sam",
+      "sgd"
+    ],
+    "FAA": [
+      NaN,
+      NaN,
+      NaN,
+      0.0
+    ],
+    "AAA": [
+      NaN,
+      NaN,
+      NaN,
+      0.0009428090415731671
+    ],
+    "BWT": [
+      NaN,
+      NaN,
+      NaN,
+      0.0
+    ],
+    "NME_FAA": [
+      NaN,
+      NaN,
+      NaN,
+      0.020152543263822393
+    ],
+    "NME_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      0.0005050762722677507
+    ],
+    "NME_BWT": [
+      NaN,
+      NaN,
+      NaN,
+      0.010792682449687858
+    ],
+    "LP_LA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_base_model": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_final": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_base": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "base_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "first_order_sharpness": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_param_full": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_param_full_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_param_full_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_param_full_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta/W_tangent": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh0_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_perturbed_loss": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "esh_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(H)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh1_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh0_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "tr(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rho(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "frobenius_norm(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "num_samples(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "effective_rank(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "anisotropy_index(E)": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top1": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top5_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_top10_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "eig_tail_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_mean": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_std": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "proto_n_classes": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_stab_seen_first": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "cka_n_pairs": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_param_full_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_AB_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_ab_num_params": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_num_modules": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "Sh_Delta_tangent_num_directions": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_first_order": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_grad_norm": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_num_modules": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "sh_delta_num_directions": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lora_rescale_factor": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ],
+    "lora_rescale_num_pairs": [
+      NaN,
+      NaN,
+      NaN,
+      NaN
+    ]
+  }
+}

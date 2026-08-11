@@ -1,0 +1,145 @@
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+
+
+prefix: "seqlora_curvloc_imagenetr_r16_tasks_gam_ggn_rank16_redo"
+dataset: "imagenetr"
+
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+seed: [1993]
+all_or_inc: inc
+backbone_type: "vit_base_patch16_224"
+device: ["5"]
+
+model_name: "seqlora"
+lora_rank: 16
+batch_size: 128
+# optimizer
+optimizer: "sgd"
+optimizer_type: "gam"
+
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+# max_train_tasks: 1
+
+# Flatness / curvature (全参 Hessian)
+flat_eval: true
+
+flat_eval_sharpness: true
+flat_eval_hessian: false
+flat_eval_GGN: true 
+flat_eval_fisher: false
+
+flat_eval_pretrain: true
+flat_eval_batch_size: 32
+flat_eval_dataset_fraction: 0.1
+flat_eval_sharpness_radius: 0.05
+flat_eval_esh_gaussian_std: null
+flat_eval_esh_samples: 100
+flat_eval_hessian_power_iters: 100
+flat_eval_hessian_trace_samples: 100
+eig_topk: 16
+eig_save_vectors: true
+
+linear_probe_softmax_joint_seen_eval: true
+
+# 关键：全参 HVP + 冻结参数参与
+flat_eval_param_names: null        # 或删除此行
+flat_eval_include_frozen: true
+
+# 曲率本地化（投影掩码仅标识 LoRA）
+flat_eval_curv_localization: true
+flat_eval_curv_topk: 16
+flat_eval_curv_param_names: ["linear_a", "linear_b", "wrapped_param"]
+flat_eval_curv_rayleigh_samples: 128
+flat_eval_curv_mvp: "ggn"
+flat_eval_curv_eig_method: "lanczos"
+flat_eval_disable_power: true
+
+# Delta-W projection (weight-space LoRA subspace; last block q/v)
+flat_eval_delta_w_projection: true
+flat_eval_delta_w_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_delta_w_block_index: 11
+flat_eval_delta_w_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+flat_eval_delta_w_topk: 16
+flat_eval_delta_w_rank: 16
+flat_eval_delta_w_backend: "ggn"
+flat_eval_delta_w_eig_method: "lanczos"
+flat_eval_delta_w_save_tensors: true
+flat_eval_delta_w_svd_eps: 1e-12
+
+# Delta-W full projection (param -> effective weight dW_full; uses A/B + W0)
+flat_eval_delta_w_full_projection: true
+flat_eval_delta_w_full_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_delta_w_full_block_index: 11
+flat_eval_delta_w_full_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+    a_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_a_q.weight"
+    b_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_b_q.weight"
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+    a_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_a_v.weight"
+    b_substr: "backbone.lora_vit.blocks.11.attn.qkv.linear_b_v.weight"
+flat_eval_delta_w_full_topk: 16
+flat_eval_delta_w_full_rank: 16
+flat_eval_delta_w_full_backend: "ggn"
+flat_eval_delta_w_full_eig_method: "lanczos"
+flat_eval_delta_w_full_save_tensors: true
+flat_eval_delta_w_full_svd_eps: 1e-12
+
+# W vs Delta-W alignment (LoRA 7.2/7.3 style)
+flat_eval_w_delta_alignment: true
+flat_eval_w_delta_param_name: "backbone.lora_vit.blocks.11.attn.qkv.qkv.weight"
+flat_eval_w_delta_block_index: 11
+flat_eval_w_delta_blocks:
+  - tag: "q"
+    row_ranges: [[0, 768]]
+  - tag: "v"
+    row_ranges: [[1536, 2304]]
+flat_eval_w_delta_rank: 16
+flat_eval_w_delta_seed: 42
+flat_eval_w_delta_save_tensors: true
+flat_eval_w_delta_eps: 1e-12
+
+# Loss landscape
+weight_loss_land_1d: false
+weight_loss_land_2d: false
+weight_loss_land_radius: 1
+weight_loss_land_num_points: 41
+weight_loss_land_filter_norm: true
+loss_land_modes: "full"
+loss_land_basis: "random"
+eig_save_vectors: true
+
+# Feature flatness
+feature_flat_eval: false
+feature_flat_topk: 200
+feature_flat_eps: 1e-12
+feature_flat_rank_tol: 1e-06
+feature_flat_save_path: null   # 若需固定路径，可填 checkpoints 路径
+feature_cka_eval: true
+feature_cka_max_batches: 32
+feature_cka_max_samples: 2048
+feature_sep_max_samples: 2048
+feature_margin_max_samples: 4096
+feature_proto_eval: true
+feature_proto_max_batches: 32
+feature_proto_max_samples: 2048

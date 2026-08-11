@@ -1,0 +1,81 @@
+\section{Background and Problem Setup}
+\label{sec:background}
+
+\subsection{LoRA-Based Sequential Continual Learning}
+
+Let $f_\theta$ be a frozen pretrained backbone (ViT-B/16 in our experiments).
+Low-Rank Adaptation (LoRA) parameterizes a set of task-shared adapters by inserting
+low-rank matrices into the attention projections:
+\begin{equation}
+  W = W_0 + \DeltaW, \quad \DeltaW = BA,
+\end{equation}
+where $W_0 \in \mathbb{R}^{d \times d}$ is the frozen weight, $B \in \mathbb{R}^{d \times r}$,
+$A \in \mathbb{R}^{r \times d}$, and $r \ll d$ is the rank.
+In our setting, LoRA matrices are inserted into the query and value projections
+of all 12 transformer blocks, yielding 24 adapter pairs $\{(B_l, A_l)\}_{l=1}^{24}$.
+
+In \textbf{SeqLoRA}, a single set of adapter parameters $\phi = \{(B_l, A_l)\}$ is shared
+across all tasks.
+Given a sequence of tasks $\mathcal{T}_1, \mathcal{T}_2, \ldots, \mathcal{T}_T$ arriving
+one at a time with no replay (memory size = 0),
+SeqLoRA updates $\phi$ on each task's data and carries the updated adapter forward.
+The effective update for task $t$ is:
+\begin{equation}
+  \DeltaW_l^{(t)} = B_l^{(t)} A_l^{(t)}, \quad l = 1, \ldots, 24.
+\end{equation}
+
+\textbf{The forgetting problem.}
+After training on task $t+1$, $\phi$ has drifted toward a new optimum.
+The drift in $\DeltaW$ space---the quantity that actually changes the backbone's behavior---is:
+\begin{equation}
+  \delta_l^{(t)} = \DeltaW_l^{(t+1)} - \DeltaW_l^{(t)},
+\end{equation}
+which degrades task $t$'s performance if it displaces the adapter from the task-$t$
+optimal region. We denote $\phi^*_t = \{(B_l^*, A_l^*)\}$ the parameter snapshot
+at the end of task $t$.
+
+\subsection{Adapter-Subspace First-Order Sharpness (AS$^1$)}
+
+We define adapter-subspace first-order sharpness (AS$^1$) as the sensitivity of the task loss
+to perturbations restricted to the adapter parameter space $\phi$:
+\begin{equation}
+  S^1_\Delta(\phi; \mathcal{T}_t) = \max_{\|\epsilon\|_2 \leq \rho} \Ltask(\phi + \epsilon) - \Ltask(\phi),
+\end{equation}
+where $\epsilon \in \mathbb{R}^p$ perturbs the LoRA factor coordinates $(A_l, B_l)$
+while the frozen backbone $W_0$ is unchanged.
+This is a strictly adapter-local measure: it differs from full-model SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021},
+which perturbs across all parameters including frozen backbone weights.
+The gradient of $S^1_\Delta$ with respect to $\phi$ is approximated via the
+GAM~\citep{zhengGradientAwareminimizationDistributed2021} first-order rule:
+\begin{equation}
+  \ggam = \nabla_\phi \Ltask\bigl(\phi + \rho \cdot \gclean/\|\gclean\|\bigr),
+  \quad \gclean = \nabla_\phi \Ltask(\phi),
+\end{equation}
+and the AS$^1$ sharpness gradient is the perturbation-induced change $\ggam - \gclean$.
+A related treatment appears in~\citet{Anonymous2026PaperB} in the PAC-Bayesian context;
+here we use AS$^1$ as an optimization primitive independent of that analysis.
+
+\subsection{Fisher-EWC in $\DeltaW$-Space}
+
+The EWC penalty~\citep{EWC2017} penalizes deviation from the task-$t$ snapshot $\phi^*_t$
+weighted by the Fisher information matrix $F_t$:
+\begin{equation}
+  \Lfisher(\phi) = \frac{1}{2} \sum_{l=1}^{24} \sum_{t'<t}
+  (F_{t',l} + \eta) \cdot \bigl\| \DeltaW_l - \DeltaW^*_{t',l} \bigr\|_F^2,
+\end{equation}
+where $F_{t',l} = \mathbb{E}_{\mathcal{T}_{t'}}\bigl[\bigl\|\nabla_{\DeltaW_l} \log p(y|x;\phi)\bigr\|^2\bigr]$
+is the diagonal Fisher computed in $\DeltaW$-space, and $\eta \geq 0$ is a small constant.
+Computing Fisher in $\DeltaW$-space (rather than in the raw $(A, B)$ factor coordinates)
+makes the regularization invariant to the LoRA factorization choice---a property
+we call \emph{basis invariance}~\citep{zheng2025ewclora}.
+
+\textbf{Trace normalization.}
+Raw Fisher values in $\DeltaW$-space are typically $\mathcal{O}(10^{-6})$,
+which makes the EWC hyperparameter $\lambdaewc$ highly dataset-dependent.
+We normalize the Fisher by its trace:
+\begin{equation}
+  \Ftilde_{t',l} = F_{t',l} \Big/ \Bigl(\sum_{l'} \mathrm{tr}(F_{t',l'}) + \epsilon\Bigr),
+  \label{eq:trace_norm}
+\end{equation}
+so that $\lambdaewc$ represents a dimensionless relative weight that is consistent
+across datasets with different gradient magnitudes.

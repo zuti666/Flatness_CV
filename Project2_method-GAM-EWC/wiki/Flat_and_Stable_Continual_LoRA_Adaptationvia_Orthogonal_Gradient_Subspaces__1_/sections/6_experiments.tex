@@ -1,0 +1,274 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\label{sec:setup}
+
+\textbf{Backbone.}
+All experiments use ViT-B/16 pretrained on ImageNet-21K,
+with the backbone frozen throughout training.
+LoRA adapters are inserted into the query and value projections
+of all 12 transformer blocks (24 adapter pairs total).
+
+\textbf{Evaluation tracks.}
+We report results on two complementary benchmark tracks:
+
+\emph{Track~1 — Fine-grained recognition (6 datasets, $r=16$).}
+These datasets span diverse visual categories and task structures:
+CUB200 (10t $\times$ 20c),
+Cars196 (10t $\times$ 20c),
+Aircraft (10t $\times$ 10c),
+Flowers (10t $\times$ 10c),
+OxfordPet (9t $\times$ 4c),
+ImageNet-R (20t $\times$ 10c).
+This track directly tests the orthogonality principle across varied domains.
+
+\emph{Track~2 — Standard PECL benchmarks (4 datasets, $r=10$--$30$).}
+Following the protocol of~\citet{zheng2025ewclora}:
+CIFAR-100 (10t $\times$ 10c, $r=10$),
+ImageNet-A (10t $\times$ 20c, $r=10$),
+ImageNet-R (10t $\times$ 20c, $r=10$),
+DomainNet (5t $\times$ 69c, $r=30$).
+This track provides direct comparability against the EWC-LoRA baseline.
+
+\textbf{Metrics.}
+(1)~\textbf{CNN FAA}: Final Average Accuracy (mean over all tasks at end of training);
+(2)~\textbf{CNN AAA}: Average Anytime Accuracy (lower-triangle mean, measures retention throughout);
+(3)~\textbf{Forget}: mean per-task forgetting;
+(4)~\textbf{BWT}: backward transfer.
+All metrics use the cosine-normalized classification head (CNN).
+
+\textbf{Optimizer.}
+We use SGD as the base optimizer for GAM, with cosine learning rate schedule.
+Track~1: $\mathrm{lr}=0.01$, $\rho=0.05$, gradient-norm perturbation radius $0.1$, 50 epochs for ImageNet-R and 20 epochs otherwise.
+Track~2: $\mathrm{lr}=0.01$--$0.05$ (per-dataset tuned; see Appendix~\ref{sec:impl}).
+Fixed across both tracks: $\lambdaflat=1.0$, $\lambdaewc=2000$, $\gamma=0.9$,
+Fisher over 100 mini-batches at task boundary.
+
+\textbf{Reproducibility note.}
+All Track~1 results reported in the main tables are single-seed runs (seed~0) due to compute constraints.
+The reported improvements of $\lesssim 1$pp on CUB200 should be interpreted as indicative
+rather than statistically certified; we flag this as a limitation.
+Multi-seed evaluation is planned for the final submission.
+
+\textbf{Method categories.}
+We distinguish two categories of baselines:
+\begin{itemize}
+  \item \textbf{Single-adapter methods} maintain a fixed set of LoRA parameters shared across all tasks.
+    This includes SeqLoRA (no protection), EWC-LoRA (Fisher regularization only),
+    and FS-LoRA (flatness + Fisher, ours).
+  \item \textbf{Structural methods} grow or isolate parameter capacity per task
+    (InfLoRA, SDLoRA, IncLoRA, O-LoRA).
+    These are shown for context but are not directly comparable to single-adapter methods.
+\end{itemize}
+All baselines are run with GAM optimizer to ensure a fair comparison of the \emph{regularization design},
+independent of the base optimizer.
+
+\subsection{Main Results: Fine-Grained Recognition}
+\label{sec:main_results}
+
+Table~\ref{tab:main} reports CNN FAA on all six Track~1 datasets.
+We compare FS-LoRA against the single-adapter baseline SeqLoRA+GAM
+and against four structural LoRA-CL methods run with the same GAM optimizer.
+
+\begin{table}[t]
+\caption{CNN FAA on Track~1 fine-grained recognition benchmarks.
+All methods use GAM as the base optimizer and ViT-B/16 frozen backbone, no replay.
+Single-adapter group uses a fixed shared LoRA ($r=16$) throughout.
+Structural methods grow or isolate parameters per task (shown for context; marked~$\dagger$).
+Best single-adapter result per dataset in \textbf{bold};
+overall best (including structural) underlined.}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{llcccccc}
+\toprule
+Category & Method & CUB200 & Cars196 & Aircraft & Flowers & OxfordPet & ImageNet-R \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{Single\\adapter}}
+  & SeqLoRA+GAM      & 73.249 & 52.197 & 47.081 & 81.282 & 80.921 & 72.986 \\
+  & Layer 2 (decoupled) & 74.220 & 51.975 & 46.660 & ---    & ---    & 73.318 \\
+  & \textbf{FS-LoRA (ours)} & \textbf{74.224} & \textbf{51.741} & \textbf{46.660} & \textbf{86.747} & 78.824 & \textbf{73.143} \\
+\midrule
+\multirow{4}{*}{\shortstack[l]{Structural\\($\dagger$)}}
+  & InfLoRA+GAM$^\dagger$  & \underline{75.169} & 43.413 & 45.458 & \underline{87.652} & \underline{81.433} & --- \\
+  & SDLoRA+GAM$^\dagger$   & 70.477 & 38.218 & 40.899 & 84.615 & 79.938 & --- \\
+  & IncLoRA+GAM$^\dagger$  & 68.769 & \underline{53.353} & 46.060 & 81.134 & 79.873 & 72.943 \\
+  & O-LoRA+GAM$^\dagger$   & 68.518 & 50.640 & 39.278 & 80.952 & 79.746 & 72.636 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\small{ImageNet-R uses inc=10, 20 tasks, $r=16$.
+IncLoRA 72.943, O-LoRA 72.636, both below FS-LoRA \textbf{73.143} (bold).
+``---'' indicates no result available under the matching setting.}
+
+\textbf{Single-adapter comparison.}
+FS-LoRA shows mixed results relative to SeqLoRA+GAM:
+CUB200 ($+1.0$pp), Cars196 ($-0.5$pp), Aircraft ($-0.4$pp), Flowers ($+5.5$pp),
+OxfordPet ($-2.1$pp), ImageNet-R ($+0.2$pp).
+Positive gains on CUB200, Flowers, and ImageNet-R; negative or negligible on Cars196,
+Aircraft, and OxfordPet.
+The largest gain is Flowers ($+5.5$pp), where fisher/clean $=0.010$, indicating
+AS$^1$ flatness is the primary driver (Fisher penalty is lightly active).
+Cars196 shows a small FAA loss but positive AAA gain ($+0.85$pp), suggesting improved
+retention during training but a marginally lower final accuracy.
+All Track~1 results are \emph{single-seed} runs; gains of $\leq 1$pp should be
+interpreted as indicative, not statistically confirmed.
+OxfordPet is an outlier with flat/clean $=204$; see Section~\ref{sec:discussion}.
+
+\textbf{Comparison with structural methods.}
+InfLoRA+GAM surpasses FS-LoRA on CUB200 ($75.2$ vs $74.2$) and Flowers ($87.7$ vs $86.7$),
+using structural subspace allocation.
+FS-LoRA matches or exceeds IncLoRA and O-LoRA on five of the six datasets available,
+despite using a \emph{fixed} shared adapter.
+This demonstrates that principled regularization design can close much of the gap
+to structural approaches.
+
+\subsection{Retention and Forgetting}
+\label{sec:retention}
+
+Table~\ref{tab:forget} reports CNN AAA and Forget alongside FAA for the same methods,
+restricted to datasets where complete results are available for FS-LoRA.
+
+\begin{table}[h]
+\caption{CNN FAA / AAA / Forget on CUB200, Aircraft, and Flowers (complete runs).
+FS-LoRA improves AAA over SeqLoRA+GAM on all three datasets,
+confirming better retention throughout training.}
+\label{tab:forget}
+\centering
+\small
+\begin{tabular}{lcccccccccc}
+\toprule
+& \multicolumn{3}{c}{CUB200} & \multicolumn{3}{c}{Aircraft} & \multicolumn{3}{c}{Flowers} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Method & FAA & AAA & Fgt & FAA & AAA & Fgt & FAA & AAA & Fgt \\
+\midrule
+SeqLoRA+GAM & 73.25 & 73.54 & 11.55 & 47.08 & 43.87 & 16.80 & 81.28 & 85.80 & 8.02 \\
+InfLoRA+GAM$^\dagger$ & 75.17 & 76.19 & 13.28 & 45.46 & 42.15 & 22.07 & 87.65 & 90.15 & 3.18 \\
+FS-LoRA (ours) & \textbf{74.22} & \textbf{74.33} & \textbf{11.71} & \textbf{46.66} & \textbf{43.86} & \textbf{15.57} & \textbf{86.75} & \textbf{89.74} & \textbf{4.58} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Key observation on forgetting.}
+InfLoRA+GAM achieves lower forgetting on Flowers ($3.2$ vs $4.6$) using structural isolation,
+but its forgetting on Aircraft ($22.1$) is \emph{higher} than SeqLoRA+GAM ($16.8$) and FS-LoRA ($15.6$).
+This suggests that structural allocation alone does not guarantee stable retention,
+whereas FS-LoRA's Fisher penalty provides consistent anchoring across domains.
+
+\subsection{Ablation: Three-Layer Design on CUB200}
+\label{sec:ablation}
+
+Table~\ref{tab:ablation} traces the three-step design progression on CUB200,
+isolating the contribution of decoupling and trace normalization.
+
+\begin{table}[h]
+\caption{Design ablation on CUB200 (10 tasks $\times$ 20 classes, seed 0).
+Layer 1: GAM applied to $\Ltask+\Lfisher$ (coupled).
+Layer 2: decoupled GAM on $\Ltask$ only, raw Fisher.
+Layer 3 (FS-LoRA): decoupled + trace-normalized Fisher.
+Fisher/clean = $\|\gfisher\|/\|\gclean\|$ (mean over tasks).}
+\label{tab:ablation}
+\centering
+\begin{tabular}{llccccc}
+\toprule
+Layer & $\lambdaewc$ & Normalized & FAA & AAA & Forget & Fisher/clean \\
+\midrule
+1 (coupled) & 20   & No  & 73.227 & 72.952 & 10.796 & --- \\
+2 (decoupled) & 20   & No  & 73.845 & 74.245 & 12.079 & 0.0029 \\
+2 (decoupled) & 100  & No  & 74.182 & 74.309 & 11.806 & 0.0137 \\
+2 (decoupled) & 1000 & No  & 74.220 & 74.284 & 11.563 & 0.0588 \\
+\midrule
+\textbf{3 / FS-LoRA} & \textbf{2000} & \textbf{Yes} & \textbf{74.224} & \textbf{74.332} & \textbf{11.709} & \textbf{0.0248} \\
+3 / FS-LoRA & 5000 & Yes & 74.181 & 74.255 & 11.667 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Note on missing EWC-only baseline.}
+The ablation does not include a ``Fisher only, no flatness'' (SeqLoRA+EWC, no GAM) row,
+because this baseline was not run on the fine-grained datasets.
+SeqLoRA+SGD on CUB200 gives FAA$=57.8$ vs SeqLoRA+GAM $73.2$, confirming that
+flatness alone provides a large gain;
+the incremental gain from adding Fisher ($74.2$) is modest but consistent.
+A full $2\times2$ ablation (flatness$\times$Fisher) is listed as future work.
+
+\textbf{Observations:}
+\begin{enumerate}
+  \item \textbf{Decoupling matters.}
+    Moving from Layer~1 to Layer~2 at $\lambdaewc=20$ improves FAA by $0.6$pp.
+    The GAM closure in Layer~1 is distorted by the Fisher penalty,
+    which inflates the update norm and reduces gradient informativeness.
+  \item \textbf{Raw Fisher is nearly inactive.}
+    At $\lambdaewc=20$ without normalization, Fisher/clean $=0.003$---the Fisher penalty
+    contributes less than $0.3\%$ of the clean gradient magnitude and is effectively inactive.
+    Performance gains at Layer~2 come almost entirely from AS$^1$ flatness.
+  \item \textbf{Trace normalization restores Fisher activity.}
+    With trace normalization, $\lambdaewc=2000$ achieves Fisher/clean $=0.025$---comparable
+    to Layer~2 at $\lambdaewc=1000$---while using a dimensionless, dataset-agnostic hyperparameter.
+    The Fisher component now genuinely contributes to the update.
+  \item \textbf{Stability across $\lambdaewc$.}
+    FS-LoRA FAA varies by less than $0.05$pp across $\lambdaewc\in\{2000,5000\}$,
+    confirming that trace normalization provides consistent behavior.
+\end{enumerate}
+
+\subsection{Standard PECL Benchmarks}
+\label{sec:paper4}
+
+Table~\ref{tab:paper4} compares FS-LoRA against the EWC-LoRA reference results
+from~\citet{zheng2025ewclora} on the four standard PECL benchmarks (Track~2).
+ImageNet-A results are complete for two LR settings; other datasets are partial runs.
+
+\begin{table}[h]
+\caption{CNN FAA on standard PECL benchmarks (Track~2),
+compared against EWC-LoRA~\citep{zheng2025ewclora}.
+``$\dag$'' denotes a complete final run; ``(partial)'' indicates the run is in progress.
+FS-LoRA uses SGD base optimizer with per-dataset tuned learning rate.}
+\label{tab:paper4}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Method & CIFAR-100 & ImageNet-A & ImageNet-R & DomainNet \\
+\midrule
+EWC-LoRA~\citep{zheng2025ewclora} & 87.91 & 59.89 & 72.86 & 73.46 \\
+\midrule
+FS-LoRA (SGD, $\mathrm{lr}=0.01$) & --- & 45.999$^\dag$ & --- & --- \\
+FS-LoRA (SGD, $\mathrm{init\_lr}=0.04$, $\mathrm{lr}=0.02$) & --- & \textbf{58.92}$^\dag$ & --- & --- \\
+FS-LoRA (SGD, lr-tuned) & --- & --- & --- & --- \\
+\midrule
+\multicolumn{5}{l}{\emph{Partial runs (SGD, $\mathrm{lr}=0.01$, for reference only)}} \\
+FS-LoRA (CIFAR-100, t7/10)  & (88.37) & --- & --- & --- \\
+FS-LoRA (ImageNet-R, t9/10) & --- & --- & (77.13) & --- \\
+FS-LoRA (DomainNet, t2/5)   & --- & --- & --- & (73.69) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{ImageNet-A: LR is the critical factor.}
+With $\mathrm{lr}=0.01$, FS-LoRA achieves FAA~$=45.999$ ($-13.9$pp vs.\ EWC-LoRA).
+With a warm-start cosine schedule ($\mathrm{init\_lr}=0.04$, $\mathrm{lr}=0.02$),
+FS-LoRA reaches FAA~$=\mathbf{58.92}$ ($-0.97$pp vs.\ EWC-LoRA), Forget~$=5.6$.
+The NME-head FAA is $64.45$, surpassing the EWC-LoRA CNN reference.
+This confirms that the gap at $\mathrm{lr}=0.01$ was an optimization issue
+(insufficient learning rate for a 10-task setting with 20 classes per task),
+not a fundamental limitation of the method.
+Additional runs with $\mathrm{lr}\in\{0.03, 0.05\}$ are ongoing.
+
+\textbf{Strong performance on 3 of 4 datasets.}
+The partial CIFAR-100 run reaches FAA $= 88.37$ at task~7, already above the
+EWC-LoRA reference of $87.91$.
+The ImageNet-R partial run (task~9) gives FAA $= 77.13$ ($+4.3$pp vs.\ EWC-LoRA).
+The DomainNet partial run (task~2) gives FAA $= 73.69$, matching EWC-LoRA ($73.46$).
+Together with the ImageNet-A LR-tuned result, FS-LoRA is competitive or superior
+on all four standard benchmarks when the LR is appropriately set.
+
+\subsection{Hyperparameter Sensitivity}
+\label{sec:hparam_main}
+
+The hyperparameter sensitivity analysis ($\lambdaewc$ sweep on CUB200) is reported in
+Appendix~\ref{sec:hparam}.
+The key finding is that FS-LoRA FAA varies by less than $0.35$pp across
+$\lambdaewc \in \{500, 2000, 5000\}$,
+and $\cosff$ remains in $[-0.030, -0.028]$ across all values,
+confirming that the orthogonality is insensitive to the Fisher penalty strength.

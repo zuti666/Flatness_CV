@@ -12,7 +12,7 @@ from utils.toolkit import tensor2numpy
 from optimer_PerturabtionType.util import enable_running_stats, disable_running_stats, generate_pertubation
 
 import timm
-from backbone.lora import LoRA_ViT_timm
+from backbone.lora import LoRA_ViT_timm, MultiTaskLoRA_ResNet
 from types import SimpleNamespace
 
 num_workers = 8
@@ -32,6 +32,8 @@ class Learner(LoraBaseLearner):
         if self._optimizer_type == "sam":
             self._sam_rho = float(args.get("sam_rho", 0.05))
             self._sam_adaptive = bool(args.get("sam_adaptive", False))
+        elif self._is_flatlora_optimizer():
+            self._init_flatlora_state(args)
 
         # hyperparamter for CF# hyperparamter for optimizerlat optimizer
         elif self._optimizer_type == "cflat":
@@ -129,16 +131,41 @@ class Learner(LoraBaseLearner):
         except Exception as _nme_exc:  # pylint: disable=broad-except
             self._log(f"[LoRA-OLoRA][NME] Failed to compute class means: {_nme_exc}")
 
-    def _build_incremental_lora(self, eval_mode: bool = False):
-        vit = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
+    def _build_incremental_lora(self, eval_mode: bool = False, task_idx: int | None = None):
+        """Build LoRA backbone for the current task (ViT or ResNet)."""
         rank = self.args.get("lora_rank", 10)
+        backbone_type = self.args.get("backbone_type", "vit_base_patch16_224").lower()
+        save_dir = self.args.get("filepath", "./")
+        target_task = self._cur_task if task_idx is None else int(task_idx)
+
+        if "resnet" in backbone_type:
+            from backbone.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
+            _resnet_map = {
+                "resnet18": resnet18, "resnet34": resnet34, "resnet50": resnet50,
+                "resnet101": resnet101, "resnet152": resnet152,
+            }
+            fn = _resnet_map.get(backbone_type, resnet50)
+            base = fn(pretrained=True, args=self.args)
+            lora_layers = self.args.get("lora_layers", None)
+            return MultiTaskLoRA_ResNet(
+                base,
+                r=rank,
+                lora_layers=lora_layers,
+                task_id=target_task,
+                save_dir=save_dir,
+                eval_mode=eval_mode,
+                learn_alpha=False,
+            )
+
+        # --- ViT (default) ---
+        vit = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
         model = LoRA_ViT_timm(
             vit_model=vit.eval(),
             r=rank,
             num_classes=0,
             index=False,
             increment=self.args["increment"],
-            filepath=self.args.get("filepath", "./"),
+            filepath=save_dir,
             cur_task_index=self._cur_task,
             learn_alpha=False,
             eval=eval_mode,
@@ -192,17 +219,17 @@ class Learner(LoraBaseLearner):
 
         # Save new LoRA params for future tasks
         save_dir = self.args.get("filepath", "./")
-        if self._cur_task > 0:
-            net_obj = self._unwrap_network()
-            net_obj.backbone.save_lora_parameters(save_dir, self._cur_task)
+        net_obj = self._unwrap_network()
+        net_obj.backbone.save_lora_parameters(save_dir, self._cur_task)
         if hasattr(self._network, "save_fc"):
-            net_obj = self._unwrap_network()
             net_obj.save_fc(save_dir, self._cur_task)
 
     def _build_eval_backbone(self, task_idx):
-        return self._build_incremental_lora(eval_mode=True)
+        return self._build_incremental_lora(eval_mode=True, task_idx=task_idx)
 
     def _init_train(self, train_loader, test_loader, optimizer, scheduler):
+        if self._is_flatlora_optimizer():
+            self._reset_flatlora_schedule(len(train_loader) * max(int(self.args["init_epoch"]), 1))
         prog_bar = tqdm(range(self.args["init_epoch"]), disable=not self._is_main_process)
         for _, epoch in enumerate(prog_bar):
             
@@ -239,6 +266,15 @@ class Learner(LoraBaseLearner):
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
                     logits = outputs["logits"].detach()
+                elif self._is_flatlora_optimizer():
+                    def flatlora_loss():
+                        outputs = self._network(inputs)
+                        logits = outputs["logits"]
+                        loss = F.cross_entropy(logits, targets)
+                        return logits, loss
+
+                    logits, loss_value = self._flatlora_step(optimizer, flatlora_loss)
+                    losses += loss_value
                 elif self._optimizer_type == "arwp":
                     def closure():
                         optimizer.zero_grad()
@@ -361,6 +397,8 @@ class Learner(LoraBaseLearner):
         lamda_1 = float(self.args.get("olora_lamda_1", 1.0))
         lamda_2 = float(self.args.get("olora_lamda_2", 0.0))
 
+        if self._is_flatlora_optimizer():
+            self._reset_flatlora_schedule(len(train_loader) * max(int(self.args["epochs"]), 1))
         prog_bar = tqdm(range(self.args["epochs"]), disable=not self._is_main_process)
         for _, epoch in enumerate(prog_bar):
             # self._set_epoch(train_loader, epoch)
@@ -404,6 +442,23 @@ class Learner(LoraBaseLearner):
                     outputs, loss_value = optimizer.step(closure=closure)
                     losses += float(loss_value.item() if torch.is_tensor(loss_value) else loss_value)
                     logits = outputs["logits"].detach()
+                elif self._is_flatlora_optimizer():
+                    def flatlora_loss():
+                        outputs = self._network(inputs)
+                        logits = outputs["logits"]
+
+                        loss_clf = F.cross_entropy(logits[:, self._known_classes :], fake_targets)
+                        backbone = self._get_backbone()
+                        orthogonal_loss = backbone.compute_ortho_loss()
+                        l2_loss = 0.0
+                        for w in list(backbone.w_As) + list(backbone.w_Bs):
+                            l2_loss = l2_loss + torch.norm(w.weight, p=2)
+
+                        loss = loss_clf + lamda_1 * orthogonal_loss + lamda_2 * l2_loss
+                        return logits, loss
+
+                    logits, loss_value = self._flatlora_step(optimizer, flatlora_loss)
+                    losses += loss_value
                 elif self._optimizer_type == "arwp":
                     def closure():
                         optimizer.zero_grad()

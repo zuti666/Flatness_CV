@@ -1,0 +1,640 @@
+{
+  "rows": [
+    {
+      "Method": "seqlora",
+      "Optimizer": "sgd",
+      "Dataset": "cifar224",
+      "Seed": "0",
+      "Tag": "seqlora_resnet50_cifar100_sgd_t10_rank16",
+      "Increment": "10",
+      "FAA": 49.910000000000004,
+      "AAA": 54.38363636363636,
+      "BWT": -10.477777777777778,
+      "NME_FAA": 56.96,
+      "NME_AAA": 61.243636363636355,
+      "NME_BWT": -9.41111111111111,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": 63.27999830245972,
+      "LP_base_model": 62.59999871253967,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": 2.0808398666381835,
+      "grad_norm": 91.90654754638672,
+      "first_order_sharpness": 4.595327377319336,
+      "sh0_max": 0.31076319122314455,
+      "sh0_perturbed_loss": 2.391603057861328,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": 91.90654754638672,
+      "Sh0_norm": 6.215263824462891,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": 1.0310270439866391,
+      "rho(E)": 0.03322731394189271,
+      "frobenius_norm(E)": 0.12441050794916962,
+      "rank(E)": 99,
+      "num_samples(E)": 500,
+      "effective_rank(E)": 68.67932016399159,
+      "anisotropy_index(E)": 66.00170113356079,
+      "eig_top1": 0.03322731394189271,
+      "eig_top5_mean": 0.02806040543298314,
+      "eig_top10_mean": 0.025634565399149396,
+      "eig_tail_mean": 0.004077270232556042,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    },
+    {
+      "Method": "seqlora",
+      "Optimizer": "sam",
+      "Dataset": "cifar224",
+      "Seed": "0",
+      "Tag": "seqlora_resnet50_cifar100_sam_t10_rank16",
+      "Increment": "10",
+      "FAA": 50.44,
+      "AAA": 55.0090909090909,
+      "BWT": -11.155555555555557,
+      "NME_FAA": 57.6,
+      "NME_AAA": 61.81818181818182,
+      "NME_BWT": -8.955555555555552,
+      "LP_LA": NaN,
+      "LP_AAA": NaN,
+      "FWT_probe": NaN,
+      "LP_FF": NaN,
+      "LP_final_model": 63.40000033378601,
+      "LP_base_model": 62.73999810218811,
+      "LP_per_task_avg_final": NaN,
+      "LP_per_task_avg_base": NaN,
+      "base_loss": 2.0109522705078127,
+      "grad_norm": 86.10618591308594,
+      "first_order_sharpness": 4.305309295654297,
+      "sh0_max": 0.278220664978027,
+      "sh0_perturbed_loss": 2.2891729354858397,
+      "esh_mean": NaN,
+      "esh_std": NaN,
+      "lambda_max(H)": NaN,
+      "lambda_max_power(H)": NaN,
+      "lambda_max_lanczos(H)": NaN,
+      "tr(H)": NaN,
+      "lossland_1d_min": NaN,
+      "lossland_1d_max": NaN,
+      "lossland_2d_min": NaN,
+      "lossland_2d_max": NaN,
+      "ggn_lambda_max_power": NaN,
+      "ggn_lambda_max_lanczos": NaN,
+      "ggn_trace": NaN,
+      "fisher_lambda_max_power": NaN,
+      "fisher_lambda_max_lanczos": NaN,
+      "fisher_trace": NaN,
+      "fisher_rao_norm": NaN,
+      "emp_fisher_lambda_max_power": NaN,
+      "emp_fisher_lambda_max_lanczos": NaN,
+      "emp_fisher_trace": NaN,
+      "Sh1_norm": 86.10618591308594,
+      "Sh0_norm": 5.56441329956054,
+      "ESh_trace_per_dim": NaN,
+      "tr(E)": 1.0234117576534807,
+      "rho(E)": 0.033159658701698826,
+      "frobenius_norm(E)": 0.12371027084441866,
+      "rank(E)": 99,
+      "num_samples(E)": 500,
+      "effective_rank(E)": 68.43673608577267,
+      "anisotropy_index(E)": 66.35743665959845,
+      "eig_top1": 0.033159658701698826,
+      "eig_top5_mean": 0.027932356120679395,
+      "eig_top10_mean": 0.02555773943519677,
+      "eig_tail_mean": 0.004041233255594242,
+      "proto_drift_l2_mean": NaN,
+      "proto_drift_l2_std": NaN,
+      "proto_drift_cos_mean": NaN,
+      "proto_drift_cos_std": NaN,
+      "proto_n_classes": NaN,
+      "cka_stab_seen_first": NaN,
+      "cka_n_pairs": NaN
+    }
+  ],
+  "avg_by_method_opt": {
+    "Method": [
+      "seqlora",
+      "seqlora"
+    ],
+    "Optimizer": [
+      "sam",
+      "sgd"
+    ],
+    "FAA": [
+      50.44,
+      49.910000000000004
+    ],
+    "AAA": [
+      55.0090909090909,
+      54.38363636363636
+    ],
+    "BWT": [
+      -11.155555555555557,
+      -10.477777777777778
+    ],
+    "NME_FAA": [
+      57.6,
+      56.96
+    ],
+    "NME_AAA": [
+      61.81818181818182,
+      61.243636363636355
+    ],
+    "NME_BWT": [
+      -8.955555555555552,
+      -9.41111111111111
+    ],
+    "LP_LA": [
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      63.40000033378601,
+      63.27999830245972
+    ],
+    "LP_base_model": [
+      62.73999810218811,
+      62.59999871253967
+    ],
+    "LP_per_task_avg_final": [
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_base": [
+      NaN,
+      NaN
+    ],
+    "base_loss": [
+      2.0109522705078127,
+      2.0808398666381835
+    ],
+    "grad_norm": [
+      86.10618591308594,
+      91.90654754638672
+    ],
+    "first_order_sharpness": [
+      4.305309295654297,
+      4.595327377319336
+    ],
+    "sh0_max": [
+      0.278220664978027,
+      0.31076319122314455
+    ],
+    "sh0_perturbed_loss": [
+      2.2891729354858397,
+      2.391603057861328
+    ],
+    "esh_mean": [
+      NaN,
+      NaN
+    ],
+    "esh_std": [
+      NaN,
+      NaN
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN
+    ],
+    "tr(H)": [
+      NaN,
+      NaN
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN
+    ],
+    "Sh1_norm": [
+      86.10618591308594,
+      91.90654754638672
+    ],
+    "Sh0_norm": [
+      5.56441329956054,
+      6.215263824462891
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN
+    ],
+    "tr(E)": [
+      1.0234117576534807,
+      1.0310270439866391
+    ],
+    "rho(E)": [
+      0.033159658701698826,
+      0.03322731394189271
+    ],
+    "frobenius_norm(E)": [
+      0.12371027084441866,
+      0.12441050794916962
+    ],
+    "rank(E)": [
+      99.0,
+      99.0
+    ],
+    "num_samples(E)": [
+      500.0,
+      500.0
+    ],
+    "effective_rank(E)": [
+      68.43673608577267,
+      68.67932016399159
+    ],
+    "anisotropy_index(E)": [
+      66.35743665959845,
+      66.00170113356079
+    ],
+    "eig_top1": [
+      0.033159658701698826,
+      0.03322731394189271
+    ],
+    "eig_top5_mean": [
+      0.027932356120679395,
+      0.02806040543298314
+    ],
+    "eig_top10_mean": [
+      0.02555773943519677,
+      0.025634565399149396
+    ],
+    "eig_tail_mean": [
+      0.004041233255594242,
+      0.004077270232556042
+    ],
+    "proto_drift_l2_mean": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_std": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_mean": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_std": [
+      NaN,
+      NaN
+    ],
+    "proto_n_classes": [
+      NaN,
+      NaN
+    ],
+    "cka_stab_seen_first": [
+      NaN,
+      NaN
+    ],
+    "cka_n_pairs": [
+      NaN,
+      NaN
+    ]
+  },
+  "std_by_method_opt": {
+    "Method": [
+      "seqlora",
+      "seqlora"
+    ],
+    "Optimizer": [
+      "sam",
+      "sgd"
+    ],
+    "FAA": [
+      NaN,
+      NaN
+    ],
+    "AAA": [
+      NaN,
+      NaN
+    ],
+    "BWT": [
+      NaN,
+      NaN
+    ],
+    "NME_FAA": [
+      NaN,
+      NaN
+    ],
+    "NME_AAA": [
+      NaN,
+      NaN
+    ],
+    "NME_BWT": [
+      NaN,
+      NaN
+    ],
+    "LP_LA": [
+      NaN,
+      NaN
+    ],
+    "LP_AAA": [
+      NaN,
+      NaN
+    ],
+    "FWT_probe": [
+      NaN,
+      NaN
+    ],
+    "LP_FF": [
+      NaN,
+      NaN
+    ],
+    "LP_final_model": [
+      NaN,
+      NaN
+    ],
+    "LP_base_model": [
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_final": [
+      NaN,
+      NaN
+    ],
+    "LP_per_task_avg_base": [
+      NaN,
+      NaN
+    ],
+    "base_loss": [
+      NaN,
+      NaN
+    ],
+    "grad_norm": [
+      NaN,
+      NaN
+    ],
+    "first_order_sharpness": [
+      NaN,
+      NaN
+    ],
+    "sh0_max": [
+      NaN,
+      NaN
+    ],
+    "sh0_perturbed_loss": [
+      NaN,
+      NaN
+    ],
+    "esh_mean": [
+      NaN,
+      NaN
+    ],
+    "esh_std": [
+      NaN,
+      NaN
+    ],
+    "lambda_max(H)": [
+      NaN,
+      NaN
+    ],
+    "lambda_max_power(H)": [
+      NaN,
+      NaN
+    ],
+    "lambda_max_lanczos(H)": [
+      NaN,
+      NaN
+    ],
+    "tr(H)": [
+      NaN,
+      NaN
+    ],
+    "lossland_1d_min": [
+      NaN,
+      NaN
+    ],
+    "lossland_1d_max": [
+      NaN,
+      NaN
+    ],
+    "lossland_2d_min": [
+      NaN,
+      NaN
+    ],
+    "lossland_2d_max": [
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "ggn_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "ggn_trace": [
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "fisher_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "fisher_trace": [
+      NaN,
+      NaN
+    ],
+    "fisher_rao_norm": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_power": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_lambda_max_lanczos": [
+      NaN,
+      NaN
+    ],
+    "emp_fisher_trace": [
+      NaN,
+      NaN
+    ],
+    "Sh1_norm": [
+      NaN,
+      NaN
+    ],
+    "Sh0_norm": [
+      NaN,
+      NaN
+    ],
+    "ESh_trace_per_dim": [
+      NaN,
+      NaN
+    ],
+    "tr(E)": [
+      NaN,
+      NaN
+    ],
+    "rho(E)": [
+      NaN,
+      NaN
+    ],
+    "frobenius_norm(E)": [
+      NaN,
+      NaN
+    ],
+    "rank(E)": [
+      NaN,
+      NaN
+    ],
+    "num_samples(E)": [
+      NaN,
+      NaN
+    ],
+    "effective_rank(E)": [
+      NaN,
+      NaN
+    ],
+    "anisotropy_index(E)": [
+      NaN,
+      NaN
+    ],
+    "eig_top1": [
+      NaN,
+      NaN
+    ],
+    "eig_top5_mean": [
+      NaN,
+      NaN
+    ],
+    "eig_top10_mean": [
+      NaN,
+      NaN
+    ],
+    "eig_tail_mean": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_mean": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_l2_std": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_mean": [
+      NaN,
+      NaN
+    ],
+    "proto_drift_cos_std": [
+      NaN,
+      NaN
+    ],
+    "proto_n_classes": [
+      NaN,
+      NaN
+    ],
+    "cka_stab_seen_first": [
+      NaN,
+      NaN
+    ],
+    "cka_n_pairs": [
+      NaN,
+      NaN
+    ]
+  }
+}

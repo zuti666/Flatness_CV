@@ -1,0 +1,115 @@
+\section{Introduction}
+\label{sec:intro}
+
+Parameter-efficient continual learning (PECL) with LoRA~\citep{hu2022lora} has become a practical
+approach for adapting large pretrained vision models to sequential tasks without catastrophic
+forgetting~\citep{Wang_2022_CVPR,Gao_2023_ICCV,Smith2023CODA}.
+By keeping the backbone frozen and maintaining a single shared low-rank adapter,
+SeqLoRA minimizes memory and compute overhead.
+The cost is geometric: as new tasks arrive, the adapter drifts away from parameter configurations
+that were optimal for old tasks, with no structural anchor preventing this drift.
+
+\textbf{Two families of solutions, one unresolved tension.}
+Prior work offers two complementary toolkits for this problem.
+The first targets \emph{plasticity}: sharpness-aware minimization (SAM, GAM)
+finds flat minima that generalize well within a task~\citep{foretSharpnessAwareMinimizationEfficiently2021,
+zhengGradientAwareminimizationDistributed2021} and have been shown to correlate with
+reduced forgetting~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021}.
+The second targets \emph{stability}: EWC-style Fisher regularization
+protects parameter directions important to past tasks~\citep{EWC2017,zheng2025ewclora}.
+A natural question is whether combining them is principled or merely heuristic.
+Naive combination---applying a sharpness-aware optimizer to the sum
+$\Ltask + \Lfisher$---couples the two objectives so that the flatness perturbation
+is influenced by the Fisher penalty, obscuring which component is doing the work.
+
+\textbf{The geometric question.}
+We reframe this as a question about gradient geometry:
+do the AS$^1$ flatness gradient $\ggam - \gclean$ and the past-Fisher gradient $\gfisher$
+point in \emph{similar} or \emph{orthogonal} directions in parameter space?
+If they are nearly orthogonal, a joint update combines two genuinely independent signals
+and each component can be designed and tuned independently.
+If they are aligned (or anti-aligned), the two objectives substantially interfere.
+
+\textbf{Our finding.}
+We measure the cosine similarity between the AS$^1$ gradient component
+and the Fisher gradient component throughout training on six datasets.
+The result is unambiguous: $\cosff \approx -0.02$ to $-0.001$ across all datasets,
+all tasks, and all $\lambda$ settings (Figure~\ref{fig:cosine_histogram}).
+This near-zero cosine is not an accident.
+We provide a theoretical explanation: when AS$^1$ targets the current-task Hessian's
+principal subspace and Fisher-EWC targets the past-task Fisher's principal subspace,
+the spectral separation between current and past tasks drives the cosine toward zero.
+
+\begin{figure}[t]
+\centering
+\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{8cm}{0cm}}
+\caption{Distribution of $\cosff$ (cosine between AS$^1$ flatness gradient and Fisher gradient)
+across all tasks and six datasets. Values cluster near zero, confirming that the two components
+address orthogonal subspaces of the gradient space. This enables a principled joint design
+that treats them as independent signals.}
+\label{fig:cosine_histogram}
+\end{figure}
+
+\textbf{Method: FS-LoRA.}
+Building on this orthogonality observation, we propose \textbf{Flat-Stable LoRA (FS-LoRA)},
+a method with three design principles:
+\begin{enumerate}
+  \item \textbf{Adapter-space Fisher-EWC.}
+    We define the Fisher penalty and the drift reference point in the effective update space
+    $\DeltaW = BA$, not in the raw factor coordinates $(A, B)$.
+    This makes the regularization basis-invariant with respect to the LoRA factorization.
+  \item \textbf{Decoupled AS$^1$ and Fisher gradients.}
+    The sharpness-aware optimizer (GAM) is applied only to $\Ltask$, not to
+    $\Ltask + \Lfisher$.
+    The Fisher gradient is added as an independent term.
+    This preserves the orthogonality structure and makes each component interpretable.
+  \item \textbf{Trace-normalized Fisher.}
+    Raw Fisher values in $\DeltaW$-space are typically $\mathcal{O}(10^{-6})$.
+    We normalize by the trace to make $\lambdaewc$ a dimensionless relative weight,
+    ensuring the Fisher penalty is consistently active across datasets.
+\end{enumerate}
+
+The resulting update rule is:
+\begin{equation}
+  \gupdate = \gclean + \lambdaflat(\ggam - \gclean) + \gfisher.
+  \label{eq:update_rule}
+\end{equation}
+
+\textbf{What this paper is, and is not.}
+FS-LoRA is not simply ``C-Flat + EWC-LoRA stacked together.''
+C-Flat~\citep{NEURIPS2024_C-Flat} adds flatness control to CL methods but does not address Fisher
+regularization and does not study the gradient interaction between flatness and stability.
+EWC-LoRA~\citep{zheng2025ewclora} provides the stability component but has no flatness control.
+The critical question---\emph{whether combining them is principled or heuristic}---requires knowing
+whether the two gradient signals interfere.
+The orthogonality finding ($\cosff \approx 0$) is the answer to that question,
+and it is the primary contribution of this paper.
+Prior flatness-plus-orthogonality work~\citep{yangRevisitingFlatnessAwareOptimization2025,garg2026fopng}
+addresses orthogonality between \emph{task-task} gradients, enforced as a constraint;
+FS-LoRA discovers orthogonality between the \emph{flatness} and \emph{Fisher} gradient components
+as an emergent geometric property.
+
+\textbf{Contributions.}
+\begin{enumerate}
+  \item \textbf{Empirical discovery of near-orthogonality (primary contribution).}
+    We provide the first systematic measurement of the cosine between the AS$^1$ flatness gradient
+    component $(\ggam - \gclean)$ and the Fisher-EWC gradient $\gfisher$
+    in LoRA-based continual learning, confirming $|\cosff| \leq 0.03$ across
+    six datasets, all tasks, and all $\lambdaewc$ settings.
+    This near-zero cosine is not imposed by design: it emerges from the spectral
+    structure of the current-task Hessian and past-task Fisher in adapter space.
+  \item \textbf{Geometric explanation.}
+    We characterize orthogonality via the spectral gap between $H_{\DeltaW}$ and $F_{t'}$
+    in the adapter update space (Proposition~\ref{prop:orthogonality}), and show that
+    coupling the SAM closure with $\Lfisher$ destroys this structure by injecting
+    a $J^\top F_{t'} J\epsilon$ cross-term.
+  \item \textbf{FS-LoRA method.}
+    Building on the orthogonality finding, we propose a principled joint optimizer with
+    decoupled gradients, $\DeltaW$-space Fisher, and trace normalization.
+    Each design choice is motivated by the geometry, not by ablation search.
+  \item \textbf{Multi-dataset evaluation.}
+    Experiments on six fine-grained vision datasets confirm consistent improvements
+    in final average accuracy and forgetting relative to SeqLoRA+GAM.
+    FS-LoRA matches or exceeds EWC-LoRA on standard PECL benchmarks
+    (CIFAR-100, ImageNet-R, DomainNet, ImageNet-A) with LR-tuned settings.
+\end{enumerate}

@@ -1,0 +1,96 @@
+\section{Which Flatness Matters Under Constrained Adaptation?}
+\label{sec:which-flatness}
+
+The classical flatness literature is largely inherited from full-parameter training, where perturbations and curvature are defined over the whole model.
+In PECL, however, the loss remains task-conditioned while the admissible update directions are sharply restricted by the frozen-backbone mechanism.
+This creates a basic conceptual question: once future adaptation is confined to $\mathcal{W}_{\Delta,t}$, which notion of flatness remains relevant to continual generalization and forgetting?
+
+\subsection{Why This Question Arises in LoRA-Based Continual Learning}
+\label{sec:flatness-question}
+
+In full-parameter training, flatness is typically understood through perturbations in the ambient parameter space.
+Sharpness-aware methods favor solutions whose loss remains stable under such local perturbations.
+In LoRA-based continual learning, by contrast, only admissible low-rank update directions are available to fit new task data.
+The loss is still defined on the full model, but the optimization mechanism can only traverse a highly constrained subset of directions.
+
+This would already motivate a re-examination of flatness.
+But the issue is sharpened by the empirical observations from the introduction.
+Applying sharpness-aware optimization \emph{only} within the LoRA update subspace can already yield a solution whose surrounding landscape appears flatter even when probed in the full parameter space, while simultaneously improving continual performance.
+Thus, flatness control imposed on admissible LoRA directions already has consequences beyond those directions---yet the mechanism governing this effect must be understood in terms of the constrained update geometry.
+
+The resulting question is therefore not merely about implementation convenience.
+It is a question of \emph{relevance under constrained adaptation}: when future updates are limited to admissible low-rank directions, should continual generalization be understood through ambient full-space flatness, or through task-conditioned local flatness along admissible update directions?
+
+\subsection{Three Flatness Notions: Ambient, Coordinate, and Admissible}
+\label{sec:three-flatness}
+
+To answer this question, it is useful to distinguish three related but non-equivalent notions of flatness.
+
+\paragraph{Ambient full-space flatness.}
+This is the standard notion inherited from full-parameter training.
+It measures local sensitivity of the loss with respect to perturbations in the entire parameter space $\mathbb{R}^d$, including both the frozen backbone and the adapter.
+Classical sharpness-aware methods such as SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021} and Flat-LoRA~\citep{li2024flatlora} are formulated at this level.
+
+\paragraph{Trainable-coordinate flatness.}
+This measures local sensitivity with respect to perturbations in the trainable parameter coordinates.
+In LoRA, these are the factor coordinates $(A_t, B_t) \in \Theta_\Delta$.
+This notion is implementation-dependent: it is defined in the coordinate space in which optimization is performed, not in weight-increment space.
+LoRA-SAM~\citep{NEURIPS2024_4eb2c0ad} implicitly uses this notion by applying SAM directly to $(A_t, B_t)$.
+
+\paragraph{Admissible-update flatness.}
+This measures local sensitivity with respect to perturbations supported on the task-admissible update subspace $\mathcal{W}_{\Delta,t}$.
+It is a geometric notion defined in weight-increment space, and it captures sensitivity along directions that the PECL mechanism can actually realize under the frozen-backbone constraint.
+This is the flatness object studied by our theory.
+
+\paragraph{Where the three coincide and where they diverge.}
+These three notions coincide in full-parameter fine-tuning, where every direction is simultaneously ambient, trainable, and admissible.
+In PECL they generally diverge.
+The backbone is frozen, so the set of admissible future updates is strictly smaller than the ambient parameter space, while the LoRA factor coordinates provide only a local parameterization of the corresponding admissible increment geometry.
+In this paper, \emph{trainable-coordinate flatness is treated as an implementation-level notion}, whereas \emph{admissible-update flatness is the geometric object of interest}: it is defined in weight-increment space and invariant to how the LoRA factors are parameterized locally.
+
+\subsection{Why Inherited Full-Space Flatness Is Not Automatically Relevant}
+\label{sec:why-subspace}
+
+The key issue in PECL is not whether full-space flatness may correlate with good performance, but whether it is the quantity that future continual adaptation can actually exploit.
+
+Consider a model after learning task $t$: $W_t = W_t^{\mathrm{froz}} + \Delta W_t$.
+Under the frozen-backbone PECL constraint, the next task cannot modify $W_t$ arbitrarily in the ambient parameter space.
+It can only move the model through admissible update directions supported on $\mathcal{W}_{\Delta,t+1}$.
+This immediately creates a mismatch with flatness notions inherited from full-parameter training, which aggregate curvature over many directions that are unreachable under the PECL mechanism.
+
+A model may therefore appear flat in the ambient full parameter space while still being sharp along the admissible update directions available to future tasks.
+Such a solution is not genuinely favorable for PECL, because future adaptation must still traverse sharp barriers in the only directions it can realize.
+Conversely, a model may remain sensitive in many frozen directions while being flat along the admissible update geometry---and would be well-suited to continual adaptation despite imperfect ambient flatness.
+
+This identifies the central conceptual shift.
+In frozen-backbone PECL, the relevant notion of flatness is task-conditioned, solution-local flatness supported on the admissible update geometry---not arbitrary global flatness in the ambient parameter space.
+Full-space flatness may remain a useful empirical correlate (and later we will see that shaping admissible-update flatness can alter the surrounding full-model landscape as a byproduct), but full-space flatness is not the directly theoretically governed object once adaptation is constrained to admissible low-rank directions.
+
+\textbf{What this paper does and does not prove.}
+We prove that admissible-update flatness is the \emph{bound-relevant} notion in frozen-backbone PECL, under the conditions that (i) the backbone is strictly frozen, (ii) posteriors are supported on $\mathcal{W}_{\Delta,t}$, and (iii) the Jacobian bridge identifies $\mathcal{W}_{\Delta,t}$ with the local first-order reachable directions.
+We do not prove a general equivalence between ambient and admissible-update flatness, nor do we claim that ambient flatness is always harmful.
+Violations of condition~(i)---such as partially unfreezing the backbone---would weaken the reduction.
+We test this boundary condition in Section~\ref{sec:boundary}.
+
+\subsection{Sharpness Measures Under Admissible Geometry}
+\label{section:sahrpness}
+
+We now introduce the sharpness measures used throughout the paper.
+Motivated by PAC-Bayesian analysis, SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021} minimizes the \textbf{adversarial zeroth-order sharpness}:
+\[
+\mathrm{AS}^{(0)}_S(W,\rho) = \max_{\|\epsilon\| \leq \rho} \bigl[\hat{L}_S(W+\epsilon) - \hat{L}_S(W)\bigr].
+\]
+A complementary formulation is the \textbf{random zeroth-order sharpness}~\citep{pmlr-v151-bisla22a,jiang2019fantasticgeneralizationmeasures}:
+\[
+\mathrm{RS}_S^{(0)}(W, \Sigma) = \mathbb{E}_{\varepsilon \sim \mathcal{N}(0,\Sigma)} \bigl[\hat{L}_S(W+\varepsilon) - \hat{L}_S(W)\bigr].
+\]
+The \textbf{adversarial first-order sharpness} of GAM~\citep{Zhang_GAM} targets the worst-case gradient norm:
+\[
+\mathrm{AS}^{(1)}_S(W,\rho) = \max_{\|\epsilon\| \leq \rho} \|\nabla_W \hat{L}_S(W+\epsilon)\|.
+\]
+For any $W$ and radius $\rho$, $\mathrm{AS}^{(1)}_S$ upper-bounds $\mathrm{AS}^{(0)}_S$, making first-order sharpness a stronger flatness criterion~\citep{Zhang_GAM}.
+
+In full-parameter training, these measures are typically interpreted in the ambient parameter space.
+In PECL, however, all sharpness quantities considered in this paper are interpreted relative to the admissible update geometry: we replace $W$ with $W_t^{\mathrm{froz}} + \widehat{\Delta W}_t$ and restrict perturbations $\epsilon$ to directions supported on $\mathcal{W}_{\Delta,t}$.
+This gives the PECL-specific quantities $\mathrm{AS}^{(0),\Delta}$, $\mathrm{RS}^{(0),\Delta}$, and $\mathrm{AS}^{(1),\Delta}$ used in the experiments.
+The next section will ask not merely how sharpness is measured, but which sharpness-dependent terms actually enter the continual generalization bound under frozen-backbone PECL.

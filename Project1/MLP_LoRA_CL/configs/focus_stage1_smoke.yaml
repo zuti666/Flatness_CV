@@ -1,0 +1,53 @@
+experiment_name: focus_stage1_smoke
+seed: 0
+device: cpu
+
+data:
+  name: synthetic
+  num_tasks: 2
+  angles: [0, 15]
+  rotation_span: 15
+  train_subset: 128
+  test_subset: 64
+  num_workers: 0
+
+model:
+  input_dim: 784
+  hidden_dim: 64
+  num_classes: 10
+  activation: gelu
+  parameterization: factor_lora
+  rank: 4
+  lora_alpha: rank
+  lifecycle: persistent
+
+base:
+  mode: pretrained_mnist
+  checkpoint: checkpoints/focus_synthetic_h64_angle-30.pt
+  pretrain_angle: -30.0
+  epochs: 1
+  batch_size: 64
+  lr: 0.05
+
+training:
+  epochs_per_task: 1
+  batch_size: 64
+  optimizer: sam
+  lr: 0.03
+  momentum: 0.0
+  sam_rho: 0.02
+  gam_radius: 0.02
+  gam_weight: 0.05
+  perturbation_metric: effective_weight
+
+diagnostics:
+  enabled: false
+  pathwise: false
+  geometry_enabled: false
+
+grid:
+  parameterizations: [dense, factor_lora]
+  ranks: [4]
+  lifecycles: [persistent]
+  optimizers: [sgd, sam]
+  seeds: [0]

@@ -1,0 +1,14 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We studied which notion of flatness governs continual generalization in LoRA-based PECL.
+Through a sequential hierarchical PAC-Bayesian analysis, we showed that under a frozen backbone the KL complexity and the sharpness-dependent empirical term in the bound are both supported on the task-admissible subspace $\mathcal{W}_{\Delta,t}$---not on the ambient full-parameter space.
+This identifies \emph{admissible-update flatness} as the bound-relevant notion in this regime, while ambient full-space flatness (including the frozen backbone directions) is not what the bound controls.
+The analysis yields four testable predictions about perturbation scope and type, all of which are confirmed on vision and language benchmarks across three LoRA organizations and multiple model scales.
+
+In practice, the results support three concrete design principles: restrict perturbations to the adapter scope; prefer gradient-aligned sharpness types (AS$^{(1),\Delta}$); and treat LoRA organization as a structural prior that determines the geometry of $\mathcal{W}_{\Delta,t}$ and hence the effective target for flatness control.
+These principles provide a theory-grounded foundation for flatness-aware design in parameter-efficient continual learning.
+
+\section*{Impact Statement}
+This paper advances the theoretical and empirical understanding of flatness-aware optimization for parameter-efficient continual learning.
+Potential downstream impacts depend on how continual learning systems are deployed; as with other modeling advances, appropriate validation and governance are needed before safety-sensitive applications.

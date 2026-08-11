@@ -1,0 +1,1370 @@
+%File: anonymous-submission-latex-2026.tex
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2026}  % DO NOT CHANGE THIS
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in} % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in} % DO NOT CHANGE THIS
+%
+% These are recommended to typeset algorithms but not required. See the subsubsection on algorithms. Remove them if you don't have algorithms in your paper.
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\usepackage{amsmath} 
+\usepackage{amsthm}
+\newtheorem{definition}{Definition}  
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+%
+% These are are recommended to typeset listings but not required. See the subsubsection on listing. Remove this block if you don't have listings in your paper.
+\usepackage{newfloat}
+\usepackage{listings}
+\DeclareCaptionStyle{ruled}{labelfont=normalfont,labelsep=colon,strut=off} % DO NOT CHANGE THIS
+\lstset{%
+	basicstyle={\footnotesize\ttfamily},% footnotesize acceptable for monospace
+	numbers=left,numberstyle=\footnotesize,xleftmargin=2em,% show line numbers, remove this entire line if you don't want the numbers.
+	aboveskip=0pt,belowskip=0pt,%
+	showstringspaces=false,tabsize=2,breaklines=true}
+\floatstyle{ruled}
+\newfloat{listing}{tb}{lst}{}
+\floatname{listing}{Listing}
+%
+% Keep the \pdfinfo as shown here. There's no need
+% for you to add the /Title and /Author tags.
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+
+\usepackage{amsfonts}
+
+% DISALLOWED PACKAGES
+% \usepackage{authblk} -- This package is specifically forbidden
+% \usepackage{balance} -- This package is specifically forbidden
+% \usepackage{color (if used in text)
+% \usepackage{CJK} -- This package is specifically forbidden
+% \usepackage{float} -- This package is specifically forbidden
+% \usepackage{flushend} -- This package is specifically forbidden
+% \usepackage{fontenc} -- This package is specifically forbidden
+% \usepackage{fullpage} -- This package is specifically forbidden
+% \usepackage{geometry} -- This package is specifically forbidden
+% \usepackage{grffile} -- This package is specifically forbidden
+% \usepackage{hyperref} -- This package is specifically forbidden
+% \usepackage{navigator} -- This package is specifically forbidden
+% (or any other package that embeds links such as navigator or hyperref)
+% \indentfirst} -- This package is specifically forbidden
+% \layout} -- This package is specifically forbidden
+% \multicol} -- This package is specifically forbidden
+% \nameref} -- This package is specifically forbidden
+% \usepackage{savetrees} -- This package is specifically forbidden
+% \usepackage{setspace} -- This package is specifically forbidden
+% \usepackage{stfloats} -- This package is specifically forbidden
+% \usepackage{tabu} -- This package is specifically forbidden
+% \usepackage{titlesec} -- This package is specifically forbidden
+% \usepackage{tocbibind} -- This package is specifically forbidden
+% \usepackage{ulem} -- This package is specifically forbidden
+% \usepackage{wrapfig} -- This package is specifically forbidden
+% DISALLOWED COMMANDS
+% \nocopyright -- Your paper will not be published if you use this command
+% \addtolength -- This command may not be used
+% \balance -- This command may not be used
+% \baselinestretch -- Your paper will not be published if you use this command
+% \clearpage -- No page breaks of any kind may be used for the final version of your paper
+% \columnsep -- This command may not be used
+% \newpage -- No page breaks of any kind may be used for the final version of your paper
+% \pagebreak -- No page breaks of any kind may be used for the final version of your paperr
+% \pagestyle -- This command may not be used
+% \tiny -- This is not an acceptable font size.
+% \vspace{- -- No negative value may be used in proximity of a caption, figure, table, section, subsection, subsubsection, or reference
+% \vskip{- -- No negative value may be used to alter spacing above or below a caption, figure, table, section, subsection, subsubsection, or reference
+
+\setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
+
+% The file aaai2026.sty is the style file for AAAI Press
+% proceedings, working notes, and technical reports.
+%
+
+% Title
+
+% Your title must be in mixed case, not sentence case.
+% That means all verbs (including short verbs like be, is, using,and go),
+% nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
+% articles, conjunctions, and prepositions are lower case unless they
+% directly follow a colon or long dash
+\title{Flat Multi-LoRA Continual Learning}
+\author{
+    %Authors
+    % All authors must be in the same font size and format.
+    Written by AAAI Press Staff\textsuperscript{\rm 1}\thanks{With help from the AAAI Publications Committee.}\\
+    AAAI Style Contributions by Pater Patel Schneider,
+    Sunil Issar,\\
+    J. Scott Penberthy,
+    George Ferguson,
+    Hans Guesgen,
+    Francisco Cruz\equalcontrib,
+    Marc Pujol-Gonzalez\equalcontrib
+}
+\affiliations{
+    %Afiliations
+    \textsuperscript{\rm 1}Association for the Advancement of Artificial Intelligence\\
+    % If you have multiple authors and multiple affiliations
+    % use superscripts in text and roman font to identify them.
+    % For example,
+
+    % Sunil Issar\textsuperscript{\rm 2},
+    % J. Scott Penberthy\textsuperscript{\rm 3},
+    % George Ferguson\textsuperscript{\rm 4},
+    % Hans Guesgen\textsuperscript{\rm 5}
+    % Note that the comma should be placed after the superscript
+
+    1101 Pennsylvania Ave, NW Suite 300\\
+    Washington, DC 20004 USA\\
+    % email address must be in roman text type, not monospace or sans serif
+    proceedings-questions@aaai.org
+%
+% See more examples next
+}
+
+%Example, Single Author, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\iffalse
+\title{My Publication Title --- Single Author}
+\author {
+    Author Name
+}
+\affiliations{
+    Affiliation\\
+    Affiliation Line 2\\
+    name@example.com
+}
+\fi
+
+\iffalse
+%Example, Multiple Authors, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\title{My Publication Title --- Multiple Authors}
+\author {
+    % Authors
+    First Author Name\textsuperscript{\rm 1},
+    Second Author Name\textsuperscript{\rm 2},
+    Third Author Name\textsuperscript{\rm 1}
+}
+\affiliations {
+    % Affiliations
+    \textsuperscript{\rm 1}Affiliation 1\\
+    \textsuperscript{\rm 2}Affiliation 2\\
+    firstAuthor@affiliation1.com, secondAuthor@affilation2.com, thirdAuthor@affiliation1.com
+}
+\fi
+
+
+% REMOVE THIS: bibentry
+% This is only needed to show inline citations in the guidelines document. You should not need it and can safely delete it.
+% \usepackage{bibentry}
+% END REMOVE bibentry
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+AAAI creates proceedings, working notes, and technical reports directly from electronic source furnished by the authors. To ensure that all papers in the publication have a uniform appearance, authors must adhere to the following instructions.
+\end{abstract}
+
+% Uncomment the following to link to your code, datasets, an extended version or similar.
+% You must keep this block between (not within) the abstract and the main body of the paper.
+% \begin{links}
+%     \link{Code}{https://aaai.org/example/code}
+%     \link{Datasets}{https://aaai.org/example/datasets}
+%     \link{Extended version}{https://aaai.org/example/extended-version}
+% \end{links}
+
+\section{Introduction}
+
+The widespread deployment of large language models (LLMs) in real-world applications has created a growing demand for efficient and flexible adaptation to diverse and continuously emerging downstream tasks. In practice, new tasks typically arrive incrementally, making continual learning (CL) a natural and necessary paradigm. However, the computational and storage demands of full-model retraining for each task are often prohibitive. Parameter-efficient fine-tuning methods, such as Low-Rank Adaptation (LoRA), have emerged as practical solutions, allowing models to accommodate each new task by learning compact, task-specific modules while keeping the majority of model parameters fixed. However, even within this efficient multi LoRA paradigm, the balance between mitigating forgetting and ensuring generalization to future tasks still remains an open and challenging problem.
+
+
+The connection between flat minima and generalization has long been a central theme in deep learning research. Both early and recent studies have shown that models converging to flat regions of the loss surface are less sensitive to parameter perturbations, thereby exhibiting enhanced robustness and generalization~\shortcite{hinton1993keeping,NIPS1994_01882513,FlatMinima1997,bahri-etal-2022-sharpness,zhouUnderstandingConvergenceGeneralization2024,zhangExploringFlatMinima2024a,yangRevisitingFlatnessAwareOptimization2025}. Building on these insights, methods such as Stochastic Weight Averaging (SWA)~\shortcite{izmailovAveragingWeightsLeads2019} and Sharpness-Aware Minimization (SAM)~\shortcite{foretSharpnessAwareMinimizationEfficiently2021} have explicitly promote flatness, achieving notable gains—especially in computer vision tasks. Moreover, emerging evidence suggests that flat minima may also play a vital role in alleviating catastrophic forgetting~\cite{mirzadehUnderstandingRoleTraining2020,JMLRAnEmpiricalInvestigatio}, a core challenge in continual learning scenarios. However, the effects and mechanisms of flat minima remain underexplored in the context of parameter-efficient fine-tuning, particularly within multi-LoRA systems for large language models. In particular, there is a critical lack of systematic investigation into how flat minima influence both generalization and forgetting when adapting LLMs to a sequence of downstream tasks through continual LoRA adaptation.
+
+
+
+Recent advances in deep learning have highlighted the pivotal role of loss landscape flatness in improving the generalization and robustness of neural networks. 
+While previous empirical investigations have predominantly demonstrated the benefits of flat minima in small models and under standard full fine-tuning protocols, there is a lack of systematic exploration regarding their impact in multi-task continual learning scenarios—particularly when leveraging large-scale pre-trained models equipped with multiple LoRA branches. 
+Motivated by this gap, our study aims to systematically examine how the flatness of the loss surface influences continual adaptation in large language models (LLMs) augmented with multiple LoRA branches. Specifically,  our investigation examines whether flat minima in the parameter space can (1) accelerate adaptation to new tasks, (2) preserve knowledge from previous tasks, and (3) enhance generalization to unseen tasks.
+
+
+% \section{Empirical Observation: Flatness helps in Multi-LoRA for LLMs}
+
+\section{Revisit Flatness}
+
+
+\subsection{Flatness}
+
+Hochreiter \& Schmidhuber\citep{FlatMinima1997} defines a flat minimum as "a large connected region in weight space where the error remains approximately constant". Pierre Foret defines the Sharpness in the SAM as follows\shortcite{foretSharpnessAwareMinimizationEfficiently2021}: 
+
+\begin{definition} $\epsilon$-sharpness \label{SAM sharpness}
+\begin{equation} 
+   \epsilon\text{-Sh}(\theta,\rho):= \max _{\epsilon \in B_2(\theta, \rho)}\left(\widehat{L}_S\left(\theta+\epsilon\right)-\widehat{L}_S(\theta)\right)
+\end{equation}
+\end{definition}
+The idea behind his definition is essentially the same as Laurent Dinh’s formulation\shortcite{dinhSharpMinimaCan2017}, but whereas Laurent’s definition is normalized and expressed as a percentage, this is reported as an absolute value. SAM also provides an explicit form for $\epsilon \in B_2(\theta, \rho)$ by applying a first-order Taylor expansion to approximate the worst-case perturbation as follows:
+\begin{equation}
+    \epsilon^*(\hat{\theta},\rho) 
+    \approx  \arg\max_{\|\epsilon\|_2 \leq \rho}\nabla \hat{L}_S(\theta)^\top \epsilon = \rho \frac{\nabla \hat{L}_S(\theta)}{\|\nabla \widehat{L}_S(\theta)\|}
+\end{equation}
+
+Instead of posing the strict ‘max-loss’ over the neighborhood, It can adopts ‘expected-loss’ and minimizes the posterior (typically an isotropic Gaussian distribution) of the  Bayes objective \cite{bislaLowPassFilteringSGD2022,liRevisitingRandomWeight2024}
+ \begin{definition}[Expected Sharpness]\label{def: Task-Aware Expected Sharpness}
+ \begin{equation}
+ \text{E-Sh}(\theta,\rho) := \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \rho^2 \mathbf{I})}  \left[ \hat{L}_{S}(\theta + \epsilon) - \hat{L}_{S}(\theta) \right] 
+ \end{equation}
+ \end{definition}
+ Actually, it is also proved that the SAM can also viewed as a kind optimal relaxation of Bayes\cite{mollenhoffSAMOptimalRelaxation2022}.
+
+
+\subsection{Revisit the defination of Flatness}
+
+First, it is essential to revisit the notion of flatness(sharpness) in order to better understand why methods such as SAM are able to achieve superior performance. This concept can be re-examined from both an optimization perspective and a Bayesian perspective.
+
+We consider the second-order Taylor expansion of a differentiable loss function $L(\theta)$ around the point $\hat{\theta} \in \mathbb{R}^d$:
+%, perturbed by a small vector $\epsilon \in \mathbb{R}^d$
+
+\begin{equation}
+\begin{aligned}
+\widehat{L}_S(\theta) \approx& \widehat{L}_S(\hat{\theta}) \\
+        &+\nabla \widehat{L}_S(\hat{\theta})^T(\theta-\hat{\theta}) \\
+        &+\frac{1}{2}(\theta-\hat{\theta})^T \nabla^2 \widehat{L}_S(\hat{\theta})(\theta-\hat{\theta}) \\
+        &+  o(\|\epsilon\|^2)
+\end{aligned}
+\end{equation}
+  
+where $\hat{\theta}$ is a optimal solution to the empirical loss $\hat{L}_S$  with  the predict function $f({\theta})$, $\nabla L(\theta)$ is the gradient vector of the loss function at $\theta$, denoted as $g = \nabla L(\theta)$. $\nabla^2 L(\theta)$ is the Hessian matrix, denoted as $H = \nabla^2 L(\theta)$ 
+
+If we believe  $\hat{\theta}$ is a optimal solution that $\hat{\theta} \approx \theta ^*$, which means $\theta^* \approx \hat{\theta}+ \epsilon, \widehat{L}_{S}(\theta^*) \approx \widehat{L}(\hat{\theta})$. And also  for the optimal solution $\hat{\theta}$, if this critical point is in the area of "the flat minimum", it means it can be viewed as a kind of "saddle point" , that is $\nabla L(\theta)^\top=0$. If $H$ is a {real symmetric matrix} with a well-defined spectral decomposition; that is, all its eigenvalues are real and finite, and the associated quadratic form $\epsilon^\top H \epsilon$ is properly defined for any real vector $\epsilon$. we have $\max_{\|\epsilon\|_2 \leq \rho} \epsilon^\top H \epsilon =\rho^2 \cdot \lambda_{\max}(H) $.
+Finally, for the defination  $\epsilon$-sharpness, we have
+\begin{equation}
+\begin{aligned}
+        \epsilon{-Sh}({\theta},\rho) 
+        &:= \max _{\epsilon \in B_2(\theta, \rho)}\left(\widehat{L}_S\left(\theta+\epsilon\right)-\widehat{L}_S(\theta)\right)   \\
+        &\approx \frac{1}{2} \max_{\|\epsilon\|_2 \leq \rho} \epsilon^\top H \epsilon = \frac{1}{2} \rho^2 \cdot \lambda_{\max}(H)
+\end{aligned}
+\end{equation}
+which means we get a smoth solution in $\hat{\theta}$.\
+
+Form the PAC theory , we are not only consider a specific solution but a distribution of solution. What we wanto to get is the Expect Loss $\mathbb{E}_{\theta \sim Q}[\widehat{L}_{S}(\theta)]$, So the optimal result $\hat{\theta}$ can viewed as the posterior mean. Assuming that the posterior distribution $Q$ is a Gaussian with mean $\hat{\theta}$ and covariance $\Sigma_Q$, sampling a parameter $\theta$ from $Q$ is equivalent to starting from $\hat{\theta}$ and adding a perturbation $\epsilon$ drawn from $\mathcal{N}(0, \Sigma_Q)$, that is, $\theta = \hat{\theta} + \epsilon$.
+ Therefore, the posterior expected loss can be written as:
+
+$\mathbb{E}_{\theta \sim Q}[\hat{L}_S(\theta)] = \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \Sigma_Q)}[\hat{L}_S(\hat{\theta} + \epsilon)]$
+
+We just get the expection according to distribution $Q$, we get 
+
+\begin{equation}
+\begin{aligned}
+\mathbb{E}_{\theta \sim Q}\widehat{L}_S(\theta) \approx
+        & \widehat{L}_S(\hat{\theta}) \\
+        &+\nabla \widehat{L}_S(\hat{\theta})^T\mathbb{E}_{\theta \sim Q}(\theta-\hat{\theta}) \\
+        &+\frac{1}{2}\mathbb{E}_{\theta \sim Q}[(\theta-\hat{\theta})^T \nabla^2 \widehat{L}_S(\hat{\theta})(\theta-\hat{\theta})]
+\end{aligned}
+\end{equation}
+
+ 
+ $\hat{\theta}$ is the posterior mean,so $\mathbb{E}_{\theta \sim Q}(\theta-\hat{\theta})=0 $, we get 
+
+
+ 
+\begin{equation}
+\begin{aligned}\label{eq: relation exp sharpness}
+    \text{E-Sh}(\theta,\rho) 
+    &:= \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\sum_Q)}  \left[ \hat{L}_{\mathcal{D}}(\theta + \epsilon) - \hat{L}_{\mathcal{D}}(\theta) \right]   \\
+    & \approx\frac{1}{2} \operatorname{Tr}\left(H \Sigma_Q\right),  
+\end{aligned}
+\end{equation}
+where  $\Sigma_Q=\mathbb{E}_{\theta \sim Q}\epsilon^2$ is the posterior covariance matrix. If $\Sigma_Q = \sigma_Q^2 I$, we get the definition above.
+
+Whether by finding the $\epsilon$-sharpness of the worst direction of the loss landscape, or by the expected sharpness under average perturbations, these are attempts to measure the local curvature of the loss function in parameter space.
+
+\section{PAC-Bayes Generalization with Flatness}
+
+The PAC-Bayesian theory provides a theoretical foundation for analyzing the generalization properties of stochastic model selection, where algorithms probabilistically select models based on a probability distribution over the hypothesis space  $\mathcal{F} $. For a given probability distribution  $Q $ over  $\mathcal{F} $, the empirical risk under  $Q $ is formally defined as 
+\begin{align}
+    \widehat{L}(Q) = \mathbb{E}_{f \sim Q}[\hat{L}_S(f)], 
+\end{align}
+where  $\hat{L}_S(f) $ represents the empirical loss of function  $f $ evaluated on the dataset  $S $. Since  $Q $ typically depends on the observed data  $S $, it is commonly referred to as the posterior distribution, in contrast to the prior distribution  $P $ that is specified without considering the data. 
+\begin{theorem} \label{theorem: PAC2003}
+\citep{mcallesterPACBayesianStochasticModel2003}
+For loss functions $\ell^{'}$ mapping to the range $[0,1]$, the following generalization bound holds for any prior $P$ over parameters with probability $1 - \delta$ over the choice of the training set $S$, for any posterior $Q$ over parameters.
+\begin{equation}\label{eq:PAC2003}
+\begin{aligned}
+    &\forall^{\delta} S,\;\; \forall Q, \\
+    &\quad
+    \mathbb{E}_{f \in Q}\big[L_{\mathcal{D}}^{\ell'}(f)\big] \;\leq\;
+    \mathbb{E}_{f \in Q}\big[\widehat{L}^{\ell'}_{S}(f)\big] \\
+    &\qquad
+    +\, \sqrt{
+        \frac{
+            KL(Q\|P) + \log\frac{m}{\delta}
+        }{
+            2(m-1)
+        }
+    }
+\end{aligned}
+\end{equation}
+where $m=|S|$ is the number of sample in the training set $S$ and $f$ denotes a prediction function sampled from the posterior distribution $Q$ over the hypothesis space $\mathcal{F}$.
+\end{theorem}
+It has been shown that, for the negative log-likelihood loss function, minimizing the PAC-Bayesian generalization risk bound is equivalent to maximizing the Bayesian marginal likelihood\cite{germainPACBayesianTheoryMeets2016}.
+
+Consider the second-order Taylor expansion, we can combine the equation \ref{eq: relation exp sharpness} and the origin definition of PAC \ref{theorem: PAC2003} to get a theorem with sharpness as follows: 
+
+\begin{theorem} \label{theorem: PAC-sharpness}
+For loss functions $\ell$ mapping to the range $[0,1]$, the following generalization bound holds for any prior $P$ over parameters with probability $1 - \delta$ over the choice of the training set $S$, for any posterior $Q=\mathcal{N}(\hat{\theta},\sum_{Q})$ over parameters.
+\begin{equation}\label{eq:PAC with flatness}
+\begin{aligned}
+    &\forall^{\delta} S,\;\; \forall Q=\mathcal{N}(\hat{\theta},\sum_{Q}), \\
+    &\quad
+    \mathbb{E}_{{f} \in Q}\big[L_{\mathcal{D}}^{\ell}(f)\big] \;\leq\;
+   \widehat{L}^{\ell}_{S}(\hat{f}) +  \frac{1}{2}Tr(H\sum_Q) \\
+    &\qquad
+    +\, \sqrt{
+        \frac{
+            KL(Q\|P) + \log\frac{m}{\delta}
+        }{
+            2(m-1)
+        }
+    } 
+    +o(\|\sum_Q\|^2)
+\end{aligned}
+\end{equation}
+where  $\hat{L}_S^\ell(\hat{f})$ denotes the empirical loss evaluated at the posterior mean $\hat{f}$ (corresponding to parameter $\hat{\theta}$),
+$H = \nabla^2 \hat{L}_S^\ell(\hat{\theta})$ is the Hessian matrix of the empirical loss at $\hat{\theta}$. $\Sigma_Q$ is the covariance matrix of the posterior distribution $Q$.
+\end{theorem}
+ This explicit PAC-Bayesian bound incorporating sharpness reveals that model generalization performance is determined not only by empirical loss and model complexity (as reflected by the KL divergence term), but is also directly influenced by the model’s “intrinsic flatness” in parameter space—captured by the term $\frac{1}{2} \operatorname{Tr}(H\Sigma_Q)$. 
+
+
+\section{PAC-Bayes Generalization Bound with Flatness for Continual learning}
+
+
+\subsection{PAC-Bayes Generalization Bound for Continual Learning }
+We adopt the continual learning (CL) framework (which we will call an agent) with the concept of a task environment from Pentina et al. \shortcite{pentinaPACBayesianBoundLifelong2014}. Let $\mathcal{X}$ and $\mathcal{Y}$ denote the input and output spaces, $\mathcal{F} \subset \{f : \mathcal{X} \to \mathcal{Y}\}$ be the hypothesis space, and $\ell: \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \to \mathbb{R}{\geq 0}$ the loss function. We assume an underlying task environment with a task distribution $\mathcal{T}$, all sharing the same input space, output space, hypothesis space, and loss function. The agent encounters a sequence of $n$ tasks ${t=1, 2, \ldots, n}$, each sampled independently from task environment according to the task distribution $\mathcal{T}$. For each task $i$, the model receives a training set $S_i = \{(x_{i1}, y_{i1}), \ldots, (x_{im}, y_{im})\}$ and a test set $T_i$, both drawn i.i.d. from a task-specific data distribution $\mathcal{D}_i$. The empirical loss over
+$S_i$ is $\widehat{L}_{S_i}(f) = \frac{1}{m}\sum_{j=1}^{m} \ell(f(x_{ij}), y_{ij})$.
+
+In the context of large pretrained models, the above formulation corresponds to the \textbf{SeqFt}, in which all model parameters are updated for each new task. To address the inefficiency of full-model finetuning, LoRA was proposed to enable efficient adaptation by injecting trainable low-rank matrices into the backbone, while keeping the original weights fixed. Within the continual learning setting using LoRA, only the newly introduced LoRA parameters $(A, B)$ are updated for each task, while the backbone weights $W_0$ are kept frozen; this approach is commonly referred to as \textbf{SeqLoRA}. To further enhance flexibility and alleviate task interference, \textbf{IncLoRA} incrementally appends a dedicated pair of LoRA matrices $(A_t, B_t)$ for each task $t$. During training on task $t$, the backbone $W_0$ and all previously acquired LoRA branches ${(A_i, B_i)}_{i=1}^{t-1}$ are held fixed, and only $(A_t, B_t)$ are updated. Consequently, after $t$ tasks, the model’s effective parameters can be expressed as $W_0 + \sum_{i=1}^{t} B_i A_i$.
+
+
+
+
+
+
+
+Following the definition of hyperdistribution introduced by Pentina et al. \shortcite{pentinaPACBayesianBoundLifelong2014}, we treat the prior $P$ itself as a random variable at the meta level—a perspective also adopted by Germain \shortcite{germainPACBayesianTheoryMeets2016}. The agent maintains an initial hyperprior $\mathcal{P}$ over all possible priors $P$, which is updated—based on the observed sequence of tasks—into a hyperposterior $\mathcal{Q}$ over the space of priors. This hierarchical Bayesian framework enables the agent to learn an improved prior distribution for future tasks by leveraging information accumulated from previous experiences.
+
+
+
+Formally, the \textbf{continual generalization risk} captures the expected performance of the agent on a future, unseen task, and is defined as:
+\begin{equation}
+L(\mathcal{Q}) := \mathbb{E}_{t \sim \mathcal{T}}\mathbb{E}_{P \sim \mathcal{Q}}L_{\mathcal{D}_t}\big(Q_t(\mathcal{D}_t, P)\big),
+\end{equation}
+where $\mathcal{T}$ denotes the distribution over tasks, and $\mathcal{D}_t$ denotes the data distribution for task $t$. Here, $Q_t(\mathcal{D}_t, P)$ is the task-specific posterior induced by updating the prior $P$ with the data of task $t$. This quantity reflects the true generalization ability of the system but is intractable in practice, as both the task distribution $\mathcal{T}$ and the underlying data distributions $\mathcal{D}_t$ are inaccessible. 
+Instead, we typically assess performance on the set of observed tasks. This leads to the \textbf{average generalization risk on observed tasks}:
+\begin{equation}
+L(\mathcal{Q}_{1:n}) :=
+\frac{1}{n} \sum_{t=1}^n
+\mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}
+\mathbb{E}_{f \sim Q_t(P_t)}
+\big[
+L_{\mathcal{D}_t}(f)
+\big],
+\end{equation}
+where $\mathcal{Q}_{1:n}$ is the joint hyperposterior over priors for all $n$ tasks, and $L_{\mathcal{D}_t}(f)$ is the expected risk of model $f$ on the full data distribution for task $t$. Although all tasks $t=1,\dots,n$ are observed, this risk remains uncomputable in practice since the full data distributions $\mathcal{D}_t$ are still unknown. To obtain a tractable measure, we further approximate the generalization risk by its empirical counterpart, computed over the available training sets $S_1,\dots,S_n$. This yields the \textbf{continual empirical risk}:
+\begin{equation}
+\begin{aligned}
+\widehat{L}(\mathcal{Q}_{1:n}) 
+&:= \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P \sim \mathcal{Q}} \widehat{L}_{S_t}(Q_t(S_t, P)) \\
+&= \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P \sim \mathcal{Q}} \mathbb{E}_{f\sim Q_t} \frac{1}{m_t} \sum_{j=1}^{m_t} \ell(f(x_{tj}), y_{tj}),
+\end{aligned}
+\end{equation}
+where $S_t = {(x_{tj}, y_{tj})}_{j=1}^{m_t}$ denotes the training dataset for task $t$, and $\ell$ is the task loss function. This empirical risk is the quantity actually observed during training, and serves as the basis for our generalization analysis.The three different risk are show in Fig.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\linewidth]{show_Loss_different.pdf}
+  \caption{The three defination.}
+  \label{fig concept: 3 different definaiton}
+\end{figure}
+
+
+
+
+Pentina et al. (2014) established a PAC-Bayesian generalization bound for lifelong learning, which quantifies the transfer of knowledge from observed tasks to future unseen tasks and provides theoretical guarantees for lifelong learning algorithms.
+
+\begin{theorem} \cite{pentinaPACBayesianBoundLifelong2014}
+For any $\delta>0$ the following inequality holds with probability at least $1-\delta$ (over the training samples $\left\{S_1, \ldots, S_n\right\}$ ) for all hyperposterior distributions $\mathcal{Q}$
+
+$$
+\begin{aligned}
+& L(\mathcal{Q}) \leq \widehat{L}(\mathcal{Q})+\frac{1}{\sqrt{n}}\left(K L(\mathcal{Q} \| \mathcal{P})+\frac{1}{8}-\log \frac{\delta}{2}\right) \\
+& +\frac{1}{n \sqrt{\bar{m}}} K L\left(\left(\mathcal{Q}, Q^n\right) \|\left(\mathcal{P}, P^n\right)\right)+\frac{1}{\sqrt{\bar{m}}}\left(\frac{1}{8}-\frac{1}{n} \log \frac{\delta}{2}\right)
+\end{aligned}
+$$
+where $\left(\mathcal{Q}, Q^n\right)=\mathcal{Q} \times \prod_{i=1}^n Q_i$ denotes the distribution in which we first sample $P$ according to $\mathcal{Q}$ and then use it and the data $S_i$ to produce a posterior $Q_i$ for each task $t_i$. $\left(\mathcal{P}, P^n\right)=\mathcal{P} \times \prod_{i=1}^n P$ denotes the distribution in which we sample $P$ according to $\mathcal{P}$ and use it as a posterior for all tasks. $\bar{m}=\left(\frac{1}{n} \sum_{i=1}^n \frac{1}{m_i}\right)^{-1}$ is the harmonic mean of the sample sizes.
+\end{theorem}
+
+
+
+
+
+ We can also expand the PAC theorem in lifelong learning conclusion and use another form to get as follows: 
+ 
+\begin{theorem} 
+For any $\delta>0$ the following inequality holds with probability at least $1-\delta$ (over the training samples $\left\{S_1, \ldots, S_n\right\}$ ) for all hyperposterior distributions $\mathcal{Q}$
+
+$$
+\begin{aligned}
+ L(\mathcal{Q}) &\leq \frac{1}{n}\sum_{i=1}^n \left[ \widehat{L}_{S_i}(\hat{\theta}_i) + \frac{1}{2}\operatorname{Tr}(H_i \Sigma_{Q_i}) \right] \\
+&+(\frac{1}{\sqrt{n}}+ \frac{1}{n \sqrt{\bar{m}}}) K L(\mathcal{Q} \| \mathcal{P}) \\
+& +\frac{1}{n \sqrt{\bar{m}}}  \sum_{i=1}^n KL\left(Q_i\left(S_i,P\right) \|\mathcal{P}\right) \\
+&+ const(n,\bar{m},\sigma)
+\end{aligned}
+$$
+where $KL(\mathcal{Q} \| \mathcal{P})$ belongs to the level of task environment in general, $KL\left(Q_i\left(S_i,P\right) \|\mathcal{P}\right)$ corresponds specifically to the $i$-th task.
+\end{theorem}
+
+The above theorem applies to SeqFT, where the distribution over the entire model is continually updated. This framework is also valid for SeqLoRA. However, the situation differs in incremental learning. In IncLoRA, a new LoRA module is introduced for each task, and typically, each new LoRA is initialized and trained independently of the previous ones. 
+
+
+
+
+\subsection{PAC-Bayes Generalization Bound with Flatness for Incmental LoRA}
+
+\subsubsection{Orthogonal Incmental LoRA}
+
+First,  we consider the situation that each LoRA part are separated and initialize independtly, which means for each new task, the lora are initialized independently. A common setting is for the prior follow the distribution $\mathcal{N}(0,\sum_Q)$, and after traingin the poster distribtion is $\mathcal{N}(\hat{\theta},\sum_{Q'})$. To make sure the different LoRA part are indepently, we assume each LoRA are orthogonal to the others. 
+
+\paragraph{(1) Parameter Orthogonal Decomposition}
+
+In Incremental LoRA, model parameters are split into a fixed pre-trained backbone and a task-specific low-rank adaptation, i.e., $\boldsymbol{W}_1 = \boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$. Since the backbone $\boldsymbol{W}_0$ remains unchanged throughout all tasks, the prior and posterior distributions for the full model become product measures: $Q_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes Q_1$ and $P_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes P_1$. This structural factorization implies that the KL divergence between full-model distributions is determined solely by the LoRA adaptation parameters:$$ \mathrm{KL}(Q_1^{\text{full}} \| P_1^{\text{full}}) = \mathrm{KL}(Q_1 \| P_1).$$
+
+
+ In incremental LoRA, we consider the parameter increments for each task to be the formation of mutually orthogonal subspaces in the parameter space. Formally, let $U_t$ denote the subspace spanned by the LoRA parameter block for task $t$. The orthogonality condition requires that for any pair of tasks $i \neq t$,
+$ \forall\, u \in U_i,\, w \in U_t, \quad \langle u, w \rangle = 0$
+where $\langle \cdot, \cdot \rangle$ denotes the inner product in the parameter space. Therefore, achieving orthogonality between the LoRA subspaces of task $i$ and task $t$ can be expressed as
+${O}_{i,t} = A_i^{\top} A_t = 0,$
+where $A_i$ and $A_t$ are the adaptation matrices for tasks $i$ and $t$, respectively. Under this assumption, the joint KL divergence of product measures satisfies:   
+$$
+      KL\left(\bigotimes_{t=1}^n Q_t \, \bigg\| \, \bigotimes_{t=1}^n P_t\right) = \sum_{t=1}^n KL(Q_t \| P_t).
+$$
+where $Q_t$ and $P_t$ denote the posterior and prior distributions over the LoRA parameters for task $t$. 
+Combined with the parameter decompositio and the orthogonalit, we get
+
+\begin{equation}
+ {KL}^{\text{task}}_n = {KL}\left(Q_t^{\text{full}} \Vert P_t^{\text{full}}\right) = \sum_{i=1}^t {KL}(Q_i \Vert P_i)
+\end{equation}
+
+\paragraph{(2) Chain-Structured Hyperdistributions: Sequential Knowledge Transfer}
+Incremental LoRA operates in a strictly sequential regime: each task is encountered and adapted in turn, with the meta-level knowledge (hyperdistribution) potentially evolving as new tasks arrive. To capture this, the prior over hyperparameters (hyperprior) is defined recursively, where the hyperprior for task $t$ may depend on the cumulative hyperposterior from previous tasks, i.e.,
+
+$\mathcal{P}_{1:n} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1) \otimes \cdots \otimes \mathcal{P}_n(\cdot\,|\,\mathcal{Q}_{1:n-1}).$
+
+This chain-structured construction leads to a recursive decomposition of the hyperdistribution KL:
+
+$$  
+\begin{aligned}
+    &KL^{\text{hyper}}_n = KL(\mathcal{Q} \| \mathcal{P})  \\
+    & \quad =KL(\mathcal{Q}_1 \| \mathcal{P}_1)  +\sum_{t=2}^n \mathbb{E}_{\mathcal{Q}_{1:t-1}}\left[        KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1}))    \right]
+\end{aligned}
+$$
+But if we think about a extream situation, we can abandon this setting, which means each LoRA part share a common hypriordistribution , just like in the theorem. This is actually the OLoRA method.  
+
+
+We have the conclusion as follow: 
+\begin{theorem}[PAC-Bayes Generalization Bound for Incremental LoRA with Flatness]
+Consider $n$ sequential tasks under the Incremental LoRA framework, where for each task the learned LoRA parameters are orthogonal to all previous tasks, and the parameter posterior is Gaussian with chain-dependent hyperpriors. With probability at least $1-\delta$, the average generalization risk satisfies:
+\begin{align}
+      &  L(\mathcal{Q}_{1:n}) \leq  \frac{1}{n} \sum_{t=1}^{n}
+        \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\big[
+            \widehat{L}_{S_t}(\mathbf{W}_{t}) \notag
+ + \text{E-Sh}_t(\mathbf{W}_{t} ,\, \rho_t^2)
+        \big] \notag\\
+&  \qquad + \frac{1 }{n(\bar{m}_n - 1)}\sqrt{
+            \frac{KL_{n}^{\text{task}} + KL_{n}^{\text{hyper}} +\log(\bar{m}_{n}/\delta)}{2(\bar{m}_{n} - 1)}
+        }
+\end{align}
+where
+\begin{align}
+\text{E-Sh}_t(\mathbf{W}_{t},\, \rho^2) 
+    &= \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \rho^2 \mathbf{I})} 
+        \left[
+            \widehat{L}_{S_t}(\mathbf{W}_{t}  + \epsilon)
+        \right] 
+        - \widehat{L}_{S_t}(\mathbf{W}_{t} ) \notag\\
+KL^{\text{task}}_n &= \sum_{t=1}^n KL(Q_t \| P_t) \notag \\
+KL^{\text{hyper}}_n &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) \notag \\
+   &\quad + \sum_{t=2}^n 
+        \mathbb{E}_{\mathcal{Q}_{1:t-1}} \Big[
+            KL\big(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})\big)
+        \Big] \notag\\
+\bar{m}_n &= n \Big/ \left(\sum_{t=1}^n 1/m_t\right) \notag
+\end{align}
+\end{theorem}
+Full definitions and proof are provided in Appendix A. We also give a proof form therorem 4 to theorem 5 .
+
+\subsubsection{Copy Incremental LoRA}
+The design behind Orthogonal Incremental LoRA aims to keep different LoRA parts separate, preventing them from interfering with each other. However, an alternative approach is to encourage similarity between the weights in different LoRA modules. To achieve this, various methods impose constraints on the update of the new model, ensuring it doesn't deviate too far from previous ones. Here, we propose a straightforward setting: first, we train a new LoRA module not by random initialization, but by directly copying the weights from a previous LoRA. Then, to ensure the trained results remain close to each other, we can incorporate a constraint similar to the Elastic Weight Consolidation (EWC) method during the LoRA update.
+\paragraph{(1) Parameter Copy }
+
+In Copy Incremental LoRA, when a new task t arrives, the LoRA parameters for this task$\Delta W_t$, are are directly copied from the learned LoRA parameters of a previous task $t-1$. This implies that the initial prior for $\Delta W_t$ is centered around the posterior of $\Delta W_{t-1}$.  Let $Q_t $ denote the posterior distribution of the $t$-th LoRA module, and $P_t $denote its prior. Since $\Delta\mathbf{W}_t^{\text{init}} $ is copied from $\Delta\mathbf{W}_{t-1} $, the prior $P_t $is centered at the posterior of the previous task, i.e., $P_t \sim \mathcal{N}(\hat{\theta}_{t-1}, \Sigma_{Q_{t-1}}) $.
+
+Unlike orthogonal LoRA, the KL divergences of consecutive tasks are no longer additive due to parameter overlap. Instead, we define the cumulative KL divergence as a chain of dependencies:
+ $$ \text{KL}_n^{\text{task}} = \sum_{t=1}^n \text{KL}(Q_t \| P_t) = \sum_{t=1}^n \text{KL}(Q_t \| \mathcal{N}(\hat{\theta}_{t-1}, \Sigma_{Q_{t-1}}))  $$
+
+
+
+In Copy Incremental LoRA, the hyperprior for task $t$ directly depends on the hyperposterior of task $t-1$. This means the chain-structured hyperdistribution decomposition becomes even more explicit in its dependency. 
+
+
+$$  
+\begin{aligned}
+    &KL^{\text{hyper}}_n = KL(\mathcal{Q} \| \mathcal{P})  \\
+    & \quad =KL(\mathcal{Q}_1 \| \mathcal{P}_1)  +\sum_{t=2}^n \mathbb{E}_{\mathcal{Q}_{1:t-1}}\left[        KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1}))    \right]
+\end{aligned}
+$$
+
+The calculation of $KL^{{hyper}}$ remains the same as in the orthogonal case, capturing the sequential knowledge transfer and the evolution of the hyperposterior. However, the interpretation of $KL(\mathcal{Q}_t\| \mathcal{P}_t(\cdot | \mathcal{Q}_{t-1}))$  will now explicitly include the effect of copying and constraining LoRA parameters based on previous knowledge.
+
+
+
+\paragraph{(2) EWC constraint}
+
+To prevent the new LoRA from deviating excessively from the copied prior, we introduce a regularization term inspired by Elastic Weight Consolidation (EWC). It calculates a fisher matrix [11] to estimate the importance of each parameter for a task and then uses it to regularize the training on a new task. The regularization term helps to constrain the parameter updates for the new task to avoid forgetting the previous knowledge.
+\[ \mathcal{L}_t^{\text{EWC}} = \mathcal{L}_{\text{task},t}(\Delta\mathbf{W}_t) + \frac{\lambda}{2} \sum_{i=1}^{t-1} (\Delta\mathbf{W}_t - \Delta\mathbf{W}_i^*)^\top \mathbf{F}_i (\Delta\mathbf{W}_t - \Delta\mathbf{W}_i^*) \]   
+
+where, \[ \mathbf{F}_i = \mathbb{E}_{x \sim S_i} \left[ \nabla_{\Delta\mathbf{W}_i} \log p(y|x, \Delta\mathbf{W}_i) \nabla_{\Delta\mathbf{W}_i} \log p(y|x, \Delta\mathbf{W}_i)^\top \right] \]
+
+We can also get a siilar conclusion as above , just need to replace the origin $KL^{task}$ to the new one.
+
+
+
+
+
+\section{Experiment}
+
+In the preceding theorems, we have established that flatness is an intrinsic indicator of a model’s generalization capability. As demonstrated by Theorem 3, explicitly optimizing objectives that incorporate perturbations can enhance the generalization and performance of models on test data. This finding is consistent with the conclusions presented in Theorem 3 and the SAM paper. The empirical success of the SAM method—across diverse domains including image classification, large models, and small models—further substantiates the theoretical results, confirming that theory and practice are aligned.
+
+Regarding Theorem 4, it suggests that in the context of continual learning with full model finetuning, promoting flatness also leads to improved model performance. Recent studies have also verified this phenomenon. Similarly, for the SeqLoRA setting, Theorem 4, together with related results, yields analogous conclusions. Experimental evidence from relevant research further supports these claims. Our work provides a rigorous mathematical explanation for these observations, thus offering a solid theoretical foundation.
+
+However, in the case of Incremnatal , the impact and effectiveness of flatness under this setting have not yet been fully explored. So we explore it consider two extreem Incrmenatl Learning Settting , and check the effect of flatness. 
+
+
+\subsection{Experimental Setup}
+\subsubsection{Datasets}
+\textbf{Large number of tasks}
+Large number of tasks Our method’s performance on longer task sequences, posing a greater challenge, is evaluated through experiments on a continual learning benchmark of 15 datasets (Razdaibiedina et al., 2023). This includes five tasks from CL benchmark, four from GLUE benchmark (MNLI, QQP, RTE, SST2) (Wang et al., 2018), five from SuperGLUE benchmark (WiC, CB, COPA, MultiRC, BoolQ) (Wang et al., 2019), and the IMDB movie reviews dataset (Maas et al., 2011). Following Razdaibiedina et al. (2023), we select 1000 random samples for training each task and hold out 500 samples per class for validation.
+
+
+
+\textbf{Multi task benchmark}
+We employ the TRACE benchmark, which comprises eight diverse tasks covering multilingual stance detection (C-STANCE, Chinese), German text simplification (20Minuten), financial sentiment classification (FOMC), meeting summarization (MeetingBank), code completion (Py150), science question answering (ScienceQA), and two mathematical reasoning tasks (NumGLUE-cm, NumGLUE-ds). Each task contains 5,000 training samples in a standardized format. This benchmark features substantial diversity in language (Chinese, German, English), task types, and reasoning complexity, providing a challenging and realistic testbed to systematically assess the generalization ability of large language models in continual learning scenarios.
+
+\subsubsection{BaseModel}
+In our experiments, we use two language models adopted by the previous lines of works in CL for NLP: encoder-decoder T5 model (Raffel et al., 2020) and decoder-only LLaMA model (Touvron et al., 2023). We use the pre-trained T5-large model for the Large number of tasks. To validate the impact of our approach on the generalization ability of LLMs on Multi task benchmark, we use pre-trained LLaMA7B model. All experimental results are reported as the average of 3 runs. For more detailed settings, refer to the Appendix B.
+
+\subsection{Metrics}
+\label{metrics: acc flatness}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\linewidth]{eval_metrix.pdf}
+  \caption{Evaluation metrics across tasks in continual learning}
+  \label{fig2: Continual eval metric}
+\end{figure}
+
+\textbf{Continual Learning Performance}
+To evaluate continual learning performance, we report four key metrics: \textbf{ current task accuracy (ACC)}, \textbf{backward transfer (BWT)}, \textbf{forward transfer (FWT)}, and \textbf{ last average accuracy(LA)}. As shown in Figure\ref{fig2: Continual eval metric}, these metrics correspond to specific regions within the accuracy matrix: ACC is given by the diagonal elements, BWT by the lower triangular part, FWT by the upper triangular part, and Last Performance by the row. This metrics provides a clear and intuitive assessment of adaptation, retention, and transfer throughout continual learning.
+
+\textbf{Flatness}
+In addition to task-aware sharpness, we also utilize \textbf{the maximal eigenvalue of the Hessian matrix}, $\lambda_{\max}$, as a complementary quantitative measure of local curvature at the solution. A lower $\lambda_{\max}$ indicates a flatter and typically more robust minimum. To further illustrate and compare the flatness of solutions obtained under different adaptation strategies, we employ three-dimensional loss landscape visualizations\cite{liVisualizingLossLandscape2018}.
+
+\subsection{Main Results}
+
+\subsubsection{Trade-offs among Learning Rate, Sample Size, and Training Epochs}
+
+Fig.\ref{fig result: epoch VS Learning rate} and Fig.\ref{fig result: epoch VS sample sizes} jointly illustrate the trade-offs among the learning rate, sample size, and training epochs across the three methods: SeqFT, IncLoRA, and FTLoRA (LoRA adaptation based on a finetuned model).
+The results show that higher learning rates or excessive training epochs lead to increased forgetting and reduced generalization. Similarly, increasing the size of the training dataset improves performance on the current task, but also leads to more forgetting and lower generalization to previous and future tasks.
+The LoRA-based methods are able to achieve comparable performance to the full finetuning.
+The baseline configuration adopted in our experiments reflects a careful balance between optimizing performance on the current task and maintaining generalization and mitigating catastrophic forgetting.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\linewidth]{Paper_Order3_accuracy_lr_epoch_compare-3methods.pdf}
+  \caption{Performance evaluation of SeqFT and IncLoRA on Order3, varying learning rate (1e-3, 1e-4, 1e-5) and training epochs (1, 3, 5, 10), with sample size fixed at 5000.}
+  \label{fig result: epoch VS Learning rate}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1\linewidth]{Paper_Order3_accuracy_samples_epoch_compare-3methods.pdf}
+  \caption{Performance comparison of SeqFT and IncLoRA on Order3, varying sample size (500, 1000, 3000, 5000) and training epochs (1, 3, 5, 10), with learning rate fixed at 1e-4 for IncLoRA and 1e-5 for SeqFT.}
+  \label{fig result: epoch VS sample sizes}
+\end{figure}
+
+
+\subsubsection{Trade-offs Induced by Perturbation Strength}
+To further understand the impact of perturbation strength on the balance between generalization and convergence, we systematically vary the hyperparameter $\rho$ in Sharpness-Aware Minimization (SAM) and evaluate its influence on continual learning performance. As shown in Fig.~\ref{fig:sam_rho_tradeoff}, different values of $\rho$ produce distinct trade-offs across the past, current, and future tasks.
+
+With a small perturbation strength (e.g., $\rho = 0$), the model rapidly converges to solutions that are highly optimized for the current task. However, this setting tends to produce sharper minima, resulting in poorer generalization and increased forgetting of previous tasks. Conversely, larger values of $\rho$ encourage the model to seek flatter solutions, which improves generalization and knowledge retention across tasks. Nonetheless, excessive perturbation may impede convergence on the target task, sometimes leading to lower accuracy.
+
+Empirically, we observe that there exists an optimal intermediate range of $\rho$ that achieves the best trade-off: it substantially improves both generalization and robustness to forgetting, without significantly sacrificing the learning efficiency on the current task. These findings underscore the importance of properly tuning perturbation strength to balance flatness-induced generalization and effective task optimization in continual learning.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\linewidth]{SAM_Rho_plot-empty.pdf}
+  \caption{Performance comparison of SeqFT and IncLoRA on Order3, varying rho, with learning rate fixed at 1e-4 for IncLoRA and 1e-5 for SeqFT.}
+  \label{fig result: }
+\end{figure}
+
+
+\subsubsection{Flatness for LoRA or whole Model}
+
+
+
+
+\subsection{Performance}
+
+\begin{table*}[thbp]
+\centering
+\begin{tabular}{llcccccccccccc}
+\toprule
+ & \multirow{2}{*}{\textbf{method}} 
+    & \multicolumn{4}{c}{\textbf{Short-Dataset}} 
+    & \multicolumn{4}{c}{\textbf{Long-Dataset }} \\
+    % & \multicolumn{4}{c}{\textbf{TRACE}} \\
+\cmidrule(lr){3-6} \cmidrule(lr){7-10} 
+% \cmidrule(lr){11-14}
+ & & \textbf{ACC} & \textbf{FWT} & \textbf{BWT} & \textbf{LA}
+   & \textbf{ACC} & \textbf{FWT} & \textbf{BWT} & \textbf{LA} \\
+   % & \textbf{ACC} & \textbf{FWT} & \textbf{BWT} & \textbf{LA} \\
+\midrule
+\multirow{4}{*}{} 
+    & SeqFT       & 80.72 & 50.32 & -1.04 & 79.94 & - & - & - & - \\
+    & SeqLoRA     & - & - & - & - & - & - & - & -  \\
+    & SeqFT-SAM       & 80.72 & 50.32 & -1.04 & 79.94 & - & - & - & - \\
+    & SeqFT-RWP       & 80.72 & 50.32 & -1.04 & 79.94 & - & - & - & - \\
+    & SeqLoRA-SAM     & - & - & - & - & - & - & - & -  \\
+    & SeqLoRA-RWP     & - & - & - & - & - & - & - & -  \\
+\midrule
+\multirow{3}{*}{} 
+    & IncLoRA    & 80.38 & 44.21 & -3.08 & 78.07 & - & - & - & - \\
+    & IncLoRA-SAM & - & - & - & - & - & - & - & -  \\ 
+    & IncLoRA-RWP & - & - & - & - & - & - & - & - \\
+\midrule
+\multirow{3}{*}{} 
+    & OLORA       & - & - & - & - & - & - & - & -  \\ 
+    & OLoRA-SAM & - & - & - & - & - & - & - & - & -  \\ 
+    & OLoRA-RWP & - & - & - & - & - & - & - & - & - \\
+\midrule
+\multirow{3}{*}{} 
+    & CLORA       & - & - & - & - & - & - & - & -  \\ 
+    & CLoRA-SAM & - & - & - & - & - & - & - & - & -  \\ 
+    & CLoRA-RWP & - & - & - & - & - & - & - & - & - \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of various methods on Long-Dataset (T5large), TRACE (Llama-7B-Chat), and Short-Dataset (T5base) benchmarks. Metrics include ACC, FWT, BWT, and LA for each setting.}
+\label{tab:main_cl_benchmark}
+\end{table*}
+
+
+\section{Acknowledgments}
+
+
+\bibliography{aaai2026}
+
+
+\appendix
+
+\section{Appendix A: Proof of the theorem}
+
+\textbf{Theorem: Multi-Task PAC-Bayes Generalization Bound for Incremental LoRA with Chain-Dependent Hyperdistributions}
+
+
+Consider a continual learning scenario with $n$ sequential tasks under the Incremental LoRA framework, subject to the following conditions:
+
+1. Orthogonality of Parameter Spaces: For each task $t$, the LoRA parameter block $\Delta\mathbf{W}_t$ is constrained to be orthogonal to all previous parameter blocks, i.e., for any $i < t$, $A_i^\top A_t = 0$, where $A_i, A_t$ denote the adapter matrices of tasks $i$ and $t$, respectively.
+
+2. Gaussian Posterior Assumption: The posterior parameter distribution for task $t$ is Gaussian, $Q_t = \mathcal{N}(\hat{\boldsymbol{\theta}}_t, \rho_t^2 \mathbf{I})$, where $\hat{\boldsymbol{\theta}}_t$ is the optimal parameter for task $t$, and $\rho_t^2$ reflects the posterior uncertainty.
+
+3. Chain-Structured Hyperdistribution: The hyperprior for task $t$, $\mathcal{P}_t$, is conditioned on the cumulative hyperposterior of all previous tasks, i.e., the joint hyperprior is
+   $$
+   \mathcal{P}_{1:n} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot|\mathcal{Q}_1) \otimes \cdots \otimes \mathcal{P}_n(\cdot|\mathcal{Q}_{1:n-1}),
+   $$ where $\mathcal{Q}_{1:t-1}$ denotes the joint hyperposterior for tasks $1$ through $t-1$.
+
+4. Sharpness Definition: The expected sharpness for task $t$ is defined as
+\begin{align}
+&\mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2) \notag\\
+& = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \rho_t^2 \mathbf{I})}
+\left[ \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t + \epsilon) \right] \notag\\
+&\quad - \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag
+\end{align}
+quantifying the increase in empirical loss due to parameter perturbation.
+
+\begin{theorem}[PAC-Bayes Generalization Bound for Incremental Multi-Task LoRA]
+With probability at least $1-\delta$, the generalization risk $L(\mathcal{Q}*{1:n})$ for $n$ sequential tasks under the incremental LoRA framework satisfies
+\begin{align}
+L(\mathcal{Q}_{1:n}) \leq\; & \frac{1}{n} \sum_{t=1}^n 
+    \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}
+    \Big[
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+    \notag \\
+&\qquad +\; \mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+    \Big] 
+    \notag \\
+&\quad + (b-a) \left\{ 
+    \frac{KL_n^{\text{task}} + KL_n^{\text{hyper}} + \log(m/\delta)}
+         {2(\bar{m}_n - 1)}
+\right\}^{1/2}
+\label{eq:lora-pac-bayes-bound}
+\end{align}
+where:
+\begin{align}
+&KL_n^{\mathrm{task}} = \sum_{t=1}^n KL(Q_t\|P_t), \notag  \\
+&KL_n^{\mathrm{hyper}} = KL(\mathcal{Q}_1 \| \mathcal{P}_1) + \sum_{t=2}^n \mathbb{E}_{\mathcal{Q}_{1:t-1}}\big[KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot \| \mathcal{Q}_{1:t-1}))\big], \notag\\
+&\bar{m}_n = n \big/ \left(\sum_{t=1}^n 1/m_t\right), \notag
+\end{align}
+with $m_t$ denoting the sample size for task $t$, and $b-a$ the range of the bounded loss function.
+\end{theorem}
+
+\begin{proof}
+\textbf{Step 1: Single-task PAC-Bayes Bound (0→1)}
+
+The PAC-Bayesian theory provides a theoretical foundation for analyzing the generalization properties of stochastic model selection, where algorithms probabilistically select models based on a probability distribution over the hypothesis space  $\mathcal{F} $. 
+
+
+\begin{theorem} \label{the: PAC1999}
+\citep{mcallesterPACBayesianStochasticModel2003}
+For loss functions $\ell^{'}$ mapping to the range $[0,1]$, the following generalization bound holds for any prior $P$ over parameters with probability $1 - \delta$ over the choice of the training set $S$, for any posterior $Q$ over parameters.
+\begin{equation}\label{eq: PAC2003}
+     \forall^{\delta}S,\ \forall Q,\ \mathbb{E}_{f \in Q}[L_{\mathcal{D}}^{\ell^{'}}(f] \leq  \mathbb{E}_{f \in Q}[\hat{L}^{\ell^{'}}_{S}(f)] +\sqrt{\frac{KL(Q\|P)+\log \frac{m}{\delta}}{2(m-1)}}
+\end{equation}
+where $m=|S|$ is the number of sample in the training set $S$ and $f$ denotes a prediction function sampled from the posterior distribution $Q$ over the hypothesis space $\mathcal{F}$.
+\end{theorem}
+
+Theorem \ref{the: PAC1999} is limited to loss functions $\ell^{'}$ mapping to the range $[0,1]$. According to \citep{germainPACBayesianTheoryMeets2016}, by straightforward rescaling, we can extend it to any bounded loss, i.e., $\ell: \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \rightarrow[a, b]$, where $[a, b] \subset \mathbb{R}$. This is done using $\beta:=b-a$ and the rescaled loss function $\ell^{\prime}(f, x, y):=(\ell(f, x, y)-a) /(b-a) \in[0,1]$. After few arithmetic manipulations, we can rewrite Equation (\ref{eq: PAC2003}) as
+\begin{equation}
+\begin{aligned}
+        &\mathbb{E}_{f \sim Q}[{L}_\mathcal{D}^{\ell}(f)] \leq \mathbb{E}_{f\sim Q}[\widehat{{L}}_S^{\ell}(f)] \\
+        &+ (b - a) \cdot \sqrt{\frac{\mathrm{KL}(Q \| P) + \log \frac{m}{\delta}}{2(m - 1)}} .
+\end{aligned}
+\end{equation}
+If the right-hand side of the bound exceeds $b-a$, the bound reduces to
+$\mathbb{E}_{f \sim Q}[L_D^{\ell}(f)] \leq b,$
+which is always true by definition. So we focus on the nontrivial regime where the complexity term is less than $b-a$, ,which equals to
+$\sqrt{\frac{KL(Q\|P)+\log \frac{m}{\delta}}{2(m-1)}} <1. $
+
+% and thus offers no additional information about model's generalization ability. Therefore, only when the upper bound is strictly less than $b$ does it serve as a nontrivial guarantee about the model's generalization performance. So we should only care when the complexity term no more than $b-a$,which equals to
+% $\sqrt{\frac{KL(Q\|P)+\log \frac{m}{\delta}}{2(m-1)}} <1. $
+
+% Following \citep{pentinaPACBayesianBoundLifelong2014}, we introduce hyperdistributions $\mathcal{P}$ (hyperprior) and $\mathcal{Q}$ (hyperposterior), where each parameter prior $P$ is a sample from $\mathcal{P}$, and $\mathcal{Q}$ represents the posterior over parameter priors after observing data. In PAC-Bayes theory with hyperdistributions, $Q_\text{joint}(f, P) = Q(P)\mathcal{Q}(P)$ represents the learned joint distribution over parameters and hyperparameters, where $\mathcal{Q}(P)$ is the hyperposterior (after observing the data), and $Q(P)$ is the parameter posterior conditioned on $P$. The reference joint distribution $P_\text{joint}(f, P) = P(f)\mathcal{P}(P)$ encodes the prior belief before observing the data, where $\mathcal{P}(P)$ is the hyperprior and $P(f)$ is the parameter prior under hyperparameter $P$. The KL divergence between these two joint distributions quantifies both the adaptation to data in parameter space and in hyperparameter space.  $KL(Q_\text{joint} \| P_\text{joint}) = \mathbb{E}_{P \sim \mathcal{Q}} \left[ KL(Q(P) \| P) \right] + KL(\mathcal{Q} \| \mathcal{P}).$
+
+Following \citep{pentinaPACBayesianBoundLifelong2014}, we introduce the notion of hyperdistributions. Let $\mathcal{P}$ denote the hyperprior (a distribution over parameter priors $P$) and $\mathcal{Q}$ denote the hyperposterior, the updated distribution over priors after observing data. For each choice of prior $P$, the parameter posterior is denoted $Q(f|P)$, while $P(f)$ is the corresponding parameter prior under $P$.
+
+In PAC-Bayes theory with hyperdistributions, the learned joint distribution over parameters and hyperparameters is given by $Q_\text{joint}(f, P) = Q(f|P)\mathcal{Q}(P)$, and the reference joint distribution before seeing data is $P_\text{joint}(f, P) = P(f)\mathcal{P}(P)$. The KL divergence between these two joint distributions quantifies the adaptation to data in both parameter space and hyperparameter space, and can be decomposed as:
+$$KL(Q_\text{joint} \| P_\text{joint}) = \mathbb{E}_{P \sim \mathcal{Q}} \left[ KL(Q(f|P) \| P(f)) \right] + KL(\mathcal{Q} \| \mathcal{P}).$$
+
+
+Taking the expectation over the hyperposterior $P \sim \mathcal{Q}$, the PAC-Bayes bound for hyperdistributions is:
+\begin{equation}
+\begin{aligned}
+        &\mathbb{E}_{P \sim \mathcal{Q}}\left[\, \mathbb{E}_{f \sim Q(P)} [L_{\mathcal{D}}(f)] \,\right] 
+        \leq \mathbb{E}_{P \sim \mathcal{Q}}\left[\, \mathbb{E}_{f \sim Q(P)} [\hat{L}_{S}(f)] \,\right]  \\
+        & + (b-a)\sqrt{ \frac{ \mathbb{E}_{P \sim \mathcal{Q}}\left[ KL(Q(P) \| P) \right] + KL(\mathcal{Q} \| \mathcal{P}) + \log \frac{m}{\delta} }{2(m-1)} }
+\end{aligned}
+\end{equation}
+
+
+Now, let $Q = \mathcal{N}(\hat{\boldsymbol{\theta}}, \rho^2 I)$, where $\hat{\boldsymbol{\theta}}$ is the trained parameter vector. Then,
+$$\mathbb{E}_{\boldsymbol{\theta} \sim Q}[\hat{L}_S(\boldsymbol{\theta})] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}[\hat{L}_S(\hat{\boldsymbol{\theta}} + \boldsymbol{\epsilon})].$$
+Refer the \textbf{expected sharpness} definition (\ref{def: Task-Aware Expected Sharpness}):
+$$\mathrm{Sh}_S(\hat{\boldsymbol{\theta}}, \rho^2) := \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}\left[ \hat{L}_S(\hat{\boldsymbol{\theta}} + \boldsymbol{\epsilon}) \right] - \hat{L}_S(\hat{\boldsymbol{\theta}})$$
+Thus,
+$$\mathbb{E}_{\boldsymbol{\theta} \sim Q}[\hat{L}_S(\boldsymbol{\theta})] = \hat{L}_S(\hat{\boldsymbol{\theta}}) + \mathrm{Sh}_S(\hat{\boldsymbol{\theta}}, \rho^2)$$
+
+In the LoRA framework, the full-model parameters are $\boldsymbol{W}_1 = \boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$, where $\boldsymbol{W}_0$ denotes the frozen pre-trained backbone and $\Delta\boldsymbol{W}_1$ is the task-specific low-rank adaptation. The full-model distributions factorize as $Q_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes Q_1$ and $P_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes P_1$, leading to:
+\begin{equation}
+    \text{KL}^{\text{task}}(Q_1^{\text{full}} \| P_1^{\text{full}}) = \text{KL}^{\text{task}}(Q_1 \| P_1),
+\end{equation}
+where $Q_1$ and $P_1$ are distributions over $\Delta\boldsymbol{W}_1$. 
+
+
+Although the posterior $Q$ is defined only over $\Delta\boldsymbol{W}_1$, the model prediction and corresponding loss are determined by the entire effective parameter $\boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$. Therefore, when evaluating sharpness, the perturbation is applied to the full parameter vector $\boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$, not just to the low-rank increment $\Delta\boldsymbol{W}_1$. Formally, the expected sharpness in the learned model $\boldsymbol{W}_0 + \hat{\Delta\boldsymbol{W}}_1$ is defined as:
+\begin{equation}
+\begin{aligned}
+&\mathrm{Sh}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1, \rho^2\big) := \\
+&\mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)} \Big[
+    \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon}\big)
+\Big] - \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1\big) 
+\notag
+\end{aligned}
+\end{equation}
+where the perturbation $\boldsymbol{\epsilon}$ is added to the full parameter vector. Thus,
+\begin{equation}
+    \begin{aligned}
+    &\mathbb{E}_{\Delta\mathbf{W} \sim Q}[\widehat{L}_S(\mathbf{W}_0 + \Delta\mathbf{W}_1)] \\
+    &= \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}[\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon})]  \\
+    &=\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1) + \mathrm{Sh}_S(\mathbf{W}_0+\hat{\Delta\mathbf{W}}_1, \rho^2)
+\end{aligned}
+\end{equation}
+
+
+Finally, the corresponding PAC-Bayes bound, incorporating sharpness under the LoRA setting, is as follows:
+
+\begin{align}
+& \mathbb{E}_{P \sim \mathcal{Q}}\, \mathbb{E}_{\Delta\mathbf{W} \sim Q(P)} 
+    \left[ L_{\mathcal{D}}\left(\boldsymbol{W}_0 + \Delta\mathbf{W}_1\right) \right] \notag \\
+& \leq\; \mathbb{E}_{P \sim \mathcal{Q}} \Big[
+        \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1\big)
+        + \mathrm{Sh}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1,\, \rho^2\big)
+    \Big] \notag \\
+& + (b-a) 
+    \Bigg\{ \frac{1}{2(m-1)} \bigg[
+        KL^{\text{task}}_1 + KL^{\text{hyper}}_1 + \log\frac{m}{\delta}
+    \bigg] \Bigg\}^{1/2}
+\label{eq:single-task-pac-bayes}
+\end{align}
+where $KL^{\text{task}} = \mathbb{E}_{P \sim \mathcal{Q}}\left[ KL(Q(P)|P) \right]$,
+$KL^{\text{hyper}} = KL(\mathcal{Q}|\mathcal{P})$,
+and $\log(m/\delta)$ is the parameter term.
+
+
+\textbf{Step 2: Extending the PAC-Bayes Bound from One Task to Two Tasks  (1→2)}
+To extend the result to two sequential tasks ($n=2$), we consider the incremetnal LoRA scenario in which the LoRA parameter block for the second task, $\Delta\mathbf{W}_2$, is trained independently, with the backbone fixed at $\mathbf{W}_1 = \mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1$. 
+
+
+In incremental LoRA, we consider the parameter increments for each task, ${\Delta\mathbf{W}}_{t=1}^n$, as forming mutually orthogonal subspaces in the parameter space. Formally, let $U_t$ denote the subspace spanned by the LoRA parameter block for task $t$. The orthogonality condition requires that for any pair of tasks $i \neq t$,
+$\langle u, w \rangle = 0, \quad \forall\, u \in U_i,\, w \in U_t,$
+where $\langle \cdot, \cdot \rangle$ denotes the inner product in the parameter space. Therefore, achieving orthogonality between the LoRA subspaces of task $i$ and task $t$ can be expressed as
+$${O}_{i,t} = A_i^{\top} A_t = 0,$$
+where $A_i$ and $A_t$ are the adaptation matrices for tasks $i$ and $t$, respectively. Under this assumption, the joint KL divergence of product measures satisfies:   \begin{equation}
+      KL\left(\bigotimes_{t=1}^n Q_t \, \bigg\| \, \bigotimes_{t=1}^n P_t\right) = \sum_{t=1}^n KL(Q_t \| P_t).
+  \end{equation}
+where $Q_t$ and $P_t$ denote the posterior and prior distributions over the LoRA parameters for task $t$.
+
+
+
+The corresponding joint hyperprior and hyperposterior for the two-task setting are denoted as $\mathcal{P}_{1:2}$ and $\mathcal{Q}_{1:2}$. Here, $\mathcal{P}_{1:2}$ represents the joint hyperprior over both tasks, where the hyperprior for the second task is conditionally dependent on the hyperposterior of the first task, i.e.,
+$\mathcal{P}_{1:2} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1).$
+Similarly, the joint hyperposterior is given by
+$\mathcal{Q}_{1:2} = \mathcal{Q}_1 \otimes \mathcal{Q}_2,$
+assuming conditional independence between the task-wise hyperposteriors. Because $\mathcal{P}_2$ is conditionally dependent on $\mathcal{Q}_1$, the joint KL divergence between the hyperdistributions admits a chain-structured decomposition:
+\begin{equation}
+\begin{aligned}
+    KL^{\text{hyper}}_2&=KL(\mathcal{Q}_{1:2}\,\|\,\mathcal{P}_{1:2})  \\
+    &= KL(\mathcal{Q}_1\,\|\,\mathcal{P}_1) + \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2\,\|\,\mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right].
+\end{aligned}
+\end{equation}
+This structure reflects that the uncertainty or inductive bias for the second task is informed by the knowledge gained from the first task. In practical terms, the conditional hyperprior $\mathcal{P}_2(\cdot,|,\mathcal{Q}_1)$ can take the form of a Gaussian distribution whose parameters (e.g., covariance) are derived from the posterior statistics of the previous task. For example,
+$P_2 = \mathcal{N}\big(\mathbf{0},\, \mathbf{F}_1^{-1}\big),$
+where $\mathbf{F}_1$ is the Fisher information matrix estimated from the first task, thus encoding the structure and uncertainty learned in the previous stage.
+
+
+Analogously, for the parameter-level distributions, the KL divergence decomposes as
+\begin{equation}
+    KL^{\text{task}}_2=KL(Q_{1:2}\,\|\,P_{1:2}) = KL(Q_1\,\|\,P_1) + KL(Q_2\,\|\,P_2),
+\end{equation}
+where $P_2$ is sampled from the conditional hyperprior $\mathcal{P}_2(\cdot|\mathcal{Q}_1)$.
+
+
+
+Therefore, the generalization bound for two sequential tasks with recursive, dependent hyperdistributions takes the following form:
+
+\begin{align}
+L(\mathcal{Q}_{1:2}) \leq\; & \frac{1}{2} \sum_{t=1}^2 
+    \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} 
+    \Big[\, 
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+    \notag \\
+& \qquad 
+    +\; \mathrm{Sh}_t\big(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2\big)
+    \Big] \notag \\
+& + (b-a)\, 
+    \Bigg\{ \frac{1}{2(\bar{m}_2 - 1)} \bigg[
+        KL^{\text{task}}_2 + KL^{\text{hyper}}_2 + \log\frac{m}{\delta}
+    \bigg] \Bigg\}^{1/2}
+\label{eq:cl-bound-chain-compact}
+\end{align}
+
+where 
+
+\begin{align*}
+&L(\mathcal{Q}_{1:2}) :=\;  \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}
+\bigg\{
+    \frac{1}{2} \Big[
+        \mathbb{E}_{\Delta\mathbf{W}_1 \sim Q_1(P_1)}\big[
+            L_{\mathcal{D}_1}(\mathbf{W}_0 + \Delta\mathbf{W}_1)
+        \big] \notag \\
+& \qquad
+        +
+        \mathbb{E}_{\Delta\mathbf{W}_2 \sim Q_2(P_2)}\big[
+            L_{\mathcal{D}_2}(\mathbf{W}_1 + \Delta\mathbf{W}_2)
+        \big]
+    \Big]
+\bigg\} \\
+&KL^{\text{task}}_2 = 
+    \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\left[ KL(Q_1(P_1)\|P_1) \right]
+    + \mathbb{E}_{P_2 \sim \mathcal{Q}_2}\left[ KL(Q_2(P_2)\|P_2) \right] \\
+&KL^{\text{hyper}}_2 = 
+    KL(\mathcal{Q}_1\|\mathcal{P}_1)
+    + \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2 \| \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right] \\
+&\bar{m}_2 = 2 / \left(\frac{1}{m_1} + \frac{1}{m_2}\right)
+\end{align*}
+
+
+ All terms involving empirical risk, sharpness, and complexity are averaged over the joint hyperposterior $\mathcal{Q}{1:2}$. The chain-structured KL terms reflect that each new task's hyperprior may depend on the hyperposterior of previous tasks, capturing the transfer and adaptation of uncertainty and prior structure in incremental learning.
+
+
+\textbf{Step 3: Multi-task PAC-Bayes Bound (n→n+1)}
+
+Assume the following holds for $n$ sequential tasks:
+
+
+\textbf{Parameter Distribution KL:}
+    \begin{align}
+     KL^{\text{task}}_n=KL(Q_{1:n} \| P_{1:n}) 
+    &= \sum_{t=1}^n KL(Q_t \| P_t)
+    \end{align}
+
+ 
+\textbf{Hyperdistribution KL:}
+    \begin{align}
+    &KL^{\text{hyper}}_n=KL(\mathcal{Q}_{1:n} \| \mathcal{P}_{1:n})  \\
+    &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) \notag 
+      + \sum_{t=2}^n 
+        \mathbb{E}_{\mathcal{Q}_{1:t-1}} \left[ 
+            KL\left(\mathcal{Q}_t \| \mathcal{P}_t\big(\cdot\,|\,\mathcal{Q}_{1:t-1}\big)\right) 
+        \right]
+    \end{align}
+
+\textbf{Generalization Bound:}
+    \begin{align}
+    L(\mathcal{Q}_{1:n}) \leq\; & \frac{1}{n} \sum_{t=1}^n 
+        \mathbb{E} \Big[
+            \widehat{L}_{S_t} + \mathrm{Sh}_t
+        \Big] \notag \\
+    & + (b-a) \sqrt{
+        \frac{KL^{\text{task}}_n +KL^{\text{hyper}}_n + \log(m/\delta)}{2(\bar{m}_n - 1)}
+    }
+    \end{align}
+    where
+    % \begin{align} 
+    %   L(\mathcal{Q}_{1:n}) &:= \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}} \left\{ \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{\Delta\mathbf{W}_t \sim Q_t(P_t)} \left[ L_{\mathcal{D}_t}(\mathbf{W}_{t-1} + \Delta\mathbf{W}_t) \right] \right\}   \notag  \\
+    %   \bar{m}_n &= n \Big/ \left(\sum_{t=1}^n 1/m_t\right) \notag  
+    % \end{align}
+    \begin{align}
+L(\mathcal{Q}_{1:n}) :=\; 
+    &\frac{1}{n} \sum_{t=1}^n \;
+      \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}} \;
+      \mathbb{E}_{\Delta\mathbf{W}_t \sim Q_t(P_t)} 
+      \big[
+        L_{\mathcal{D}_t}(\mathbf{W}_{t-1} + \Delta\mathbf{W}_t)
+      \big]  \notag \\
+\bar{m}_n =\; 
+    &n \bigg/ \Big( \sum_{t=1}^n \frac{1}{m_t} \Big) \notag
+\end{align}
+
+
+\textbf{Inductive Step: From $n$ to $n+1$ Tasks}
+
+
+\textbf{(a) Extension of Orthogonality.}
+The LoRA parameter block $\Delta\mathbf{W}_{n+1}$ is constrained to be orthogonal to all previous blocks:
+    \begin{align}
+        \forall\, i \leq n, \quad A_i^\top A_{n+1} = 0 \notag
+    \end{align}
+    Thus,
+    \begin{equation}
+        KL^{\text{task}}_{n+1}=KL(Q_{1:n+1} \| P_{1:n+1}) = \sum_{t=1}^{n+1} KL(Q_t \| P_t)
+    \end{equation}
+
+\textbf{(b) Chain-Structured Hyperprior.}
+    The hyperprior for task $n+1$ is conditioned on the cumulative hyperposterior:
+    \begin{align}
+        \mathcal{P}_{1:n+1} = \mathcal{P}_{1:n} \otimes \mathcal{P}_{n+1}(\cdot\,|\,\mathcal{Q}_{1:n}) \notag
+    \end{align}
+    So,
+    \begin{equation}
+        \begin{aligned}
+        KL^{\text{hyper}}_{n+1}
+        &=KL(\mathcal{Q}_{1:n+1} \| \mathcal{P}_{1:n+1}) \\
+        &= KL(\mathcal{Q}_{1:n} \| \mathcal{P}_{1:n}) +\, \mathbb{E}_{\mathcal{Q}_{1:n}}\left[ KL\big(\mathcal{Q}_{n+1} \| \mathcal{P}_{n+1}(\cdot\,|\,\mathcal{Q}_{1:n})\big) \right] 
+        \\
+        &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) +
+         \sum_{t=2}^{n+1} \mathbb{E}_{\mathcal{Q}_{1:t-1}}\left[ KL\left(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})\right) \right]
+    \end{aligned}
+    \end{equation}
+
+
+\textbf{(c) Generalization Bound.}
+    The empirical risk and sharpness terms for the new task are averaged in:
+    \begin{align}
+        L(\mathcal{Q}_{1:n+1}) \leq\; & \frac{1}{n+1} \sum_{t=1}^{n+1}
+        \mathbb{E}_{P_{1:n+1} \sim \mathcal{Q}_{1:n+1}}\big[
+            \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag\\
+        &\qquad +\, \mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+        \big] \notag\\
+        & + (b-a)\sqrt{
+            \frac{KL_{n+1}^{\text{task}} + KL_{n+1}^{\text{hyper}} \log(m/\delta)}{2(\bar{m}_{n+1} - 1)}
+        }
+    \end{align}
+    where
+    \begin{equation}
+        \begin{aligned}
+        KL_{n+1}^{\text{task}} &= \sum_{t=1}^{n+1} KL(Q_t\|P_t)\\
+        KL_{n+1}^{\text{hyper}} = & KL(\mathcal{Q}_1\|\mathcal{P}_1)  +\sum_{t=2}^{n+1} \mathbb{E}_{\mathcal{Q}_{1:t-1}}
+        \left[ KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})) \right] \\
+        \bar{m}_{n+1} &= (n+1)/\big(\sum_{t=1}^{n+1} 1/m_t\big) \notag
+    \end{aligned}
+    \end{equation}
+
+\textbf{Step4: Conclusion General Bound for $n$ Tasks}
+
+By induction, the PAC-Bayesian generalization bound for incremental multi-task LoRA with orthogonal blocks and recursively dependent hyperpriors is:
+\begin{align}
+        L(\mathcal{Q}_{1:n}) \leq\; & \frac{1}{n} \sum_{t=1}^{n}
+        \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\big[
+            \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag\\
+        &\qquad +\, \mathrm{Sh}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+        \big] \notag\\
+        & + (b-a)\sqrt{
+            \frac{KL_{n}^{\text{task}} + KL_{n}^{\text{hyper}} \log(m/\delta)}{2(\bar{m}_{n} - 1)}
+        }
+    \end{align}
+
+
+ This result demonstrates that, under the incremental LoRA framework, orthogonalization of parameter spaces and sequential modeling of hyperpriors allow the single-task PAC-Bayes theory to be strictly extended to multi-task continual learning. This structure ensures that model complexity, empirical risk, and sharpness are balanced while enabling transfer and retention of knowledge across tasks.
+
+
+
+
+\end{proof}
+
+
+% Inductive Step: From $n$ to $n+1$ Tasks
+
+% \textbf{(a) Extension of Orthogonality.}
+%  The LoRA parameter block $\Delta\mathbf{W}_{n+1}$ is constrained to be orthogonal to all previous blocks:
+%  \begin{equation}
+%  \forall i \leq n, ;; A_i^\top A_{n+1} = 0
+%  \end{equation}
+%  Thus,
+%  \begin{equation}
+%  KL(Q_{1:n+1} ,|, P_{1:n+1}) = \sum_{t=1}^{n+1} KL(Q_t ,|, P_t)
+%  \end{equation}
+
+% \textbf{(b) Chain-Structured Hyperprior.}
+%  The hyperprior for task $n+1$ is conditioned on the cumulative hyperposterior of previous tasks:
+%  \begin{equation}
+%  \mathcal{P}*{1:n+1} = \mathcal{P}*{1:n} \otimes \mathcal{P}*{n+1}(\cdot|\mathcal{Q}*{1:n})
+%  \end{equation}
+%  So,
+%  \begin{align}
+%  & KL(\mathcal{Q}*{1:n+1} ,|, \mathcal{P}*{1:n+1}) =
+%  KL(\mathcal{Q}*{1:n} ,|, \mathcal{P}*{1:n}) + \mathbb{E}*{\mathcal{Q}*{1:n}}\Big[ KL(\mathcal{Q}*{n+1} ,|, \mathcal{P}*{n+1}(\cdot|\mathcal{Q}*{1:n})) \Big] \notag \
+%  &= KL(\mathcal{Q}\*1 ,|, \mathcal{P}\*1)
+%  \+ \sum\*{t=2}^{n+1} \mathbb{E}\*{\mathcal{Q}*{1:t-1}}\big[ KL(\mathcal{Q}_t | \mathcal{P}*t(\cdot|\mathcal{Q}*{1:t-1})) \big]
+%  \end{align}
+
+% \textbf{(c) Generalization Bound.}
+%  The empirical risk and sharpness term for the new task are averaged in:
+%  \begin{align}
+%  & L(\mathcal{Q}*{1:n+1}) \leq \frac{1}{n+1} \sum*{t=1}^{n+1} \mathbb{E}*{P*{1:n+1} \sim \mathcal{Q}*{1:n+1}}\left[
+%  \widehat{L}*{S_t}(\mathbf{W}*{t-1} + \hat{\Delta\mathbf{W}}\*t)
+%  \+ \mathrm{Sharpness}\*t(\mathbf{W}\*{t-1} + \hat{\Delta\mathbf{W}}\*t, \rho_t^2)
+%  \right] \notag\
+%  &\qquad + (b-a)\sqrt{\frac{\mathcal{K}\*{n+1} + \log(m/\delta)}{2(\bar{m}\*{n+1}-1)}}
+%  \end{align}
+%  where
+%  \begin{align}
+%  \mathcal{K}*{n+1} = \sum_{t=1}^{n+1} KL(Q_t|P_t) + KL(\mathcal{Q}*1|\mathcal{P}\*1)
+%  \+ \sum\*{t=2}^{n+1} \mathbb{E}*{\mathcal{Q}_{1:t-1}}\left[ KL(\mathcal{Q}_t | \mathcal{P}*t(\cdot|\mathcal{Q}*{1:t-1})) \right]
+%  \end{align}
+%  and $\bar{m}_{n+1} = (n+1)/\big(\sum_{t=1}^{n+1} 1/m_t\big)$ is the harmonic mean of the sample sizes for all tasks.
+
+
+
+% \textbf{Step 4: Inductive Conclusion General Bound for $n$ Tasks}
+
+
+% By mathematical induction, the PAC-Bayesian generalization bound for incremental multi-task LoRA with orthogonal parameter blocks and recursively dependent hyperpriors is:
+%  \begin{align}
+%  L(\mathcal{Q}*{1:n}) \leq \frac{1}{n} \sum*{t=1}^n \mathcal{E}*t
+%  \+ (b-a)\sqrt{\frac{\mathcal{K}\*n + \log(m/\delta)}{2(\bar{m}\*n-1)}}
+%  \end{align}
+%  where
+%  \begin{equation}
+%  \mathcal{E}\*t = \mathbb{E}\*{P\*{1:n} \sim \mathcal{Q}\*{1:n}}\big[
+%  \widehat{L}*{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+%  \+ \mathrm{Sharpness}*t(\mathbf{W}*{t-1} + \hat{\Delta\mathbf{W}}_t, \rho_t^2)
+%  \big]
+%  \end{equation}
+%  and $\mathcal{K}_n$ is as defined above.
+
+
+
+% \begin{align}
+
+% \label{eq:cl_exp_risk-new}
+% \end{align}
+
+% \begin{align}
+% L(\mathcal{Q}_{1:2}) \leq\; & \frac{1}{2}\sum_{t=1}^2
+%     \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} \Big[
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+%     \notag \\
+% & \qquad
+%         +\; \mathrm{Sharpness}_t\left(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t, \rho_t^2\right)
+%     \Big] \notag \\
+% & + (b-a) \left\{
+%     \frac{1}{2(\bar{m}_2 - 1)} \Big[
+%         \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\big[ KL(Q_1(P_1)\|P_1) \big] \notag \\
+% & \qquad
+%         +\; \mathbb{E}_{P_2 \sim \mathcal{Q}_2}\big[ KL(Q_2(P_2)\|P_2) \big] \notag \\
+% & \qquad
+%         +\; KL(\mathcal{Q}_1\|\mathcal{P}_1)
+%         +\; \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2 \| \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right] \notag \\
+% & \qquad
+%         +\; \log\frac{m}{\delta}
+%     \Big]
+% \right\}^{1/2}
+% \label{eq:cl-bound-chain}
+% \end{align}
+
+% The corresponding prior and hyperprior for the second task are denoted by $P_2,\mathcal{P}_2$.  In the continual learning,  the second-task hyperprior $\mathcal{P}_2$ is conditionally dependent on the hyperposterior of the first task $\mathcal{Q}_1$,i.e., $\mathcal{P}_2 = \mathcal{P}_2(\cdot|\mathcal{Q}_1)$.
+% Thus, the full hyperprior for two tasks can be written as
+% $\mathcal{P}_{1:2} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1).$The corresponding hyperposterior factorizes similarly:
+% $\mathcal{Q}_{1:2} = \mathcal{Q}_1 \otimes \mathcal{Q}_2.$ The joint KL divergence between the hyperdistributions takes the following chain-structured form:
+% $$
+% KL(\mathcal{Q}_{1:2}\,\|\,\mathcal{P}_{1:2}) = KL(\mathcal{Q}_1\,\|\,\mathcal{P}_1) + \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2\,\|\,\mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right].
+% $$
+% Analogously, for the parameter-level distributions, the KL divergence decomposes as
+% $$KL(Q_{1:2}\,\|\,P_{1:2}) = KL(Q_1\,\|\,P_1) + KL(Q_2\,\|\,P_2),$$
+% where $P_2$ is sampled from the hyperprior $\mathcal{P}_2(\cdot,|,\mathcal{Q}_1)$.
+
+
+
+
+
+
+
+
+
+
+% And $\mathcal{Q}_1$ are related to the poster paramter distributon $Q_1$. Because $\mathcal{P}_2$ is conditionally dependent on $\mathcal{Q}_1$, the joint KL divergence between the hyperdistributions takes the following chain-structured form:
+% $$KL(\mathcal{Q}_{1:2}\,\|\,\mathcal{P}_{1:2}) = KL(\mathcal{Q}_1\,\|\,\mathcal{P}_1) + \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2\,\|\,\mathcal{Q}_1) \right].$$ 
+% Analogously, for the parameter-level distributions, the KL divergence decomposes as
+% $KL(Q_{1:2}\,\|\,P_{1:2}) = KL(Q_1\,\|\,P_1) + KL(Q_2\,\|\,P_2),$
+% where $P_2$ is sampled from the hyperprior $\mathcal{P}_2$.
+
+
+
+
+
+
+
+
+
+
+
+
+
+% % This decomposition holds because the KL divergence between independent distributions is equal to the sum of their individual KL divergences. Similarly, for hyperdistributions:
+% % \begin{equation}
+% %      KL(Q_{1:n}^{\text{full}} \| P_{1:n}^{\text{full}}) = \sum_{t=1}^n KL(Q_t \| P_t) .
+% % \end{equation}
+%  The corresponding prior, posterior, hyperprior, and hyperposterior for the second task are denoted by $P_2, Q_2(P_2), \mathcal{P}_2,$ and $\mathcal{Q}_2$, respectively. In this setting, the full posterior and prior over all parameters naturally factorize as $Q_{1:2} = Q_1 \otimes Q_2$ and $P_{1:2} = P_1 \otimes P_2$, and the same holds for the hyperdistributions. By independence, the KL divergence between the joint distributions decomposes additively:
+% $$
+% KL(Q_{1:2}\|P_{1:2}) = KL(Q_1\|P_1) + KL(Q_2\|P_2),
+% $$
+% and similarly for the hyperdistributions,
+% $$
+% KL(\mathcal{Q}_{1:2}\|\mathcal{P}_{1:2}) = KL(\mathcal{Q}_1\|\mathcal{P}_1) + KL(\mathcal{Q}_2\|\mathcal{P}_2).
+% $$
+
+% Thus, the generalization bound for two tasks takes the following form:
+% \begin{align}
+% L(\mathcal{Q}_2) :=\; &\; \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}
+%     \bigg\{
+%     \frac{1}{2} \Big[
+%         \mathbb{E}_{\Delta\mathbf{W}_1 \sim Q_1(P_1)}\big[
+%             L_{\mathcal{D}_1}(\mathbf{W}_0 + \Delta\mathbf{W}_1)
+%         \big] \notag\\
+%     &\quad
+%         +\;
+%         \mathbb{E}_{\Delta\mathbf{W}_2 \sim Q_2(P_2)}\big[
+%             L_{\mathcal{D}_2}(\mathbf{W}_1 + \Delta\mathbf{W}_2)
+%         \big]
+%     \Big] \bigg\}
+% \label{eq:cl_exp_risk}
+% \end{align}
+
+% \begin{align}
+% L(\mathcal{Q}_2) \leq &\;\; \frac{1}{2} \sum_{t=1}^2 \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}
+% \Big[
+%     \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+%     + \mathrm{Sharpness}_t(\hat{\Delta\mathbf{W}}_t, \rho_t^2)
+% \Big] \notag \\
+% & + (b-a) \sqrt{
+%     \frac{
+%         \sum_{t=1}^2 \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}
+%         \Big[ KL(Q_t(P_t)\|P_t) \Big]
+%         + KL(\mathcal{Q}_{1:2}\|\mathcal{P}_{1:2})
+%         + \log(m/\delta)
+%     }{2(m-1)}
+% }
+% \label{eq:cl_bound}
+% \end{align}
+
+
+% \begin{equation}
+% \begin{aligned} 
+% L(\mathcal{Q}_2) \leq &\;\; \frac{1}{2}\sum_{t=1}^2 \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}\left[\widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) + \mathrm{Sharpness}_t(\hat{\Delta\mathbf{W}}_t, \rho_t^2)\right] \\ &+ (b-a) \sqrt{ \frac{ \sum_{t=1}^2 \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}}[KL(Q_t(P_t)\|P_t)] + KL(\mathcal{Q}_{1:2}\|\mathcal{P}_{1:2}) + \log(m/\delta) }{2(m-1)} } 
+% \end{aligned}
+% \end{equation}
+
+% \begin{align}
+% L(\mathcal{Q}_2) \leq\; & \frac{1}{2}\sum_{t=1}^2 
+%     \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} \Big[
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) 
+%     \notag \\
+% & \qquad +\; \mathrm{Sharpness}_t(\mathbf{W}_{t-1} +\hat{\Delta\mathbf{W}}_t, \rho_t^2)
+%     \Big] 
+%     \notag \\
+% & + (b-a) \Bigg\{
+%     \frac{1}{2(\bar{m}_2-1)} \Bigg[
+%         \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \big[ KL(Q_1(P_1)\|P_1) \big] 
+%     \notag \\
+% & \qquad
+%         + \mathbb{E}_{P_2 \sim \mathcal{Q}_2} \big[ KL(Q_2(P_2)\|P_2) \big] 
+%     \notag \\
+% & \qquad
+%         + KL(\mathcal{Q}_1\|\mathcal{P}_1)
+%         + KL(\mathcal{Q}_2\|\mathcal{P}_2)
+%     \notag \\
+% & \qquad
+%         + \log\frac{m}{\delta}
+%     \Bigg]
+% \Bigg\}^{1/2}
+% \label{eq:cl-bound-tight}
+% \end{align}
+
+
+
+% where $\bar{m}_2 = 2 / \left(\frac{1}{m_1} + \frac{1}{m_2}\right)$ denotes the harmonic mean of the sample sizes, , and $\operatorname{const}$ subsumes all terms independent of the learned parameters.
+
+% For clarity, all terms involving empirical risk, sharpness, and complexity should be understood as being averaged over the hyperposterior, i.e., all $\hat{\Delta\mathbf{W}}t$, $\rho_t^2$ and related terms are implicitly inside the expectation over $P_{1:2} \sim \mathcal{Q}_{1:2}$. This ensures that both sides of the bound refer to the same random variable, as in the single-task case.
+
+
+
+  
+ 
+
+
+
+
+
+\section{Appendix B: Proof of the theorem}
+
+
+\begin{lemma} \cite{pentinaPACBayesianBoundLifelong2014} \label{lemma: pentina}
+ Let $f$ be a random variable taking values in $A$ and let $X_1, \ldots, X_l$ be $l$ independent random variables with each $X_k$ distributed according to $\mu_k$ over the set $A_k$. For functions $g_k: A \times A_k \rightarrow\left[a_k, b_k\right], k=1 \ldots l$, let $\xi_k(f)=\mathbf{E}_{X_k \sim \mu_k} g_k\left(f, X_k\right)$ for any fixed value of $f$. Then for any fixed distribution $\pi$ on $A$ and any $\lambda, \delta>0$ the following inequality holds with probability at least $1-\delta$ (over sampling $X_1, \ldots, X_l$ ) for all distributions $\rho$ over $A$
+
+$$
+\begin{gathered}
+\underset{f \sim \rho}{\mathbf{E}} \sum_{k=1}^l \xi_k(f)-\underset{f \sim \rho}{\mathbf{E}} \sum_{k=1}^l g_k\left(h, X_k\right) \leq \\
+\frac{1}{\lambda}\left(K L(\rho \| \pi)+\frac{\lambda^2}{8} \sum_{k=1}^l\left(b_k-a_k\right)^2-\log \delta\right) .
+\end{gathered}
+$$
+\end{lemma}
+
+\begin{theorem} \cite{pentinaPACBayesianBoundLifelong2014}
+For any $\delta>0$ the following inequality holds with probability at least $1-\delta$ (over the training samples $\left\{S_1, \ldots, S_n\right\}$ ) for all hyperposterior distributions $\mathcal{Q}$
+
+$$
+\begin{aligned}
+& \operatorname{er}(\mathcal{Q}) \leq \widehat{\operatorname{er}}(\mathcal{Q})+\frac{1}{\sqrt{n}}\left(K L(\mathcal{Q} \| \mathcal{P})+\frac{1}{8}-\log \frac{\delta}{2}\right) \\
+& +\frac{1}{n \sqrt{\bar{m}}} K L\left(\left(\mathcal{Q}, Q^n\right) \|\left(\mathcal{P}, P^n\right)\right)+\frac{1}{\sqrt{\bar{m}}}\left(\frac{1}{8}-\frac{1}{n} \log \frac{\delta}{2}\right)
+\end{aligned}
+$$
+where $\left(\mathcal{Q}, Q^n\right)=\mathcal{Q} \times \prod_{i=1}^n Q_i$ denotes the distribution in which we first sample $P$ according to $\mathcal{Q}$ and then use it and the data $S_i$ to produce a posterior $Q_i$ for each task $t_i$. $\left(\mathcal{P}, P^n\right)=\mathcal{P} \times \prod_{i=1}^n P$ denotes the distribution in which we sample $P$ according to $\mathcal{P}$ and use it as a posterior for all tasks. $\bar{m}=\left(\frac{1}{n} \sum_{i=1}^n \frac{1}{m_i}\right)^{-1}$ is the harmonic mean of the sample sizes.
+\end{theorem}
+
+
+\begin{theorem} \cite{foretSharpnessAwareMinimizationEfficiently2021}
+Let $\sigma_Q=\rho$, $\mu_Q=w$, $\mu_P = 0$ and $\sigma^2_P = c \exp((1 - j)/k)$, where $c = \rho^2(1 + \exp(4m/k))$ and $j=\left\lfloor 1-k \log \left(\left(\rho^2+\|\boldsymbol{w}\|_2^2 / k\right) / c\right)\right\rfloor$. For any $\rho > 0$ and any distribution $\mathcal{D}$, with probability $1 - \delta$ over the choice of the training set $S \sim \mathcal{D}$,
+\begin{equation}
+\begin{aligned}
+&\mathbb{E}_{\epsilon_i \sim \mathcal{N}(0, \sigma)}\left[L_{\mathcal{D}}(\boldsymbol{w}+\boldsymbol{\epsilon})\right] 
+\leq 
+\mathbb{E}_{\epsilon_i \sim \mathcal{N}(0, \sigma)}\left[L_{\mathcal{S}}(\boldsymbol{w}+\boldsymbol{\epsilon})\right] \\
+&+\sqrt{\frac{\frac{1}{4} k \log \left(1+\frac{\|\boldsymbol{w}\|_2^2}{k \sigma^2}\right)+\frac{1}{4}+\log \frac{m}{\delta}+2 \log (6 m+3 k)}{m-1}}
+\end{aligned}
+\end{equation}
+    
+\end{theorem}
+
+
+
+
+\begin{theorem} 
+For any confidence parameter  $ \delta > 0  $, with probability at least  $ 1 - \delta  $ over the sampling of training sets  $ \{ S_1, \dots, S_n \}  $, the following PAC-Bayesian generalization bound holds for all hyperposterior distributions  $ \mathcal{Q}  $: 
+\[ \begin{aligned} er(\mathcal{Q}) &\leq \frac{1}{n} \sum_{i=1}^n \hat{L}_{S_i}(Q_i) + \frac{1}{n} \sum_{i=1}^n \text{Sharpness}(Q_i) \\ &+ \frac{1}{\sqrt{n}} \left( KL(\mathcal{Q} \| \mathcal{P}) + \frac{1}{8} - \log \frac{\delta}{2} \right) \\ &+ \frac{1}{n\sqrt{\bar{m}}} KL\left( (\mathcal{Q}, Q^n) \| (\mathcal{P}, P^n) \right) + \frac{1}{\sqrt{\bar{m}}} \left( \frac{1}{8} - \frac{1}{n} \log \frac{\delta}{2} \right), \end{aligned} \] 
+\end{theorem}
+
+
+\begin{proof}
+
+The proof technique we use here is inspired from \cite{pentinaPACBayesianBoundLifelong2014} and \cite{foretSharpnessAwareMinimizationEfficiently2021}. We also use the lemma from pentina \shortcite{pentinaPACBayesianBoundLifelong2014} and conclusion from foret \shortcite{foretSharpnessAwareMinimizationEfficiently2021} in as above. 
+
+To prove Theorem 1 we introduce the continual generalization risk with perturbation
+\begin{equation}
+    L(\mathcal{Q}) = \mathbb{E}_{(t,S_t)} \mathbb{E}_{P \sim \mathcal{Q}} \mathbb{E}_{f \sim Q_t} \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \sum_{Q_t})} \left[ L_{\mathcal{D}_t}( f+ \epsilon) \right],
+\end{equation}
+the average generalization risk on observed tasks with Perturbation
+\begin{equation}
+\begin{aligned}
+    L(\mathcal{Q}_{1:n}) :=\; & \frac{1}{n} \sum_{t=1}^n  
+    \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\,
+    \mathbb{E}_{f \sim Q_t(P_t)}\, \\
+    &\qquad
+    \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\,\Sigma_{Q_t})} 
+    \left[ L_{\mathcal{D}_t}(f + \epsilon) \right]
+\end{aligned}
+\end{equation}
+and  the Continual Empirical Risk with Perturbation
+\begin{equation}
+\begin{aligned}
+    \widehat{L}(\mathcal{Q}_{1:n}) :=\; & \frac{1}{n} \sum_{t=1}^n
+    \mathbb{E}_{P \sim \mathcal{Q}}\, \mathbb{E}_{f \sim Q_t}\, \\
+    &\quad
+    \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\,\Sigma_{Q_t})}
+    \left[ \frac{1}{m_t} \sum_{j=1}^{m_t} \ell(f(x_{tj}) + \epsilon,\, y_{tj}) \right]
+\end{aligned}
+\end{equation}
+
+In order to bound the difference between $L_{\epsilon}(\mathcal{Q})$ and $\tilde{L}_\epsilon(\mathcal{Q})$ we treat each task $t$ with the corresponding training sample $S_t$ as a random variable and apply Lemma \ref{lemma: pentina} from pentina \shortcite{pentinaPACBayesianBoundLifelong2014}. Formally, we set $f = \sigma^2$, $\rho = \mathcal{Q}$, $\pi = \mathcal{P}$, $X_k = (t_k, S_k)$, $l = n$, $ g_k(f, X_k) = \frac{1}{n} \mathbb{E}_{h \sim Q_k} \mathbb{E}_{\epsilon \sim \mathcal{N}(0, f\mathbf{I})} [\ell(h(x) + \epsilon, y)] $, and using $\lambda = \sqrt{n}$, we obtain (with probability at least $1-\delta/2$):
+$$  L_{\epsilon}(\mathcal{Q}) \leq  L_\epsilon(\mathcal{Q}_{1:n}) + \frac{1}{\sqrt{n}}\left( \mathrm{KL}(\mathcal{Q} \| \mathcal{P}) + \frac{1}{8} - \log\frac{\delta}{2} \right).$$
+
+
+
+
+
+\end{proof}
+
+
+
+
+
+\end{document}

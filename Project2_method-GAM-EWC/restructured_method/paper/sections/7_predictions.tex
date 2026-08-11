@@ -1,0 +1,23 @@
+\section{Testable Predictions}
+\label{sec:predictions}
+
+Theorem~\ref{thm:pecl-bound} is not merely an existence result; it yields concrete, falsifiable predictions about how perturbation design should interact with PECL performance.
+We state four predictions before presenting experiments.
+
+\textbf{P1 (Scope relevance).}
+Perturbations restricted to the admissible adapter subspace $\mathcal{W}_{\Delta,t}$ should consistently improve continual performance, while perturbations extending into the frozen backbone should provide no systematic benefit and may degrade performance.
+\emph{Why:} the bound depends only on $\mathrm{TS}_t^\Delta$ and $\mathrm{KL}(Q_t^\Delta \| P_t^\Delta)$; backbone perturbations add noise along directions outside $\mathcal{W}_{\Delta,t}$ that neither reduce the bound nor can be corrected by subsequent LoRA updates.
+
+\textbf{P2 (Curvature localization mediates scope relevance).}
+The advantage of adapter-scoped perturbation should grow as dominant task-conditioned curvature modes concentrate within the adapter-induced geometry rather than the backbone subspace.
+\emph{Why:} if the task-conditioned curvature is concentrated in $\mathcal{W}_{\Delta,t}$ (high curvature projection ratio $c_t > 1$), then adapter-scoped perturbations target the correct high-curvature directions; backbone-scoped perturbations perturb a low-curvature regime and achieve little.
+
+\textbf{P3 (First-order type is strongest).}
+For a fixed adapter scope, the ordering $\mathrm{AS}^{(1)} \succ \mathrm{AS}^{(0)} \succ \mathrm{RS}^{(0)} \succ \mathrm{SGD}$ should hold for both accuracy and subspace sharpness.
+\emph{Why:} AS$^{(1)}$ aligns perturbation mass with dominant curvature directions of $C_{\Delta,t}$, minimizing $\operatorname{tr}(C_{\Delta,t}\Sigma_t)$ most directly; AS$^{(0)}$ adversarially concentrates variance but does not explicitly target curvature; RS$^{(0)}$ isotropically distributes variance and provides a weaker bound reduction.
+
+\textbf{P4 (Boundary condition: distinction weakens at larger rank).}
+As the adapter rank $r$ increases toward the ambient dimension, $\mathcal{W}_{\Delta,t}$ approaches the full parameter space, so the distinction between adapter-scoped and full-scoped perturbation should weaken.
+\emph{Why:} when $\mathcal{W}_{\Delta,t} \approx \mathbb{R}^d$, Lemma~\ref{lem:kl-decomp-pecl} becomes vacuous and the subspace-reduction argument loses bite.
+
+These predictions provide a structured way to interpret the experiments in Section~\ref{sec:experiments}: each experiment corresponds to one or more of P1--P4.

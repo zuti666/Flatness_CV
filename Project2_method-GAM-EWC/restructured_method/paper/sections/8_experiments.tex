@@ -1,0 +1,215 @@
+\section{Empirical Validation}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+
+\noindent\textbf{Datasets.}
+We evaluate on vision benchmarks derived from ImageNet.
+ImageNet-R~\citep{ImagenetR_Hendrycks_2021_ICCV} (200 classes, $T=20$ tasks) is our main class-incremental benchmark.
+To assess robustness, we use Tiny ImageNet variants of ImageNet-C and ImageNet-P (200 classes)~\citep{hendrycks2018benchmarking}, which apply 15 corruption types and perturbation sequences, respectively.
+
+\noindent\textbf{Models.}
+All vision experiments use a ViT-B/16~\citep{dosovitskiy2020image} pretrained on ImageNet-21K with LoRA adapters attached to each transformer block.
+We evaluate three organizations: SeqLoRA (fully shared), IncLoRA (incremental), and OLoRA~\citep{wang2023orthogonal} (orthogonality-constrained).
+For language, we evaluate T5 and Llama-3.2 (1B, 3B) models on text classification benchmarks (Section~\ref{sec:external}).
+
+\noindent\textbf{Perturbation scope.}
+We compare adapter-scoped perturbation (LoRA parameters only) against full-parameter perturbation following~\citet{li2024flatlora}, which injects isotropic Gaussian noise $\mathrm{RS}_S^{(0)}(W, \sigma^2 I)$ across all parameters.
+
+\noindent\textbf{Perturbation type.}
+Within the adapter scope, we compare: SGD (baseline), $\mathrm{RS}^{(0)}$ (RWP~\citep{pmlr-v151-bisla22a}), $\mathrm{AS}^{(0)}$ (SAM~\citep{foretSharpnessAwareMinimizationEfficiently2021}), and $\mathrm{AS}^{(1)}$ (GAM~\citep{Zhang_GAM}).
+
+\noindent\textbf{Metrics.}
+Average class-incremental accuracy $\operatorname{Acc}_t = \frac{1}{t}\sum_{j=1}^t a_{tj}$, where $a_{tj}$ is accuracy on task $j$ after learning task $t$.
+We report linear classifier accuracy $\operatorname{Acc}_t^{\mathrm{cls}}$ and nearest-class-mean accuracy $\operatorname{Acc}_t^{\mathrm{ncm}}$.
+For flatness, we estimate $\lambda_{\max}$ and $\mathrm{tr}(\cdot)$ of the Hessian and Fisher information using Lanczos~\citep{ghorbaniInvestigationNeuralNet2019}, restricted to the trainable LoRA parameters.
+Unless stated otherwise, $\rho = 0.05$.
+
+\subsection{Q1: Why Does Perturbation Scope Matter? (P1 \& P2)}
+\label{sec:q1-scope}
+
+\noindent\textbf{Scope effect.}
+Table~\ref{tab:lora_or_full_cls_show} shows the scope effect across LoRA organizations: restricting perturbation to the adapter subspace consistently improves $\operatorname{Acc}^{\mathrm{cls}}$ over SGD, while full-parameter perturbation degrades performance substantially, with the strongest drop for SeqLoRA ($-3.5$ to $-6.7$ depending on perturbation strength).
+
+{%
+\setlength{\textfloatsep}{4pt}
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{4pt}
+\begin{table}[t]
+\vspace{-5pt}
+\centering
+\caption{Scope effect in PECL: $\Delta\operatorname{Acc}^{\mathrm{cls}}$ vs.\ SGD on ImageNet-R ($T=20$, $r=16$). Adapter-only perturbations consistently improve; full-parameter perturbations degrade.}
+\label{tab:lora_or_full_cls_show}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{0.88}
+\begin{tabular}{@{}c c c c c@{}}
+\toprule
+\textbf{Scope} & \textbf{Strength} & \textbf{SeqLoRA} & \textbf{IncLoRA} & \textbf{OLoRA} \\
+\midrule
+\multirow{3}{*}{Full}
+ & 0.05 & $-3.50$ & $-2.00$ & $-2.62$ \\
+ & 0.10 & $-4.82$ & $-4.74$ & $-5.53$ \\
+ & 0.15 & $-6.72$ & $-6.84$ & $-6.49$ \\
+\midrule
+\multirow{3}{*}{LoRA}
+ & 0.05 & $+0.27$ & $+0.79$ & $+0.12$ \\
+ & 0.10 & $+0.70$ & $+0.86$ & $+0.28$ \\
+ & 0.15 & $+0.41$ & $+0.77$ & $+0.27$ \\
+\bottomrule
+\end{tabular}
+\vspace{-5pt}
+\end{table}
+}
+
+\noindent\textbf{Mechanism: curvature localization.}
+To understand why scope matters, we examine two geometric quantities across the task sequence.
+Following~\citet{hu_lora_2021}, the \emph{feature amplification factor}
+$\alpha_t = \frac{\|\Delta W_t\|_F}{\|U_{\Delta,t}^\top W_t^{\mathrm{froz}} V_{\Delta,t}\|_F}$
+measures how strongly $\Delta W_t$ amplifies task-specific directions, where $U_{\Delta,t}$, $V_{\Delta,t}$ are the left and right singular vectors of $\Delta W_t$.
+The \emph{curvature projection ratio} $c_t = R_{\Delta,t} / R_{W_t^{\mathrm{froz}},t}$ compares eigenvalue-weighted localization of task-conditioned curvature modes onto the adapter-induced geometry versus the backbone reference (see Appendix~\ref{app:weight_projection} for definitions).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=1.0\linewidth]{figures_TRML/weight_overlap_5fig.pdf}
+\vspace{-15pt}
+\caption{Evolution of curvature projection ratio $c_t$ (left), amplification factor $\alpha_t$ (middle), and perturbation-aware loss $\hat{L}(W+\epsilon)$ with average accuracy $\operatorname{Acc}_t$ (right) in SeqLoRA.
+Both $c_t$ and $\alpha_t$ increase over the task sequence and stay above $c_t \approx 1$, confirming that dominant task-conditioned curvature concentrates in the adapter-induced geometry.
+This localization coincides with the degradation of the perturbation-aware loss and accuracy.}
+\label{fig:evolute}
+\end{figure*}
+
+Figure~\ref{fig:evolute} shows that, as the task sequence progresses, $c_t$ rises above the neutral level $c_t \approx 1$, confirming that dominant task-conditioned curvature concentrates in the adapter-induced geometry rather than the backbone subspace (prediction P2).
+The amplification factor $\alpha_t$ also rises, showing that learned updates progressively amplify task-specific directions.
+These trends align closely with the evolution of perturbation-aware loss and accuracy.
+Adapter-scoped perturbations act on this controllable geometry; full-parameter perturbations inject noise into frozen directions outside $\mathcal{W}_{\Delta,t}$, creating an irreducible scope mismatch that degrades performance.
+
+\subsection{Q2: Which Perturbation Type Is Most Effective? (P3)}
+\label{sec:q2-type}
+
+\begin{table*}[t]
+\centering
+\caption{Class-incremental performance and flatness metrics on ImageNet-R ($T=20$, $r=16$).
+All perturbation types use adapter-only scope.
+Curvature metrics (Hessian/Fisher) are restricted to the trainable LoRA parameters.
+Stronger perturbation types reduce subspace sharpness and improve continual accuracy.}
+\label{table:q1_ci_with_weight_flatness_reorg}
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{0.92}
+\resizebox{\linewidth}{!}{
+\scriptsize
+\begin{tabular}{@{}p{1.15cm} p{1.8cm} c c c c c c c c@{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multirow{2}{*}{\textbf{Opt.}} &
+\multicolumn{2}{c}{\textbf{CL Performance ($\uparrow$)}} &
+\multicolumn{2}{c}{\textbf{Sharpness ($\downarrow$)}} &
+\multicolumn{4}{c}{\textbf{Curvature ($\downarrow$)}} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-10}
+ & & $\operatorname{Acc}_{20}^{\mathrm{cls}}$ & $\operatorname{Acc}_{20}^{\mathrm{ncm}}$
+ & AS$^{(0)}(\rho)$ & AS$^{(1)}(\rho)$
+ & $\lambda_{\max}(H)$ & $\mathrm{tr}(H)$
+ & $\lambda_{\max}(F)$ & $\mathrm{tr}(F)$ \\
+\midrule
+\multirow{4}{*}{SeqLoRA}
+ & SGD           & 69.07 & 66.63 & 0.148 & 0.218 & 0.421 & 1.024 & 0.312 & 0.876 \\
+ & RS$^{(0)}$   & 69.25 & 66.82 & 0.135 & 0.204 & 0.398 & 0.971 & 0.295 & 0.842 \\
+ & AS$^{(0)}$   & 69.34 & 67.10 & 0.121 & 0.191 & 0.374 & 0.924 & 0.278 & 0.807 \\
+ & AS$^{(1)}$   & \textbf{69.77} & \textbf{67.53} & \textbf{0.108} & \textbf{0.173} & \textbf{0.341} & \textbf{0.879} & \textbf{0.256} & \textbf{0.769} \\
+\midrule
+\multirow{4}{*}{IncLoRA}
+ & SGD           & 71.29 & 68.45 & 0.132 & 0.201 & 0.387 & 0.954 & 0.288 & 0.821 \\
+ & RS$^{(0)}$   & 71.58 & 68.71 & 0.121 & 0.188 & 0.368 & 0.915 & 0.271 & 0.789 \\
+ & AS$^{(0)}$   & 71.87 & 68.98 & 0.109 & 0.175 & 0.347 & 0.873 & 0.253 & 0.754 \\
+ & AS$^{(1)}$   & \textbf{72.15} & \textbf{69.31} & \textbf{0.096} & \textbf{0.158} & \textbf{0.318} & \textbf{0.831} & \textbf{0.232} & \textbf{0.714} \\
+\midrule
+\multirow{4}{*}{OLoRA}
+ & SGD           & 71.41 & 68.19 & 0.128 & 0.195 & 0.379 & 0.943 & 0.281 & 0.814 \\
+ & RS$^{(0)}$   & 71.53 & 68.31 & 0.118 & 0.183 & 0.362 & 0.908 & 0.266 & 0.781 \\
+ & AS$^{(0)}$   & 71.69 & 68.46 & 0.106 & 0.171 & 0.341 & 0.864 & 0.248 & 0.748 \\
+ & AS$^{(1)}$   & \textbf{71.88} & \textbf{68.68} & \textbf{0.093} & \textbf{0.155} & \textbf{0.312} & \textbf{0.823} & \textbf{0.229} & \textbf{0.709} \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+Table~\ref{table:q1_ci_with_weight_flatness_reorg} shows a consistent ordering across all LoRA organizations: $\mathrm{AS}^{(1)} \succ \mathrm{AS}^{(0)} \succ \mathrm{RS}^{(0)} \succ \mathrm{SGD}$ for both accuracy and subspace sharpness metrics (prediction P3).
+Moving from SGD to AS$^{(1)}$ yields an average improvement of $+0.70$ acc$^{\mathrm{cls}}$ points in SeqLoRA and reduces $\lambda_{\max}(H)$ by $19\%$, confirming that stronger curvature suppression translates directly to higher continual accuracy.
+
+Figure~\ref{fig:robustness_imagenet_cp} shows the same ordering across the task sequence on ImageNet-C/P: both adversarial objectives outperform SGD throughout, and the gap widens in later tasks, indicating improved stability under continual adaptation.
+
+{%
+\setlength{\intextsep}{4pt}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures_TRML/ACC_dataset_pair_Robustness_to_Corruptions_on_ImageNet-C_Robustness_to_Perturbation_on_ImageNet-P2.pdf}
+\caption{\textbf{Perturbation type robustness.}
+Classification accuracy $\operatorname{Acc}_t^{\mathrm{cls}}$ over tasks under distribution shift (ImageNet-C, ImageNet-P).
+Both AS$^{(0)}$ and AS$^{(1)}$ consistently outperform SGD; the gap widens in later tasks.
+ImageNet-C/P refer to Tiny ImageNet variants.}
+\label{fig:robustness_imagenet_cp}
+\end{figure}
+}
+
+\noindent\textbf{Type effect mechanism.}
+Figure~\ref{fig:scope_type2} shows 1D loss probes along the leading eigendirection of the restricted curvature (top) and the full curvature (bottom).
+Within the LoRA-restricted probe, loss profiles appear similarly flat across types.
+Under full-parameter probes, however, the solutions separate clearly: AS$^{(1)}$ trained models exhibit the flattest full-space loss, confirming that the type-induced geometry within $\mathcal{W}_{\Delta,t}$ reshapes the full-model landscape of $W_0 + \Delta W_t$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures_TRML/lossland_curv1d_combine_loss_title2.pdf}
+\caption{1D loss probes along the leading eigendirection of the restricted curvature (top) and full curvature (bottom).
+Under the full-parameter probe, solutions trained with stronger perturbation types are markedly flatter, confirming that perturbation geometry within $\mathcal{W}_{\Delta,t}$ shapes the full-model loss landscape.}
+\label{fig:scope_type2}
+\end{figure}
+
+The amplified advantage of AS$^{(1)}$ in LoRA-based PECL is consistent with the theoretical analysis: AS$^{(1)}$ explicitly penalizes the neighborhood gradient norm, making it sensitive to dominant modes of the restricted curvature $C_{\Delta,t}$.
+In the low-dimensional admissible subspace, curvature-aligned control is both feasible and impactful---explaining why the advantage of first-order sharpness is more pronounced here than in full-parameter training~\citep{Zhang_GAM}.
+
+\subsection{Boundary Conditions (P4)}
+\label{sec:boundary}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1.0\linewidth]{figures_TRML/ablation_rank_length_imagenetr_NME_T.pdf}
+\vspace{-10pt}
+\caption{Sensitivity to adapter capacity and sequence length on ImageNet-R.
+Final $\operatorname{Acc}_T^{\mathrm{ncm}}$ vs.\ LoRA rank $r$ (left) and task sequence length $T$ (right).
+The ordering $\mathrm{AS}^{(1)} \succ \mathrm{SGD}$ is stable across configurations; performance saturates at moderate rank.}
+\label{fig:ablation}
+\end{figure}
+
+Figure~\ref{fig:ablation} shows that the relative ordering of perturbation types is stable across LoRA ranks and task sequence lengths.
+Accuracy improves with rank but saturates at moderate values, supporting the view that a low-dimensional admissible subspace suffices to capture task-specific directions.
+The gap between flatness-aware and SGD methods grows with task sequence length, confirming that subspace flatness control provides cumulative benefits under longer sequences.
+
+\subsection{External Validity Across Architectures}
+\label{sec:external}
+
+To test whether the scope-type effect generalizes beyond vision, we evaluate on language benchmarks.
+For T5, we use sequential text classification following prior PECL work.
+For Llama-3.2 (1B and 3B), we train four text classification datasets (DBpedia, Amazon Reviews, Yahoo Answers, AG News) sequentially under three task orders.
+In all six model/method combinations, adapter-scoped AS outperforms Adam:
+
+\begin{table}[h]
+\centering
+\caption{Llama-3.2 sequential classification: Adam vs.\ adapter-scoped SAM.}
+\label{tab:llama_results}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l l r r r@{}}
+\toprule
+\textbf{Model} & \textbf{Method} & \textbf{Adam} & \textbf{SAM} & \textbf{Gain} \\
+\midrule
+Llama-3.2-1B & SeqLoRA & 63.6 & 68.5 & $+4.9$ \\
+Llama-3.2-1B & IncLoRA & 62.1 & 67.7 & $+5.6$ \\
+Llama-3.2-1B & OLoRA   & 56.7 & 63.6 & $+6.9$ \\
+Llama-3.2-3B & SeqLoRA & 67.5 & 73.2 & $+5.7$ \\
+Llama-3.2-3B & IncLoRA & 67.2 & 72.8 & $+5.6$ \\
+Llama-3.2-3B & OLoRA   & 63.4 & 68.8 & $+5.4$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The same qualitative pattern holds across encoder vision (ViT), encoder-decoder language (T5), and decoder-only LLMs at 1B and 3B scales.
+This broadens the external validity of the claim that adapter-subspace flatness governs continual generalization in frozen-backbone PECL.

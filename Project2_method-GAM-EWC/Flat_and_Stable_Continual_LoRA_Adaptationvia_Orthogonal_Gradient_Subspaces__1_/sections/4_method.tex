@@ -1,0 +1,494 @@
+\section{Flat-Stable LoRA}
+\label{sec:method}
+
+We propose Flat-Stable LoRA (FS-LoRA), a decoupled optimizer for replay-free continual LoRA adaptation.
+The method is motivated by a simple design issue: current-task flatness control and past-task Fisher stabilization play different roles, but a naive sharpness-aware optimizer applied to their summed objective mixes these two signals inside the same perturbation closure.
+FS-LoRA avoids this coupling by computing the sharpness-aware correction only from the current-task loss, while injecting the Fisher gradient as an independent stability component in the effective adapter-update space $\Delta W=BA$.
+
+The method has two active components.
+First, at every mini-batch, FS-LoRA performs a decoupled flat-stable update that combines the clean current-task gradient, the AS$^1$ flatness correction, and the Fisher stability gradient.
+Second, at task boundaries, FS-LoRA computes a trace-normalized Fisher in $\Delta W$-space, which prevents the Fisher term from becoming structurally inactive under low-rank parameterization.
+An optional dual-ascent controller can adapt $\lambda_{\mathrm{ewc}}$ when the Fisher drift constraint is violated, although it remains passive in the experiments reported here.
+
+\subsection{Why Coupled Sharpness-Aware Fisher Regularization Is Problematic}
+\label{sec:coupled_problem}
+
+A natural baseline is to apply GAM or SAM to the combined objective
+\begin{equation}
+\min_{\phi}
+\;
+L_t(\phi)
++
+\lambda_{\mathrm{ewc}}
+L_{\mathrm{Fisher}}(\phi),
+\label{eq:coupled_objective}
+\end{equation}
+where $L_t$ is the current-task loss and $L_{\mathrm{Fisher}}$ penalizes drift along old-task sensitive directions.
+Under this design, the perturbation direction used by the sharpness-aware optimizer becomes
+\begin{equation}
+\hat{\phi}_{\mathrm{coupled}}
+=
+\phi
++
+\rho
+\frac{
+\nabla_{\phi}
+\left(
+L_t(\phi)
++
+\lambda_{\mathrm{ewc}}
+L_{\mathrm{Fisher}}(\phi)
+\right)
+}{
+\left\|
+\nabla_{\phi}
+\left(
+L_t(\phi)
++
+\lambda_{\mathrm{ewc}}
+L_{\mathrm{Fisher}}(\phi)
+\right)
+\right\|
++
+\epsilon
+}.
+\label{eq:coupled_perturb}
+\end{equation}
+
+This coupled closure is undesirable because the perturbation no longer measures current-task sharpness alone.
+To see this, consider a local first-order expansion around $\phi$.
+Let $\epsilon_{\mathrm{c}}=\hat{\phi}_{\mathrm{coupled}}-\phi$.
+Then
+\begin{equation}
+\nabla_{\phi} L_t(\phi+\epsilon_{\mathrm{c}})
+\approx
+\nabla_{\phi} L_t(\phi)
++
+H_t \epsilon_{\mathrm{c}},
+\label{eq:task_expansion}
+\end{equation}
+where $H_t=\nabla^2_{\phi}L_t$ is the current-task Hessian.
+Similarly, the Fisher penalty contributes
+\begin{equation}
+\nabla_{\phi} L_{\mathrm{Fisher}}(\phi+\epsilon_{\mathrm{c}})
+\approx
+\nabla_{\phi} L_{\mathrm{Fisher}}(\phi)
++
+H_{\mathrm{Fisher}}\epsilon_{\mathrm{c}}.
+\label{eq:fisher_expansion}
+\end{equation}
+Since the Fisher penalty is defined in the effective update space $\Delta W=BA$, its Hessian in the factor space is locally of the form
+\begin{equation}
+H_{\mathrm{Fisher}}
+\approx
+J^\top
+\widetilde F
+J,
+\label{eq:fisher_hessian}
+\end{equation}
+where $J=\partial \mathrm{vec}(\Delta W)/\partial\phi$ is the Jacobian of the LoRA reparameterization and $\widetilde F$ is the trace-normalized Fisher.
+
+Therefore, applying GAM to the coupled objective injects a Fisher-aligned curvature term
+\begin{equation}
+J^\top
+\widetilde F
+J
+\epsilon_{\mathrm{c}}
+\label{eq:fisher_cross_term}
+\end{equation}
+into the flatness correction.
+The resulting update no longer separates current-task plasticity from old-task stability.
+In other words, the sharpness correction is contaminated by the Fisher penalty, and it becomes unclear whether the update improves current-task flatness, protects old-task sensitive directions, or merely mixes the two.
+
+FS-LoRA avoids this failure mode by decoupling the two computations: the sharpness-aware perturbation is computed only from $L_t$, while Fisher regularization is added as a separate stability gradient.
+
+\subsection{Decoupled Flat-Stable Update}
+\label{sec:decoupled_update}
+
+Let $\phi$ denote all trainable LoRA factors.
+For each mini-batch, FS-LoRA first computes the clean current-task gradient
+\begin{equation}
+g_{\mathrm{clean}}
+=
+\nabla_{\phi} L_t(\phi).
+\label{eq:gclean}
+\end{equation}
+The GAM perturbation is then computed using only the current-task loss:
+\begin{equation}
+\hat{\phi}
+=
+\phi
++
+\rho
+\frac{
+g_{\mathrm{clean}}
+}{
+\|g_{\mathrm{clean}}\|+\epsilon
+}.
+\label{eq:task_only_perturb}
+\end{equation}
+The perturbed current-task gradient is
+\begin{equation}
+g_{\mathrm{gam}}
+=
+\nabla_{\phi}L_t(\hat{\phi}),
+\label{eq:ggam}
+\end{equation}
+and the AS$^1$ flatness correction is defined as the gradient displacement
+\begin{equation}
+g_{\mathrm{flat}}
+=
+g_{\mathrm{gam}}
+-
+g_{\mathrm{clean}}.
+\label{eq:gflat}
+\end{equation}
+Locally, this term satisfies
+\begin{equation}
+g_{\mathrm{flat}}
+\approx
+H_t
+\left(
+\rho
+\frac{
+g_{\mathrm{clean}}
+}{
+\|g_{\mathrm{clean}}\|+\epsilon
+}
+\right),
+\label{eq:gflat_hessian}
+\end{equation}
+so it measures how the current-task gradient changes along the sharpness-aware perturbation direction.
+This is the operational AS$^1$ correction used by FS-LoRA.
+
+The Fisher stability gradient is computed independently from the current-task GAM closure:
+\begin{equation}
+g_{\mathrm{fisher}}
+=
+\nabla_{\phi}
+\left[
+\frac{\lambda_{\mathrm{ewc}}}{2}
+\mathcal R_{\mathrm{Fisher}}(\phi)
+\right].
+\label{eq:gfisher}
+\end{equation}
+The final FS-LoRA update is
+\begin{equation}
+g_{\mathrm{FS}}
+=
+g_{\mathrm{clean}}
++
+\lambda_{\mathrm{flat}}g_{\mathrm{flat}}
++
+g_{\mathrm{fisher}}.
+\label{eq:gfs}
+\end{equation}
+
+This update is not a generic sum of losses.
+It implements a functional separation between plasticity and stability: $g_{\mathrm{flat}}$ is computed from the current-task loss only, while $g_{\mathrm{fisher}}$ constrains the adapter drift along old-task sensitive directions.
+The cosine between the two non-clean components,
+\begin{equation}
+\cos_{\mathrm{flat,fisher}}
+=
+\frac{
+\langle g_{\mathrm{flat}},g_{\mathrm{fisher}}\rangle
+}{
+\|g_{\mathrm{flat}}\|\|g_{\mathrm{fisher}}\|+\epsilon
+},
+\label{eq:cos_flat_fisher}
+\end{equation}
+is logged as a diagnostic.
+Empirically, this cosine remains close to zero across the evaluated benchmarks, suggesting that the two channels capture distinct update directions.
+We use this near-orthogonality as a design diagnostic rather than as an assumption required by the algorithm.
+
+\subsection{Trace-Normalized Fisher in Effective Adapter-Update Space}
+\label{sec:trace_normalized_fisher}
+
+The Fisher penalty is defined in the effective adapter-update space rather than in the raw factor coordinates.
+For each LoRA layer,
+\begin{equation}
+\Delta W_l
+=
+B_lA_l.
+\label{eq:delta_w}
+\end{equation}
+At the end of task $t'$, FS-LoRA stores the effective adapter snapshot
+\begin{equation}
+\Delta W_{t',l}^{\star}
+=
+B_{t',l}^{\star}A_{t',l}^{\star}.
+\label{eq:delta_snapshot}
+\end{equation}
+For a later task $t>t'$, the Fisher drift penalty is
+\begin{equation}
+\mathcal R_{\mathrm{Fisher}}(\phi)
+=
+\sum_{t'<t}
+\sum_l
+\left\langle
+\widetilde F_{t',l}+\eta,
+\left(
+\Delta W_l-\Delta W_{t',l}^{\star}
+\right)^2
+\right\rangle,
+\label{eq:fisher_penalty}
+\end{equation}
+where $\langle\cdot,\cdot\rangle$ denotes elementwise inner product and the square is elementwise.
+This formulation regularizes the functional update $\Delta W=BA$, not the arbitrary factorization $(A,B)$.
+
+The raw Fisher in $\Delta W$-space is often extremely small because the trainable update is restricted to a low-rank subspace.
+In practice, raw Fisher values can be around $10^{-6}$, which makes the Fisher gradient nearly inactive unless $\lambda_{\mathrm{ewc}}$ is heavily tuned.
+To remove this scale pathology, FS-LoRA uses trace normalization:
+\begin{equation}
+\widetilde F_{t,l}
+=
+\frac{
+F_{t,l}
+}{
+\sum_{l'}
+\operatorname{tr}
+\left(
+F_{t,l'}
+\right)
++
+\epsilon
+}.
+\label{eq:trace_norm}
+\end{equation}
+Thus,
+\begin{equation}
+\sum_l
+\operatorname{tr}
+\left(
+\widetilde F_{t,l}
+\right)
+\approx
+1.
+\label{eq:normalized_trace}
+\end{equation}
+After normalization, $\lambda_{\mathrm{ewc}}$ controls the relative strength of the Fisher constraint rather than compensating for dataset-dependent Fisher scale.
+
+The gradient of Eq.~\eqref{eq:fisher_penalty} follows from the chain rule through $\Delta W_l=B_lA_l$.
+Let
+\begin{equation}
+D_{t',l}
+=
+\Delta W_l
+-
+\Delta W_{t',l}^{\star}.
+\label{eq:fisher_drift}
+\end{equation}
+Then
+\begin{equation}
+\frac{
+\partial
+\mathcal R_{\mathrm{Fisher}}
+}{
+\partial B_l
+}
+=
+2
+\sum_{t'<t}
+\left[
+\left(
+\widetilde F_{t',l}+\eta
+\right)
+\odot
+D_{t',l}
+\right]
+A_l^\top,
+\label{eq:fisher_grad_b}
+\end{equation}
+and
+\begin{equation}
+\frac{
+\partial
+\mathcal R_{\mathrm{Fisher}}
+}{
+\partial A_l
+}
+=
+2
+\sum_{t'<t}
+B_l^\top
+\left[
+\left(
+\widetilde F_{t',l}+\eta
+\right)
+\odot
+D_{t',l}
+\right].
+\label{eq:fisher_grad_a}
+\end{equation}
+Because $g_{\mathrm{fisher}}$ in Eq.~\eqref{eq:gfisher} differentiates $\frac{\lambda_{\mathrm{ewc}}}{2}\mathcal R_{\mathrm{Fisher}}$, the factor $2$ in Eqs.~\eqref{eq:fisher_grad_b} and~\eqref{eq:fisher_grad_a} is cancelled by the $\frac{1}{2}$ coefficient.
+
+After each task, the normalized Fisher is accumulated with exponential decay:
+\begin{equation}
+\bar F_t
+\leftarrow
+\gamma \bar F_{t-1}
++
+(1-\gamma)\widetilde F_t.
+\label{eq:fisher_accum}
+\end{equation}
+This prevents very old tasks from dominating the penalty as the sequence grows.
+
+\subsection{Constrained Optimization View and Optional Dual Ascent}
+\label{sec:dual_ascent}
+
+FS-LoRA can be interpreted as a penalty-method approximation to a constrained flat-stable optimization problem.
+The desired objective is to improve current-task fit and flatness while keeping the Fisher-weighted drift below a stability budget:
+\begin{equation}
+\min_{\phi}
+\;
+L_t(\phi)
++
+\lambda_{\mathrm{flat}}
+\mathcal S_{\Delta}^{(1)}(\phi)
+\quad
+\mathrm{s.t.}
+\quad
+\widetilde D_{\mathrm{Fisher}}(\phi)
+\leq
+\delta.
+\label{eq:constrained_fs}
+\end{equation}
+Here $\mathcal S_{\Delta}^{(1)}$ denotes the first-order adapter-subspace sharpness surrogate whose gradient is approximated by $g_{\mathrm{flat}}$, and the normalized Fisher drift is
+\begin{equation}
+\widetilde D_{\mathrm{Fisher}}(\phi)
+=
+\sum_{t'<t}
+\sum_l
+\left\langle
+\widetilde F_{t',l},
+\left(
+\Delta W_l-\Delta W_{t',l}^{\star}
+\right)^2
+\right\rangle.
+\label{eq:fisher_drift_budget}
+\end{equation}
+
+The corresponding Lagrangian penalty is
+\begin{equation}
+\mathcal L_{\mathrm{FS}}
+(\phi,\lambda_{\mathrm{ewc}})
+=
+L_t(\phi)
++
+\lambda_{\mathrm{flat}}
+\mathcal S_{\Delta}^{(1)}(\phi)
++
+\frac{\lambda_{\mathrm{ewc}}}{2}
+\mathcal R_{\mathrm{Fisher}}(\phi).
+\label{eq:fs_lagrangian}
+\end{equation}
+At each mini-batch, FS-LoRA performs a primal update on $\phi$ using Eq.~\eqref{eq:gfs}.
+At task boundaries, an optional dual-ascent controller can update $\lambda_{\mathrm{ewc}}$ according to the observed Fisher drift:
+\begin{equation}
+\lambda_{\mathrm{ewc}}
+\leftarrow
+\operatorname{clip}
+\left(
+\lambda_{\mathrm{ewc}}
++
+\alpha_{\mathrm{dual}}
+\left(
+\widetilde D_{\mathrm{Fisher}}(\phi)
+-
+\delta
+\right),
+\lambda_{\min},
+\lambda_{\max}
+\right).
+\label{eq:dual_update}
+\end{equation}
+When the drift exceeds the budget $\delta$, the Fisher penalty is strengthened for subsequent tasks.
+When the constraint is satisfied, $\lambda_{\mathrm{ewc}}$ remains unchanged or decays toward $\lambda_{\min}$, depending on the chosen clipping range.
+
+In the experiments reported in this paper, the Fisher drift remains below the budget, so the dual update is passive.
+Therefore, the empirical gains should be attributed to the active components of FS-LoRA, namely the decoupled AS$^1$ update and trace-normalized $\Delta W$-space Fisher stabilization.
+Dual ascent is included as an outer-loop controller for regimes where the stability constraint becomes binding, such as task sequences with high semantic overlap.
+
+\subsection{Gradient-Geometric Diagnostic}
+\label{sec:gradient_diagnostic}
+
+The decoupled design is motivated by the empirical observation that $g_{\mathrm{flat}}$ and $g_{\mathrm{fisher}}$ are nearly orthogonal in the LoRA factor space.
+This observation explains why the two components can be treated as separate update channels, but it is not required by the optimizer.
+
+The connection between the factor space and the effective update space is given by the Jacobian
+\begin{equation}
+J
+=
+\frac{
+\partial \mathrm{vec}(\Delta W)
+}{
+\partial \phi
+}.
+\label{eq:lora_jacobian}
+\end{equation}
+The Fisher gradient has the form
+\begin{equation}
+g_{\mathrm{fisher}}
+=
+J^\top f,
+\label{eq:fisher_jacobian_form}
+\end{equation}
+where $f$ is the Fisher-weighted drift vector in $\Delta W$-space.
+The AS$^1$ correction satisfies
+\begin{equation}
+g_{\mathrm{flat}}
+\approx
+J^\top
+H_{\Delta W}
+J
+\epsilon,
+\label{eq:flat_jacobian_form}
+\end{equation}
+where $H_{\Delta W}$ is the current-task Hessian in the effective update space and $\epsilon$ is the task-only GAM perturbation.
+
+Thus, the inner product between the two update components is locally
+\begin{equation}
+g_{\mathrm{flat}}^\top g_{\mathrm{fisher}}
+\approx
+\epsilon^\top
+J^\top
+H_{\Delta W}
+(JJ^\top)
+f.
+\label{eq:flat_fisher_inner}
+\end{equation}
+If the current-task Hessian directions and the old-task Fisher directions are well separated within the reachable update subspace $\operatorname{Im}(J)$, and if $J$ is not highly anisotropic on this subspace, this inner product becomes small.
+This provides a geometric explanation for the observed near-zero cosine.
+
+We emphasize that this diagnostic is used to justify the decoupled design, not to claim that orthogonality is enforced by the optimizer.
+FS-LoRA does not project gradients, nor does it perform gradient surgery.
+It preserves the separation between flatness and stability by avoiding a shared perturbation closure.
+
+\subsection{Algorithm}
+\label{sec:algorithm}
+
+\begin{algorithm}[t]
+\caption{FS-LoRA Training}
+\label{alg:fslora}
+\begin{algorithmic}[1]
+\Require Task sequence $\mathcal T_1,\ldots,\mathcal T_T$, LoRA parameters $\phi=\{A_l,B_l\}_l$, radius $\rho$, weights $\lambda_{\mathrm{flat}},\lambda_{\mathrm{ewc}}$, decay $\gamma$
+\State Initialize LoRA parameters $\phi$ and accumulated Fisher $\bar F_0=0$
+\For{$t=1,\ldots,T$}
+    \For{mini-batch $\mathcal B\subset \mathcal T_t$}
+        \State Compute $g_{\mathrm{clean}}=\nabla_{\phi}L_t(\phi;\mathcal B)$
+        \State Compute $\hat{\phi}=\phi+\rho g_{\mathrm{clean}}/(\|g_{\mathrm{clean}}\|+\epsilon)$
+        \State Compute $g_{\mathrm{gam}}=\nabla_{\phi}L_t(\hat{\phi};\mathcal B)$
+        \State Set $g_{\mathrm{flat}}=g_{\mathrm{gam}}-g_{\mathrm{clean}}$
+        \State Compute $g_{\mathrm{fisher}}=\nabla_{\phi}\left[\frac{\lambda_{\mathrm{ewc}}}{2}\mathcal R_{\mathrm{Fisher}}(\phi)\right]$
+        \State Update $\phi\leftarrow\phi-\eta\left(g_{\mathrm{clean}}+\lambda_{\mathrm{flat}}g_{\mathrm{flat}}+g_{\mathrm{fisher}}\right)$
+    \EndFor
+    \State Store $\Delta W_{t,l}^{\star}=B_lA_l$ for all LoRA layers
+    \State Estimate $F_{t,l}$ in $\Delta W$-space and compute $\widetilde F_{t,l}$ by trace normalization
+    \State Accumulate $\bar F_t\leftarrow\gamma\bar F_{t-1}+(1-\gamma)\widetilde F_t$
+    \If{dual ascent is enabled}
+        \State Compute $\widetilde D_{\mathrm{Fisher}}(\phi)$
+        \State Update $\lambda_{\mathrm{ewc}}$ using Eq.~\eqref{eq:dual_update}
+    \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}

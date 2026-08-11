@@ -1,0 +1,2659 @@
+%File: anonymous-submission-latex-2026.tex
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage[submission]{aaai2026}  % DO NOT CHANGE THIS
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in} % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in} % DO NOT CHANGE THIS
+%
+% These are recommended to typeset algorithms but not required. See the subsection on algorithms. Remove them if you don't have algorithms in your paper.
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\usepackage{amsmath} 
+\usepackage{amsthm}
+\newtheorem{definition}{Definition}  
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\usepackage{booktabs}
+\usepackage{multirow}
+
+\usepackage{makecell}
+
+%
+% These are are recommended to typeset listings but not required. See the subsubsection on listing. Remove this block if you don't have listings in your paper.
+\usepackage{newfloat}
+\usepackage{listings}
+\DeclareCaptionStyle{ruled}{labelfont=normalfont,labelsep=colon,strut=off} % DO NOT CHANGE THIS
+\lstset{%
+	basicstyle={\footnotesize\ttfamily},% footnotesize acceptable for monospace
+	numbers=left,numberstyle=\footnotesize,xleftmargin=2em,% show line numbers, remove this entire line if you don't want the numbers.
+	aboveskip=0pt,belowskip=0pt,%
+	showstringspaces=false,tabsize=2,breaklines=true}
+\floatstyle{ruled}
+\newfloat{listing}{tb}{lst}{}
+\floatname{listing}{Listing}
+%
+% Keep the \pdfinfo as shown here. There's no need
+% for you to add the /Title and /Author tags.
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+
+\usepackage{amsfonts}
+% \usepackage[pagebackref=true,breaklinks=true,letterpaper=true,colorlinks,bookmarks=false]{hyperref}
+
+% \newcommand{\LYY}[1]{{\color{magenta}{\bf LYY:} #1}}
+
+
+% DISALLOWED PACKAGES
+% \usepackage{authblk} -- This package is specifically forbidden
+% \usepackage{balance} -- This package is specifically forbidden
+% \usepackage{color (if used in text)
+% \usepackage{CJK} -- This package is specifically forbidden
+% \usepackage{float} -- This package is specifically forbidden
+% \usepackage{flushend} -- This package is specifically forbidden
+% \usepackage{fontenc} -- This package is specifically forbidden
+% \usepackage{fullpage} -- This package is specifically forbidden
+% \usepackage{geometry} -- This package is specifically forbidden
+% \usepackage{grffile} -- This package is specifically forbidden
+% \usepackage{hyperref} -- This package is specifically forbidden
+% \usepackage{navigator} -- This package is specifically forbidden
+% (or any other package that embeds links such as navigator or hyperref)
+% \indentfirst} -- This package is specifically forbidden
+% \layout} -- This package is specifically forbidden
+% \multicol} -- This package is specifically forbidden
+% \nameref} -- This package is specifically forbidden
+% \usepackage{savetrees} -- This package is specifically forbidden
+% \usepackage{setspace} -- This package is specifically forbidden
+% \usepackage{stfloats} -- This package is specifically forbidden
+% \usepackage{tabu} -- This package is specifically forbidden
+% \usepackage{titlesec} -- This package is specifically forbidden
+% \usepackage{tocbibind} -- This package is specifically forbidden
+% \usepackage{ulem} -- This package is specifically forbidden
+% \usepackage{wrapfig} -- This package is specifically forbidden
+% DISALLOWED COMMANDS
+% \nocopyright -- Your paper will not be published if you use this command
+% \addtolength -- This command may not be used
+% \balance -- This command may not be used
+% \baselinestretch -- Your paper will not be published if you use this command
+% \clearpage -- No page breaks of any kind may be used for the final version of your paper
+% \columnsep -- This command may not be used
+% \newpage -- No page breaks of any kind may be used for the final version of your paper
+% \pagebreak -- No page breaks of any kind may be used for the final version of your paperr
+% \pagestyle -- This command may not be used
+% \tiny -- This is not an acceptable font size.
+% \vspace{- -- No negative value may be used in proximity of a caption, figure, table, section, section, subsection, or reference
+% \vskip{- -- No negative value may be used to alter spacing above or below a caption, figure, table, section, section, subsection, or reference
+
+\setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
+
+% The file aaai2026.sty is the style file for AAAI Press
+% proceedings, working notes, and technical reports.
+%
+
+% Title
+
+% Your title must be in mixed case, not sentence case.
+% That means all verbs (including short verbs like be, is, using,and go),
+% nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
+% articles, conjunctions, and prepositions are lower case unless they
+% directly follow a colon or long dash
+\title{Appendix \\ Sharpness Matters for LoRA-Based Continual Learning: A PAC-Bayesian Perspective }
+
+% LYY: Harnessing Flat Minima for Continual LoRA: A Theoretically-Grounded Framework
+
+
+\author{
+    %Authors
+    % All authors must be in the same font size and format.
+    Written by AAAI Press Staff\textsuperscript{\rm 1}\thanks{With help from the AAAI Publications Committee.}\\
+    AAAI Style Contributions by Pater Patel Schneider,
+    Sunil Issar,\\
+    J. Scott Penberthy,
+    George Ferguson,
+    Hans Guesgen,
+    Francisco Cruz\equalcontrib,
+    Marc Pujol-Gonzalez\equalcontrib
+}
+\affiliations{
+    %Afiliations
+    \textsuperscript{\rm 1}Association for the Advancement of Artificial Intelligence\\
+    % If you have multiple authors and multiple affiliations
+    % use superscripts in text and roman font to identify them.
+    % For example,
+
+    % Sunil Issar\textsuperscript{\rm 2},
+    % J. Scott Penberthy\textsuperscript{\rm 3},
+    % George Ferguson\textsuperscript{\rm 4},
+    % Hans Guesgen\textsuperscript{\rm 5}
+    % Note that the comma should be placed after the superscript
+
+    1101 Pennsylvania Ave, NW Suite 300\\
+    Washington, DC 20004 USA\\
+    % email address must be in roman text type, not monospace or sans serif
+    proceedings-questions@aaai.org
+%
+% See more examples next
+}
+
+%Example, Single Author, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\iffalse
+\title{My Publication Title --- Single Author}
+\author {
+    Author Name
+}
+\affiliations{
+    Affiliation\\
+    Affiliation Line 2\\
+    name@example.com
+}
+\fi
+
+\iffalse
+%Example, Multiple Authors, ->> remove \iffalse,\fi and place them surrounding AAAI title to use it
+\title{My Publication Title --- Multiple Authors}
+\author {
+    % Authors
+    First Author Name\textsuperscript{\rm 1},
+    Second Author Name\textsuperscript{\rm 2},
+    Third Author Name\textsuperscript{\rm 1}
+}
+\affiliations {
+    % Affiliations
+    \textsuperscript{\rm 1}Affiliation 1\\
+    \textsuperscript{\rm 2}Affiliation 2\\
+    firstAuthor@affiliation1.com, secondAuthor@affilation2.com, thirdAuthor@affiliation1.com
+}
+\fi
+
+
+% REMOVE THIS: bibentry
+% This is only needed to show inline citations in the guidelines document. You should not need it and can safely delete it.
+% \usepackage{bibentry}
+% END REMOVE bibentry
+
+\begin{document}
+
+\maketitle
+% \onecolumn
+% \section{Appendix}
+
+
+
+
+\section{A. Theoretical Proofs}
+
+
+
+
+
+
+
+\subsection{A.1 Notation Summary}
+To facilitate the theoretical analysis, we summarize the key symbols and their definitions used throughout the paper in Table~\ref{tab:notation}.
+
+
+
+
+
+
+
+\subsection{A.2 Proof of the theorem 2}
+
+\begin{theorem}[PAC-Bayes Bound with Sharpness for CL]
+\label{thm:general-pacbayes}
+Consider $n$ sequential tasks under a hierarchical Bayesian CL framework. For any hyperposterior $\mathcal{Q}$ and task-wise posteriors $\{Q_t\}$, with probability at least $1-\delta$,
+\begin{align}
+& L(\mathcal{Q}_{1:n}) \leq \frac{1}{n} \sum_{t=1}^n \mathbb{E}_{P_{t} \sim \mathcal{Q}_{t}} \Big[ \widehat{L}_{S_t}(\mathbf{W}_t) 
++ {\mathrm{E\text{-}Sh}}_t(\mathbf{W}_t, \Sigma_Q) \Big] \notag\\
+& \quad  +\frac{1}{n(\bar{m}_n-1)} \sqrt{
+\frac{
+KL^{\text{task}}_n + KL^{\text{hyper}}_n + \log(\bar{m}_n/\delta)
+}{2(\bar{m}_n-1)}
+}
+\end{align}
+where
+\begin{itemize}
+\item $\mathbf{W}_t$ denotes the model parameters trained on task $t$.
+\item $KL^{\text{task}}_n = KL(Q_{1:n}||P_{1:n})$ denotes the joint KL divergence over all task posteriors and priors, reflecting parameter-level complexity.
+\item $KL^{\text{hyper}}_n$ is the KL divergence between the hyperposterior and hyperprior, reflecting the meta-level (hyperprior) complexity. 
+\item $\bar{m}_n = n / (\sum_{t=1}^n 1/m_t)$ is the harmonic mean of the sample sizes.
+\end{itemize}
+\end{theorem}
+
+
+
+
+
+
+
+
+
+% \begin{theorem}[PAC--Bayes Bound with flatness for  Continual Learning]
+% \label{thm:general-pacbayes-eng}
+% Under the hierarchical Bayesian continual‐learning framework for $n$ sequential tasks, for any hyperposterior $\mathcal Q$ and any family of task‐wise posteriors $\{Q_t\}_{t=1}^n$, with probability at least $1-\delta$ over all training samples,
+% \[
+% L(\mathcal Q_{1:n})
+% \leq
+% \frac{1}{n}\sum_{t=1}^n\mathbb{E}_{P_t\sim\mathcal Q_t}\Bigl[
+%    \widehat L_{S_t}(W_t)+\mathrm{E\text{-}Sh}_t(W_t,\Sigma_Q)
+% \Bigr]
+% +\frac{1}{n(\bar m_n-1)}
+% \sqrt{\frac{KL^{\mathrm{task}}_n + KL^{\mathrm{hyper}}_n + \ln\bigl(\bar m_n/\delta\bigr)}{2(\bar m_n-1)}}\,,
+% \]
+% where
+% \[
+% KL^{\mathrm{task}}_n = KL\bigl(Q_{1:n}\|P_{1:n}\bigr),
+% \quad
+% KL^{\mathrm{hyper}}_n = KL(\mathcal Q\|\mathcal P),
+% \quad
+% \bar m_n = \frac{n}{\sum_{t=1}^n 1/m_t}.
+% \]
+% \end{theorem}
+
+\begin{proof}
+According to defination $L(\mathcal{Q}_{1:n})$ denote the average expected generalization loss across $n$ tasks.
+Let $KL^{\text{task}}_n := \sum_{t=1}^n \mathbb{E}_{P_t \sim \mathcal{Q}_t} \mathrm{KL}(Q_t(P_t) | P_t)$ and $KL^{\text{hyper}}_n := \sum_{t=1}^n \mathrm{KL}(\mathcal{Q}_t | \mathcal{P}_t)$.
+
+
+\textbf{Step 1 : Base case ($n=1$).}  
+For a single task with dataset $S_1$ of size $m_1$, classical PAC--Bayes (McAllester, 2003) states: for any prior $P_1$ and any posterior $Q_1$ and with probability at least $1-\delta$,
+
+\begin{equation}\label{eq:PAC2003}
+\begin{aligned}
+    &\forall^{\delta_1} S,\;\; \forall Q, \\
+    &\quad
+    \mathbb{E}_{f \in Q}\big[L_{\mathcal{D}}^{\ell'}(f)\big] \;\leq\;
+    \mathbb{E}_{f \in Q}\big[\hat{L}^{\ell'}_{S}(f)\big] \\
+    &\qquad
+    +\, \sqrt{
+        \frac{
+            KL(Q\|P) + \log\frac{m}{\delta}
+        }{
+            2(m-1)
+        }
+    }
+\end{aligned}\notag
+\end{equation}
+where $m=|S|$ is the number of sample in the training set $S$ and $f$ denotes a prediction function sampled from the posterior distribution $Q$ over the hypothesis space $\mathcal{F}$.
+
+% Following the previous setting~\cite{pentinaPACBayesianBoundLifelong2014}, we introduce a hyperprior $\mathcal{P}_1$ and a hyperposterior $\mathcal{Q}_1$ on the task parameter distribution $P_1$. Taking expectation over $P_1 \sim \mathcal{Q}_1$ on both sides, we use Jensen's inequality to get:
+
+% \begin{equation}
+% \begin{aligned}
+%     \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\mathbb{E}_{f \sim Q_1(P_1)}[L_{\mathcal{D}}(f)]
+% \le
+% \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\mathbb{E}_{f \sim Q_1(P_1)}[\widehat{L}_{S_1}(f)] \\
+% +\sqrt{\frac{\mathbb{E}_{P_1 \sim \mathcal{Q}_1}[KL(Q_1\|P_1)] + KL(\mathcal{Q}_1\|\mathcal{P}_1) + \ln(m_1/\delta_1)}{2(m_1-1)}}.
+% \end{aligned}
+% \end{equation}
+
+% While the classical PAC–Bayes bound features the expected disribution of the model $\mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)]$, in practice one uses a single parameter $\hat{\mathbf{W}}$ (e.g.\ the posterior‐mean or MAP) for prediction.  We therefore decompose
+% % \[
+% % \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)]
+% % =
+% % \underbrace{\widehat L_{S_1}(\hat f)}_{\text{empirical loss at the reference}}
+% % \;+\;
+% % \underbrace{
+% %   \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)] - \widehat L_{S_1}(\hat f)
+% % }_{\displaystyle \mathrm{E\text{-}Sh}_1},
+% % \]
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)] \\
+% &= \underbrace{\widehat L_{S_1}(\hat{\mathbf{W}})}_{\text{empirical loss at the reference}} 
+% +\underbrace{
+%   \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)] - \widehat L_{S_1}(\hat{\mathbf{W}})
+% }_{\mathrm{E\text{-}Sh}_1} \notag
+% \end{aligned}
+% \end{equation}
+
+
+
+% % Then we have the define of {expected sharpness} as follow:
+% % \[
+% % \mathrm{E\text{-}Sh}_1(f,Q_1)
+% % :=\mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)] - \widehat L_{S_1}(\hat f).
+% % \]
+% % Concretely, choose $\hat f$ to minimize $\mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)]$.  Then
+% % \[
+% % \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)]
+% % = \widehat L_{S_1}(\hat f) + \mathrm{E\text{-}Sh}_1,
+% % \]
+% % and substituting into the hierarchical bound gives the final base‐case inequality
+% % % \[
+% % % \mathbb{E}_{P_1\sim\mathcal Q_1}\mathbb{E}_{f\sim Q_1(P_1)}[L(f)]
+% % % \;\le\;
+% % % \mathbb{E}_{P_1}\Bigl[\widehat L_{S_1}(\hat f) + \mathrm{E\text{-}Sh}_1\Bigr]
+% % % \;+\;
+% % % \sqrt{\frac{KL^{\mathrm{task}}_1 + KL^{\mathrm{hyper}}_1 + \ln(m_1/\delta_1)}{2(m_1-1)}}.
+% % % \]
+% % \begin{equation}
+% % \begin{aligned}
+% % &\mathbb{E}_{P_1\sim\mathcal Q_1}\mathbb{E}_{f\sim Q_1(P_1)}[L(f)]
+% % \le \mathbb{E}_{P_1}\Bigl[\widehat L_{S_1}(\hat f) + \mathrm{E\text{-}Sh}_1\Bigr] \\
+% % & \qquad + \sqrt{\frac{KL^{\mathrm{task}}_1 + KL^{\mathrm{hyper}}_1 + \ln(m_1/\delta_1)}{2(m_1 - 1)}}.
+% % \end{aligned}
+% % \end{equation}
+% % where $KL^{\text{task}}_1 = \mathbb{E}_{P_1 \sim \mathcal{Q}_1}[KL(Q_1\|P_1)]$ and $KL^{\text{hyper}}_1 = KL(\mathcal{Q}_1\|\mathcal{P}_1)$. With $\delta_1 = \delta/2$, the confidence is $1-\delta/2$, satisfying the base case.
+% % Setting $\delta_1=\delta/2$ yields the bound at confidence $1-\delta/2$.  This introduction of $\mathrm{E\text{-}Sh}_1$ is both theoretically natural measuring posterior‐induced “flatness” and practically aligned with using a single point estimate.  
+
+
+
+%  Let the posterior be $Q_1 = \mathcal{N}(\hat{\mathbf{W}}, \Sigma_1)$, where $\hat{\mathbf{W}}$ is the mean solution obtained from task~1. Then, the expected empirical risk under $Q_1$ becomes:
+% \[
+% \mathbb{E}_{\mathbf{W} \sim Q_1}[\widehat{L}_{S_1}(\mathbf{W})] = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \Sigma_1)} \left[ \widehat{L}_{S_1}(\hat{\mathbf{W}} + \epsilon) \right].
+% \]
+% According to the define of  the expected sharpness ~\cite{liRevisitingRandomWeight2024}, we have
+% \[
+% \mathrm{E\text{-}Sh}_1(\hat{\mathbf{W}}, \Sigma_1) := \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \Sigma_1)} \left[ \widehat{L}_{S_1}(\hat{\mathbf{W}} + \epsilon) - \widehat{L}_{S_1}(\hat{\mathbf{W}}) \right].
+% \]
+% Hence, the expected loss under $Q_1$ satisfies:
+% \begin{equation}
+% \mathbb{E}_{\mathbf{W} \sim Q_1}[\widehat{L}_{S_1}(\mathbf{W})] = \widehat{L}_{S_1}(\hat{\mathbf{W}}) + \mathrm{E\text{-}Sh}_1(\hat{\mathbf{W}}, \Sigma_1).
+% \end{equation} Substituting the expected loss into the PAC-Bayesian hierarchical bound gives the base-case inequality:
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} 
+% \Bigl[ \mathbb{E}_{f \sim Q_1(P_1)} [L(\mathbf{W})] \Bigr] \\
+% &\qquad \le \mathbb{E}_{P_1} \Bigl[ \widehat{L}_{S_1}(\hat{\mathbf{W}}) 
+% + \mathrm{E\text{-}Sh}_1(\hat{\mathbf{W}}, \Sigma_1) \Bigr] \\
+% &\qquad + \sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 
+% + \ln(m_1/\delta_1)}{2(m_1 - 1)}}.
+% \end{aligned}
+% \end{equation}
+% where $KL^{\mathrm{task}}_1 = \mathbb{E}_{P_1 \sim \mathcal{Q}_1}[KL(Q_1 \| P_1)]$ and $KL^{\mathrm{hyper}}_1 = KL(\mathcal{Q}_1 \| \mathcal{P}_1)$. Setting $\delta_1 = \delta/2$ yields confidence level $1 - \delta/2$ for the base case. This formulation provides a theoretically grounded and practically useful characterization of posterior-induced flatness via sharpness.
+
+%%%%%%%%%%%%%%%%%%%
+
+Following the hierarchical PAC-Bayesian setting~\cite{pentinaPACBayesianBoundLifelong2014}, we introduce a hyperprior $\mathcal{P}_1$ and a hyperposterior $\mathcal{Q}_1$ over the task-specific prior $P_1$. Taking expectation over $P_1 \sim \mathcal{Q}_1$ and applying Jensen's inequality yields:
+
+\begin{equation}
+\begin{aligned}
+    &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{\mathbf{W}_1 \sim Q_1} \left[ L_1(\mathbf{W}_1) \right]  \\
+    &\qquad \leq \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{\mathbf{W}_1 \sim Q_1} \left[ \widehat{L}_{S_1}(\mathbf{W}_1) \right] \\
+    &\qquad + \sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 + \log(m_1/\delta_1)}{2(m_1 - 1)}} \notag
+\end{aligned}
+\end{equation}
+
+
+
+% \begin{equation}
+% \begin{aligned}
+% \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{f \sim Q_1(P_1)} [L(f)]
+% \le \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{f \sim Q_1(P_1)} [\widehat{L}_{S_1}(f)] \\
+% + \sqrt{ \frac{ \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \left[ \mathrm{KL}(Q_1 \| P_1) \right] 
+% + \mathrm{KL}(\mathcal{Q}_1 \| \mathcal{P}_1) + \ln(m_1/\delta_1)}{2(m_1 - 1)} }.
+% \end{aligned}
+% \end{equation}
+
+% In practice, a single model parameter $\hat{\mathbf{W}}$ (e.g., MAP or posterior mean) is typically used for prediction. To account for the deviation between $\hat{\mathbf{W}}$ and the full posterior, we adopt the expected sharpness~\cite{liRevisitingRandomWeight2024} as:
+% $$
+% \mathrm{E\text{-}Sh}_1(\hat{\mathbf{W}}, \Sigma_1)
+% := \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \Sigma_1)} \left[ \widehat{L}_{S_1}(\hat{\mathbf{W}} + \epsilon) - \widehat{L}_{S_1}(\hat{\mathbf{W}}) \right]
+% $$
+% where $Q_1 = \mathcal{N}(\hat{\mathbf{W}}, \Sigma_1)$ denotes the Gaussian posterior centered at $\hat{\mathbf{W}}$. This formulation captures the curvature-induced generalization risk around $\hat{\mathbf{W}}$.
+% We upper bound the expected empirical risk by:
+% $$
+% \mathbb{E}_{\mathbf{W} \sim Q_1}[\widehat{L}_{S_1}(\mathbf{W})] = \widehat{L}_{S_1}(\hat{\mathbf{W}}) + \mathrm{E\text{-}Sh}_1(\hat{\mathbf{W}}, \Sigma_1),
+% $$
+
+Based on the definition of expected sharpness, we substitute it into the hierarchical bound and take the expectation over $P_1 \sim \mathcal{Q}_1$,   
+\begin{equation}
+\begin{aligned}
+    &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{\mathbf{W}_1 \sim Q_1} \left[ L_1(\mathbf{W}_1) \right]  \\
+&\leq \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \left[ \widehat{L}_{S_1}(\mathbf{W}_1)  + \mathrm{E\text{-}Sh}_1(\mathbf{W}_1, \Sigma_1) \right]  \\
+&+ \sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 + \log(m_1/\delta_1)}{2(m_1 - 1)}}.
+\end{aligned}\notag
+\end{equation}
+
+
+By the definition of $L(\mathcal{Q}_{1:1})$, the left-hand side is equal to $L(\mathcal{Q}_{1:1})$. Setting $\delta_1 = \delta/2$ ensures confidence $\geq 1-\delta/2$. Thus, the bound holds for $n=1$:   
+\begin{equation}
+    \begin{aligned}
+        &L(\mathcal{Q}_{1:1}) 
+        \leq \mathbb{E}_{P_1 \sim \mathcal{Q}_1} \left[ \widehat{L}_{S_1}(\mathbf{W}_1) + \mathrm{E\text{-}Sh}_1 (\mathbf{W}_1, \Sigma_1)\right]  \\
+        &+ \frac{1}{1 \cdot (\bar{m}_1 - 1)} \sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 + \log(\bar{m}_1/(\delta/2))}{2(\bar{m}_1 - 1)}}.\notag
+    \end{aligned}
+\end{equation}
+  
+
+
+
+%%%%%%%%%%
+
+
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{f \sim Q_1(P_1)} \left[L(f)\right]
+% \le \mathbb{E}_{P_1} \left[ \widehat{L}_{S_1}(\hat f) + \mathrm{E\text{-}Sh}_1(\hat f, \Sigma_1) \right] \\
+% &\qquad + \sqrt{\frac{KL^{\mathrm{task}}_1 + KL^{\mathrm{hyper}}_1 + \ln(m_1/\delta_1)}{2(m_1 - 1)}},
+% \end{aligned}
+% \end{equation}
+
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{f \sim Q_1(P_1)} \left[L(f)\right]
+% \le \mathbb{E}_{P_1} \left[ \widehat{L}_{S_1}(\hat f) 
+% + \mathrm{E\text{-}Sh}_1(\hat f, \Sigma_1) \right] \\
+% &\quad + \sqrt{\frac{KL^{\mathrm{task}}_1 + KL^{\mathrm{hyper}}_1 
+% + \ln(m_1/\delta_1)}{2(m_1 - 1)}}. \notag
+% \end{aligned}
+% \end{equation}
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_1 \sim \mathcal{Q}_1} \mathbb{E}_{f \sim Q_1(P_1)} [L(f)]
+% \le \mathbb{E}_{P_1} \left[ \widehat{L}_{S_1}(\hat f) 
+% + \mathrm{E\text{-}Sh}_1(\hat f, \Sigma_1) \right] \\
+% & + \sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 
+% + \ln(m_1/\delta_1)}{2(m_1 - 1)}}.
+% \end{aligned}
+% \end{equation}
+
+
+
+
+
+
+
+
+
+
+% Define the expected sharpness for task $t$ as:
+% \begin{equation}\label{eq:esh}
+% \mathrm{E\text{-}Sh}_t(W_t, \mathcal{Q}) 
+% := \mathbb{E}_{W_t \sim Q_t}[\widehat{L}_{S_t}(W_t)] - \widehat{L}_{S_t}(\hat{W}_t),
+% \end{equation}
+% where $\hat{W}_t$ is the mode of $Q_t$ (i.e., $\arg\min_{W} \mathbb{E}_{W_t \sim Q_t}[\widehat{L}_{S_t}(W_t)]$).
+
+% By definition, $\mathbb{E}[\widehat{L}] = \widehat{L}(\hat{W}_t) + \mathrm{E\text{-}Sh}_t$, so substituting gives:
+% \[
+% \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\mathbb{E}_{f \sim Q_1(P_1)}[L(f)]
+% \le
+% \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\left[\widehat{L}_{S_1}(\hat{W}_1) + \mathrm{E\text{-}Sh}_1\right]
+% + (b-a)\sqrt{\frac{KL^{\text{task}}_1 + KL^{\text{hyper}}_1 + \ln(m_1/\delta_1)}{2(m_1-1)}},
+% \]
+% where $KL^{\text{task}}_1 = \mathbb{E}_{P_1 \sim \mathcal{Q}_1}[KL(Q_1\|P_1)]$ and $KL^{\text{hyper}}_1 = KL(\mathcal{Q}_1\|\mathcal{P}_1)$. With $\delta_1 = \delta/2$, the confidence is $1-\delta/2$, satisfying the base case.
+
+
+
+% Introduce a hyperprior $\mathcal P_1$ over $P_1$ and hyperposterior $\mathcal Q_1$, and take expectation over $P_1\sim\mathcal Q_1$.  Then with probability at least $1-\delta_1$,
+% \[
+% \mathbb{E}_{P_1\sim\mathcal Q_1}\mathbb{E}_{f\sim Q_1(P_1)}[L(f)]
+% \le
+% \mathbb{E}_{P_1}\mathbb{E}_{f}[\widehat L_{S_1}(f)]
+% + \sqrt{\frac{\mathbb{E}_{P_1}[KL(Q_1\|P_1)] + KL(\mathcal Q_1\|\mathcal P_1) + \ln(m_1/\delta_1)}{2(m_1-1)}}.
+% \]
+% Define
+% \[
+% KL^{\mathrm{task}}_1 = \mathbb{E}_{P_1}[KL(Q_1\|P_1)],
+% \quad
+% KL^{\mathrm{hyper}}_1 = KL(\mathcal Q_1\|\mathcal P_1),
+% \quad
+% \bar m_1=m_1,
+% \quad
+% \delta_1=\delta/2.
+% \]
+% Absorb $(b-a)$ into the definition of expected sharpness:
+% \[
+% \mathrm{E\text{-}Sh}_1 = \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)] - \widehat L_{S_1}(\hat f_1),
+% \]
+% and note
+% \[
+% \mathbb{E}_{f\sim Q_1}[\widehat L_{S_1}(f)]
+% = \widehat L_{S_1}(\hat f_1) + \mathrm{E\text{-}Sh}_1.
+% \]
+% Thus the stated bound holds for $n=1$ with confidence $1-\delta/2$.
+
+
+
+\textbf{Step 2 : Inductive Hypothesis} 
+% \textbf{Inductive Hypothesis}
+Assume the bound holds for $n$ tasks with confidence $1-\delta/2$:
+
+\begin{equation}
+\begin{aligned}
+    &L(\mathcal{Q}_{1:n}) \le \frac{1}{n} \sum_{t=1}^n \left[ \widehat{L}_{S_t}(\hat{\mathbf{W}}_t) + \mathrm{E\text{-}Sh}_t(\hat{\mathbf{W}}_t, \Sigma_t) \right]  \\
+    &\quad + \frac{1}{n(\bar{m}_n - 1)} \sqrt{\frac{KL^{\text{task}}_n + KL^{\text{hyper}}_n + \log(\bar{m}_n/\delta)}{2}}.
+\end{aligned} 
+\label{eq:com1}
+\end{equation}
+
+% Assume the bound holds for $n$ tasks:
+% \begin{equation}
+% L(\mathcal{Q}{1:n}) \le \frac{1}{n} \sum{t=1}^n \left[ \widehat{L}_{S_t}(\hat{\mathbf{W}}_t) + \mathrm{E\text{-}Sh}_t(\hat{\mathbf{W}}_t, \Sigma_t) \right] + \frac{1}{n(\bar{m}_n - 1)} \sqrt{\frac{KL^{\text{task}}_n + KL^{\text{hyper}}_n + \log(\bar{m}_n/\delta)}{2}}.
+% \end{equation}
+% \begin{equation}
+% \label{eq: combine0}
+%     L(\mathcal{Q}_{1:n})
+% \le
+% \frac{1}{n}\sum_{t=1}^n \mathbb{E}_{P_t \sim \mathcal{Q}_t}\left[\widehat{L}_{S_t}(\hat{W}_t) + \mathrm{E\text{-}Sh}_t\right]
+% +\sqrt{\frac{KL^{\text{task}}_n + KL^{\text{hyper}}_n + \ln(\bar{m}_n/(\delta/2))}{2n^2(\bar{m}_n - 1)}}.
+% \end{equation}
+% \label{eq: combine1}
+% \begin{equation}
+% \label{eq: combine0}
+% \begin{aligned}
+% L(\mathcal{Q}_{1:n}) \le\; 
+% &\frac{1}{n}\sum_{t=1}^n \mathbb{E}_{P_t \sim \mathcal{Q}_t}
+% \left[\widehat{L}_{S_t}(\hat{W}_t) + \mathrm{E\text{-}Sh}_t\right] \\
+% &+ \sqrt{
+% \frac{KL^{\text{task}}_n + KL^{\text{hyper}}_n + \ln(\bar{m}_n / (\delta / 2))}{2n^2(\bar{m}_n - 1)}
+% }.
+% \end{aligned}
+% \end{equation}
+\textbf{Step 3 : Inductive Step ($n \to n+1$)} 
+% \textbf{Inductive Step}
+% We now prove that the inequality also holds for $T+1$ tasks.
+% For task $n+1$, apply the single-task bound (confidence $1-\delta/2$):
+% \begin{equation}
+% \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}}\mathbb{E}_{f \sim Q_{n+1}}[L(f)]
+% \le
+% \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}}\left[\widehat{L}_{S_{n+1}}(\hat{W}_{n+1}) + \mathrm{E\text{-}Sh}_{n+1}\right]
+% + \sqrt{\frac{KL^{\text{task}}_{n+1,\text{single}} + KL^{\text{hyper}}_{n+1,\text{single}} + \ln(m_{n+1}/(\delta/2))}{2(m_{n+1} - 1)}}.
+% \end{equation}
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}} \mathbb{E}_{f \sim Q_{n+1}}[L(f)] \le
+% \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}}
+% \left[\widehat{L}_{S_{n+1}}(\hat{W}_{n+1}) + \mathrm{E\text{-}Sh}_{n+1}\right] \\
+% & \qquad + \sqrt{
+% \frac{KL^{\text{task}}_{n+1,\text{single}} + KL^{\text{hyper}}_{n+1,\text{single}} + \ln(m_{n+1} / (\delta / 2))}{2(m_{n+1} - 1)}
+% }.
+% \end{aligned}
+% \end{equation}
+
+For task $n+1$, apply the single-task bound (confidence $1-\delta/2$):
+
+
+\begin{equation}
+\begin{aligned}
+    &\mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}} \mathbb{E}_{\mathbf{W}_{n+1} \sim Q_{n+1}(P_{n+1})} [L_{n+1}(\mathbf{W}_{n+1})]  \\
+&\le \widehat{L}_{S_{n+1}}(\hat{\mathbf{W}}_{n+1}) + \mathrm{E\text{-}Sh}_{n+1}(\hat{\mathbf{W}}_{n+1}, \Sigma_{n+1})  \\
+&+ \sqrt{\frac{KL^{\text{task}}_{n+1} + KL^{\text{hyper}}_{n+1,s} + \log(m_{n+1}/\delta_{n+1})}{2(m_{n+1} - 1)}}.
+\end{aligned}
+\label{eq:com2}
+\end{equation}
+where $KL^{\text{task}}_{n+1,s} := \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}} \mathrm{KL}(Q_{n+1}(P_{n+1}) | P_{n+1})$, and similarly for the hyper term.
+
+
+
+% \begin{equation}
+% \begin{aligned}
+% &\mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}} 
+% \Bigl[
+% \mathbb{E}_{f \sim Q_{n+1}}[L(\mathbf{W})]
+% \Bigr] \\
+% &\le 
+% \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}}
+% \left[\widehat{L}_{S_{n+1}}(\hat{\mathbf{W}}_{n+1}) + \mathrm{E\text{-}Sh}_{n+1}\right] \\
+% &\quad + \sqrt{
+% \frac{KL^{\text{task}}_{n+1,\text{single}} + KL^{\text{hyper}}_{n+1,\text{single}} + \ln(m_{n+1} / (\delta / 2))}{2(m_{n+1} - 1)}
+% }.
+% \end{aligned}
+% \label{eq: combine1}
+% \end{equation}
+
+
+
+% By the union bound, both  eq(\ref{eq: combine0}) and eq(\ref{eq: combine1}) hold with probability $1-\delta$. We combine them via $\alpha = \frac{n}{n+1}$ and $1-\alpha = \frac{1}{n+1}$.
+
+
+% ---
+% Assume that for \(n\) tasks the bound holds with confidence \(1-\tfrac\delta2\):
+% \[
+% L(\mathcal Q_{1:n})
+% \;\le\;
+% \frac{1}{n}\sum_{t=1}^n \mathbb{E}_{P_t\sim\mathcal Q_t}\bigl[\widehat L_{S_t}(W_t)+\mathrm{E\text{-}Sh}_t\bigr]
+% \;+\;
+% \frac{1}{n(\bar m_n-1)}
+% \sqrt{\frac{KL_n^{\mathrm{task}} + KL_n^{\mathrm{hyper}} + \ln\bigl(\bar m_n/(\delta/2)\bigr)}{2(\bar m_n-1)}}.
+% \]
+% Similarly, applying the single‐task hierarchical PAC–Bayes bound to task \(n+1\) (also at confidence \(1-\tfrac\delta2\)), we have for any \(P_{n+1}\sim\mathcal Q_{n+1}\):
+% \[
+% \mathbb{E}_{f\sim Q_{n+1}}[L(f)]
+% \;\le\;
+% \mathbb{E}_{P_{n+1}}\bigl[\widehat L_{S_{n+1}}(W_{n+1})+\mathrm{E\text{-}Sh}_{n+1}\bigr]
+% \;+\;
+% \frac{1}{\bar m_{n+1}-1}
+% \sqrt{\frac{KL(Q_{n+1}\|P_{n+1}) + \ln\bigl(m_{n+1}/(\delta/2)\bigr)}{2(\bar m_{n+1}-1)}},
+% \]
+% where
+% \(\bar m_{n+1}=(n+1)/\sum_{t=1}^{n+1}(1/m_t)\).
+% By the union bound, both high‐probability events hold simultaneously with probability at least
+% \[
+% 1-\frac\delta2-\frac\delta2
+% \;=\;
+% 1-\delta.
+% \]
+
+% We now blend the two inequalities via a convex combination.  Set
+% \[
+% \alpha=\frac{n}{n+1},
+% \quad
+% 1-\alpha=\frac{1}{n+1}.
+% \]
+% Multiply the \(n\)-task inequality by \(\alpha\) and the \((n+1)\)th‐task inequality by \(1-\alpha\).
+
+
+\textbf{Combining Loss Terms}
+Define $\alpha := \frac{n}{n+1}$, and the average generalization loss for $n+1$ tasks is:
+\[
+L(\mathcal{Q}_{1:n+1}) = \alpha \cdot L(\mathcal{Q}_{1:n}) + (1-\alpha) \cdot \mathbb{E}_{P_{n+1}}[L_{n+1}(\mathbf{W}_{n+1})].\]. Substituting eq \ref{eq:com1} and \ref{eq:com2} into this, the empirical loss + sharpness terms combine as: 
+\begin{equation}
+\begin{aligned}
+        \frac{n}{n+1} \cdot \frac{1}{n} \sum_{t=1}^n \mathbb{E}[\cdot] + \frac{1}{n+1} \cdot \mathbb{E}[\cdot] \\
+    = \frac{1}{n+1} \sum_{t=1}^{n+1} \mathbb{E}_{P_t \sim \mathcal{Q}_t} \left[ \widehat{L}_{S_t}(\mathbf{W}_t) + \mathrm{E\text{-}Sh}_t \right],
+\end{aligned}
+\end{equation}
+% $$   which matches the theorem’s structure.  
+
+% \begin{equation}
+% \begin{aligned}
+%     &L(\mathcal{Q}_{1:n+1}) = \frac{n}{n+1} L(\mathcal{Q}_{1:n})  \\
+% &+ 
+% \frac{1}{n+1} \mathbb{E}_{P_{n+1} \sim \mathcal{Q}_{n+1}} \mathbb{E}_{\mathbf{W}_{n+1} \sim Q_{n+1}} \left[ L_{n+1}(\mathbf{W}_{n+1}) \right]. \notag
+% \end{aligned}
+% \end{equation}
+
+% \begin{align*}
+% &\alpha \cdot \frac{1}{n}\sum_{t=1}^n \mathbb{E}[\cdot] + (1-\alpha) \cdot \mathbb{E}[\cdot] \\
+% &=\alpha\;\frac{1}{n}\sum_{t=1}^n\bigl(\widehat L_{S_t}+\mathrm{E\!-\!Sh}_t\bigr)
+% \;+\;(1-\alpha)\,\bigl(\widehat L_{S_{n+1}}+\mathrm{E\!-\!Sh}_{n+1}\bigr)\\
+% % &=\;\frac{n}{n+1}\,\frac{1}{n}\sum_{t=1}^n\!\bigl(\widehat L_{S_t}+\mathrm{E\!-\!Sh}_t\bigr)
+% % \;+\;\frac{1}{n+1}\bigl(\widehat L_{S_{n+1}}+\mathrm{E\!-\!Sh}_{n+1}\bigr)\\
+% &=\;\frac{1}{n+1}\Bigl(\sum_{t=1}^n(\widehat L_{S_t}+\mathrm{E\!-\!Sh}_t)
+% +(\widehat L_{S_{n+1}}+\mathrm{E\!-\!Sh}_{n+1})\Bigr)\\
+% &=\;\frac{1}{n+1}\sum_{t=1}^{n+1}\bigl(\widehat L_{S_t}+\mathrm{E\!-\!Sh}_t\bigr).
+% \end{align*}
+
+% Apply the inductive hypothesis and bound for task $n+1$:
+% \begin{align}
+% L(\mathcal{Q}_{1:n+1}) \le & \frac{1}{n+1} \sum_{t=1}^{n+1} \left[ \widehat{L}_{S_t}(\hat{\mathbf{W}}_t) + \mathrm{E\text{-}Sh}_t(\hat{\mathbf{W}}_t, \Sigma_t) \right] \\
+% & + \frac{1}{n+1} \left[ \frac{1}{\bar{m}n - 1} \sqrt{\frac{KL^{\text{task}}n + KL^{\text{hyper}}n + \log(\bar{m}n/\delta)}{2}} + \frac{1}{m{n+1} - 1} \sqrt{\frac{KL^{\text{task}}{n+1,s} + KL^{\text{hyper}}{n+1,s} + \log(m{n+1}/\delta)}{2}} \right].
+% \end{align}
+
+% Apply Jensen's inequality to the square-root terms (convexity):
+% \begin{equation}
+% L(\mathcal{Q}{1**:n**+1}) \le \frac{1}{n+1} \sum{t=1}^{n+1} \left[ \widehat{L}{S_t}(\hat{\mathbf{W}}t) + \mathrm{E\text{-}Sh}t(\hat{\mathbf{W}}t, \Sigma_t) \right] + \frac{1}{(n+1)(\bar{m}{n+1} - 1)} \sqrt{\frac{KL^{\text{task}}{n+1} + KL^{\text{hyper}}{n+1} + \log(\bar{m}{n+1}/\delta)}{2}}.
+% \end{equation}
+
+
+% \begin{align*}
+% &\alpha \cdot \frac{1}{n}\sum_{t=1}^n \mathbb{E}[\cdot] 
+% + (1{-}\alpha) \cdot \mathbb{E}[\cdot] \\
+% &= \alpha \cdot \frac{1}{n} \sum_{t=1}^n 
+% \Bigl(\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr) \\
+% &\quad + (1{-}\alpha) \cdot 
+% \Bigl(\widehat L_{S_{n+1}} + \mathrm{E\text{-}Sh}_{n+1}\Bigr) \\
+% &= \frac{n}{n{+}1} \cdot \frac{1}{n} \sum_{t=1}^n 
+% \Bigl(\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr) \\
+% &\quad + \frac{1}{n{+}1} \cdot 
+% \Bigl(\widehat L_{S_{n+1}} + \mathrm{E\text{-}Sh}_{n+1}\Bigr) \\
+% &= \frac{1}{n{+}1} \Biggl( \sum_{t=1}^n 
+% \Bigl(\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr) 
+% + \Bigl(\widehat L_{S_{n+1}} + \mathrm{E\text{-}Sh}_{n+1}\Bigr) \Biggr) \\
+% &= \frac{1}{n{+}1} \sum_{t=1}^{n+1} 
+% \Bigl(\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr).
+% \end{align*}
+
+\textbf{Union Bound}
+
+Both  eq \ref{eq:com1} and \ref{eq:com2} hold simultaneously with probability $\geq 1 - \delta/2 - \delta/2 = 1-\delta$.    
+
+
+
+\textbf{Combining KL Divergences}
+
+
+Let \(Q^{\mathrm{joint}}_{1:n+1}\) and \(P^{\mathrm{joint}}_{1:n+1}\) denote the full joint posterior and prior (over both parameters and hyperparameters), which factorize in a chain‐structured manner.  Then by the general chain rule for KL ,
+% \[
+% KL\bigl(Q^{\mathrm{joint}}_{1:n+1}\big\|P^{\mathrm{joint}}_{1:n+1}\bigr)
+% =KL(Q_1\|P_1)
+% +\sum_{t=2}^{n+1}
+% \mathbb{E}_{Q^{\mathrm{joint}}_{1:t-1}}
+% \Bigl[
+%   KL\bigl(Q_t\|\;P_t\bigl\|\mid P_{1:t-1}\bigr)
+% \Bigr].
+% \]
+\begin{equation}
+\begin{aligned}
+&KL\bigl(Q^{\mathrm{joint}}_{1:n+1} \,\|\, P^{\mathrm{joint}}_{1:n+1}\bigr) \\
+&= KL(Q_1 \,\|\, P_1) \\
+&\quad + \sum_{t=2}^{n+1} 
+\mathbb{E}_{Q^{\mathrm{joint}}_{1:t-1}} \Bigl[
+KL\bigl(Q_t \,\|\, P_t \mid P_{1:t-1}\bigr)
+\Bigr]. \notag
+\end{aligned}
+\end{equation}
+
+
+
+Marginalizing out hyperparameters then defines the parameter‐level divergence
+\[
+KL^{\mathrm{task}}_{n+1}
+=KL\bigl(Q_{1:n+1}(\Theta)\big\|P_{1:n+1}(\Theta)\bigr),
+\]
+which in the special case of independent factors reduces to \(\sum_{t=1}^{n+1}KL(Q_t\|P_t)\).
+
+An analogous expansion holds for the hyperparameter KL, yielding
+% \[
+% KL^{\mathrm{hyper}}_{n+1}
+% =KL(\mathcal Q_1\|\mathcal P_1)
+% +\sum_{t=2}^{n+1}
+% \mathbb{E}_{\mathcal Q_{1:t-1}}
+% \bigl[\,KL(\mathcal Q_t\|\mathcal P_t(\cdot\mid\mathcal Q_{1:t-1}))\bigr].
+% \]
+\begin{equation}
+\begin{aligned}
+KL^{\mathrm{hyper}}_{n+1}
+&= KL(\mathcal Q_1 \,\|\, \mathcal P_1) \\
+&\quad + \sum_{t=2}^{n+1} \mathbb{E}_{\mathcal Q_{1:t-1}}
+\Bigl[ KL\bigl(\mathcal Q_t \,\|\, \mathcal P_t(\cdot \mid \mathcal Q_{1:t-1})\bigr) \Bigr].
+\end{aligned} \notag
+\end{equation}
+
+
+\textbf{Combining of complexity terms}
+
+By union bound,     
+$$\log(\bar{m}_n/(\delta/2)) + \log(m_{n+1}/(\delta/2)) = \log\left( \frac{\bar{m}_n \cdot m_{n+1}}{(\delta/2)^2} \right).$$    
+
+Using $\bar{m}_{n+1} = \frac{n+1}{\sum_{t=1}^{n+1} 1/m_t}$ and $\sum_{t=1}^n 1/m_t = n/\bar{m}_n$, we verify $\bar{m}_n \cdot m_{n+1} \propto \bar{m}_{n+1}^2$, so this simplifies to $\log(\bar{m}_{n+1}/\delta)$.  
+
+By definition of $\bar{m}_{n+1}$, 
+
+\begin{equation}
+    \begin{aligned}
+            &\frac{1}{(n+1)(\bar{m}_{n+1} - 1)}  \\
+            &= \frac{n}{n+1} \cdot \frac{1}{n(\bar{m}_n - 1)} + \frac{1}{n+1} \cdot \frac{1}{(m_{n+1} - 1)}.
+    \end{aligned} \notag
+\end{equation}
+This ensures the coefficients of the square-root terms in \ref{eq:com1} and \ref{eq:com2} merge to  $n+1$ tasks.
+
+ 
+% We must verify that
+% % \[
+% % \alpha\,\frac{1}{n(\bar m_n-1)}
+% % \;+\;
+% % (1-\alpha)\,\frac{1}{\bar m_{n+1}-1}
+% % \;=\;\frac{1}{(n+1)(\bar m_{n+1}-1)}.
+% % \]
+% \begin{equation}
+% \begin{aligned}
+% &\alpha \cdot \frac{1}{n(\bar m_n - 1)} 
+% + (1{-}\alpha) \cdot \frac{1}{\bar m_{n+1} - 1} \\
+% &\quad = \frac{1}{(n+1)(\bar m_{n+1} - 1)}. \notag
+% \end{aligned}
+% \end{equation}
+
+% From the definition
+% \(\bar m_{n+1}=(n+1)/\sum_{t=1}^{n+1}(1/m_t)\)
+% it follows that
+% % \[
+% % \bar m_{n+1}-1
+% % =\frac{n(\bar m_n-1)+(m_{n+1}-1)}{\sum_{t=1}^{n+1}(1/m_t)}
+% % \;\Longrightarrow\;
+% % \frac{1}{\bar m_{n+1}-1}
+% % =\frac{\sum_{t=1}^{n+1}(1/m_t)}{n(\bar m_n-1)+(m_{n+1}-1)}.
+% % \]
+
+% \begin{equation}
+% \begin{aligned}
+% \bar m_{n+1} - 1 
+% &= \frac{n(\bar m_n - 1) + (m_{n+1} - 1)}{\sum_{t=1}^{n+1} \frac{1}{m_t}} \\
+% \Longrightarrow\quad
+% \frac{1}{\bar m_{n+1} - 1} 
+% &= \frac{\sum_{t=1}^{n+1} \frac{1}{m_t}}{n(\bar m_n - 1) + (m_{n+1} - 1)}. 
+% \end{aligned}
+% \end{equation}
+
+% Substituting this identity into the left‐hand side immediately yields the claimed equality.
+
+
+
+
+\textbf{Combine together}
+Putting these three pieces together recovers exactly the stated bound for \(n+1\) tasks:
+% \[
+% L(\mathcal Q_{1:n+1})
+% \;\le\;
+% \frac{1}{n+1}
+% \sum_{t=1}^{n+1}\mathbb{E}_{P_t\sim\mathcal Q_t}\bigl[\widehat L_{S_t}+\mathrm{E\text{-}Sh}_t\bigr]
+% \;+\;
+% \frac{1}{(n+1)(\bar m_{n+1}-1)}
+% \sqrt{\frac{KL^{\mathrm{task}}_{n+1}+KL^{\mathrm{hyper}}_{n+1}+\ln(\bar m_{n+1}/\delta)}{2(\bar m_{n+1}-1)}}.
+% \]
+% \begin{equation}
+% \begin{aligned}
+% &L(\mathcal Q_{1:n+1}) \;\le\;
+% \;\frac{1}{n+1} \sum_{t=1}^{n+1} 
+% \mathbb{E}_{P_t \sim \mathcal Q_t} 
+% \Bigl[\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr] \\
+% &\; + \frac{1}{(n+1)(\bar m_{n+1} - 1)} \cdot
+% \sqrt{
+% \frac{KL^{\mathrm{task}}_{n+1} + KL^{\mathrm{hyper}}_{n+1} + \ln(\bar m_{n+1}/\delta)}
+% {2(\bar m_{n+1} - 1)}
+% }.
+% \end{aligned}
+% \end{equation}
+
+\begin{equation}
+\begin{aligned}
+L(\mathcal Q_{1:n+1}) \;\le\;
+&\;\frac{1}{n{+}1} \sum_{t=1}^{n{+}1} 
+\mathbb{E}_{P_t \sim \mathcal Q_t} 
+\Bigl[\widehat L_{S_t} + \mathrm{E\text{-}Sh}_t\Bigr] \\
+&+ \frac{1}{(n{+}1)(\bar m_{n{+}1} {-} 1)} \cdot \\
+&\quad \sqrt{
+\frac{KL^{\mathrm{task}}_{n+1} + KL^{\mathrm{hyper}}_{n+1} + \ln(\bar m_{n+1}/\delta)}
+{2(\bar m_{n+1} - 1)}
+}.
+\end{aligned}
+\end{equation}
+
+
+
+
+This completes the inductive argument.  
+
+\textbf{Step4 : Conclusion} By mathematical induction, the PAC-Bayesian generalization bound holds for all $n \ge 1$.
+
+\end{proof}
+
+
+
+
+
+
+
+
+
+\subsection{A.3 Proof of the theorem 3}
+
+
+Consider a continual learning scenario with $n$ sequential tasks under the Incremental LoRA framework, subject to the following conditions:
+
+1. Orthogonality of Parameter Spaces: For each task $t$, the LoRA parameter block $\Delta\mathbf{W}_t$ is constrained to be orthogonal to all previous parameter blocks, i.e., for any $i < t$, $A_i^\top A_t = 0$, where $A_i, A_t$ denote the adapter matrices of tasks $i$ and $t$, respectively.
+
+2. Gaussian Posterior Assumption: The posterior parameter distribution for task $t$ is Gaussian, $Q_t = \mathcal{N}(\hat{\boldsymbol{\theta}}_t, \rho_t^2 \mathbf{I})$, where $\hat{\boldsymbol{\theta}}_t$ is the optimal parameter for task $t$, and $\rho_t^2$ reflects the posterior uncertainty.
+
+3. Chain-Structured Hyperdistribution: The hyperprior for task $t$, $\mathcal{P}_t$, is conditioned on the cumulative hyperposterior of all previous tasks, i.e., the joint hyperprior is
+   $$
+   \mathcal{P}_{1:n} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot|\mathcal{Q}_1) \otimes \cdots \otimes \mathcal{P}_n(\cdot|\mathcal{Q}_{1:n-1}),
+   $$ where $\mathcal{Q}_{1:t-1}$ denotes the joint hyperposterior for tasks $1$ through $t-1$.
+
+4. Sharpness Definition: The expected sharpness for task $t$ is defined as
+\begin{align}
+&\mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2) \notag\\
+& = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \rho_t^2 \mathbf{I})}
+\left[ \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t + \epsilon) \right] \notag\\
+&\quad - \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag
+\end{align}
+% \begin{align}
+% \mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)  = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\, \rho_t^2 \mathbf{I})}
+% \left[ \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t + \epsilon) \right] \notag\quad - \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag
+% \end{align}
+quantifying the increase in empirical loss due to parameter perturbation.
+
+\begin{theorem}[PAC-Bayes Bound with Sharpness LoRA-based CL under Orthogonality]
+With probability at least $1-\delta$, the generalization risk $L(\mathcal{Q}_{1:n})$ for $n$ sequential tasks under the incremental LoRA framework satisfies
+\begin{align}
+L(\mathcal{Q}_{1:n}) &\leq \frac{1}{n} \sum_{t=1}^n 
+    \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}
+    \Big[
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+    \notag \\
+&\quad +\; \mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+    \Big] 
+    \notag \\
+& + (b-a) \left\{ 
+    \frac{KL_n^{\text{task}} + KL_n^{\text{hyper}} + \log(m/\delta)}
+         {2(\bar{m}_n - 1)}
+\right\}^{1/2}
+\label{eq:lora-pac-bayes-bound}
+\end{align}
+
+% \begin{align}
+% L(\mathcal{Q}_{1:n}) &\leq \frac{1}{n} \sum_{t=1}^n 
+%     \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}
+%     \Big[
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)
+%      +\; \mathrm{Sharpness}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+%     \Big] 
+%     \notag \\
+% & + (b-a) \left\{ 
+%     \frac{KL_n^{\text{task}} + KL_n^{\text{hyper}} + \log(m/\delta)}
+%          {2(\bar{m}_n - 1)}
+% \right\}^{1/2}
+% \label{eq:lora-pac-bayes-bound}
+% \end{align}
+where:
+\begin{align}
+KL_n^{\mathrm{task}} &= \sum_{t=1}^n KL(Q_t\|P_t), \notag  \\
+KL_n^{\mathrm{hyper}} &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) +  \\ &+\sum_{t=2}^n \mathbb{E}_{\mathcal{Q}_{1:t-1}}\big[KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot \| \mathcal{Q}_{1:t-1}))\big], \notag\\
+\bar{m}_n &= n \big/ \left(\sum_{t=1}^n 1/m_t\right), \notag
+\end{align}
+% \begin{align}
+% KL_n^{\mathrm{task}} &= \sum_{t=1}^n KL(Q_t\|P_t), \notag  \\
+% KL_n^{\mathrm{hyper}} &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) +\sum_{t=2}^n \mathbb{E}_{\mathcal{Q}_{1:t-1}}\big[KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot \| \mathcal{Q}_{1:t-1}))\big], \notag\\
+% \bar{m}_n &= n \big/ \left(\sum_{t=1}^n 1/m_t\right), \notag
+% \end{align}
+with $m_t$ denoting the sample size for task $t$, and $b-a$ the range of the bounded loss function.
+\end{theorem}
+
+\begin{proof}
+\textbf{Step 1: Single-task PAC-Bayes Bound (0→1)}
+
+The PAC-Bayesian theory provides a theoretical foundation for analyzing the generalization properties of stochastic model selection, where algorithms probabilistically select models based on a probability distribution over the hypothesis space \(\mathcal{F}\). 
+
+
+\begin{theorem}
+    For any fixed prior $P$ over the hypothesis space $\mathcal{F}$, with probability at least $1 - \delta$ over the draw of the training set $S \sim \mathcal{D}^m$, the following generalization bound holds for all posteriors $Q$ over parameters:
+\begin{equation}\label{eq:PAC2003-2}
+\begin{aligned}
+    \mathbb{E}_{f \sim Q}\big[L_{\mathcal{D}}^{\ell'}(f)\big] \;\leq\;
+    \mathbb{E}_{f \sim Q}\big[\hat{L}^{\ell'}_{S}(f)\big]
+    +\, \sqrt{
+        \frac{
+            KL(Q\|P) + \log\frac{m}{\delta}
+        }{
+            2(m-1)
+        }
+    }
+\end{aligned}\notag
+\end{equation}
+where $m = |S|$ is the number of samples in the training set $S$, and $f$ denotes a prediction function sampled from the posterior distribution $Q$.
+\end{theorem}
+
+
+
+The classical theorem is limited to loss functions $\ell^{'}$ mapping to the range $[0,1]$. According to \citep{germainPACBayesianTheoryMeets2016}, by straightforward rescaling, we can extend it to any bounded loss, i.e., $\ell: \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \rightarrow[a, b]$, where $[a, b] \subset \mathbb{R}$. This is done using $\beta:=b-a$ and the rescaled loss function $\ell^{\prime}(f, x, y):=(\ell(f, x, y)-a) /(b-a) \in[0,1]$. After few arithmetic manipulations, we can rewrite Equation (\ref{eq:PAC2003}) as
+% \begin{equation}
+% \begin{aligned}
+%         \mathbb{E}_{f \sim Q}[{L}_\mathcal{D}^{\ell}(f)] \leq \mathbb{E}_{f\sim Q}[\widehat{{L}}_S^{\ell}(f)] + (b - a) \cdot \sqrt{\frac{\mathrm{KL}(Q \| P) + \log \frac{m}{\delta}}{2(m - 1)}} .
+% \end{aligned}
+% \end{equation}
+\begin{equation}
+\begin{aligned}
+        &\mathbb{E}_{f \sim Q}[{L}_\mathcal{D}^{\ell}(f)] \leq \mathbb{E}_{f\sim Q}[\widehat{{L}}_S^{\ell}(f)] \\
+        &+ (b - a) \cdot \sqrt{\frac{\mathrm{KL}(Q \| P) + \log \frac{m}{\delta}}{2(m - 1)}} .
+\end{aligned}
+\end{equation}
+If the right-hand side of the bound exceeds $b-a$, the bound reduces to
+$\mathbb{E}_{f \sim Q}[L_D^{\ell}(f)] \leq b,$
+which is always true by definition. So we focus on the nontrivial regime where the complexity term is less than $b-a$, ,which equals to
+$\sqrt{\frac{KL(Q\|P)+\log \frac{m}{\delta}}{2(m-1)}} <1. $
+
+
+Following \citep{pentinaPACBayesianBoundLifelong2014}, we introduce the notion of hyperdistributions. Let $\mathcal{P}$ denote the hyperprior (a distribution over parameter priors $P$) and $\mathcal{Q}$ denote the hyperposterior, the updated distribution over priors after observing data. For each choice of prior $P$, the parameter posterior is denoted $Q(f|P)$, while $P(f)$ is the corresponding parameter prior under $P$.
+
+In PAC-Bayes theory with hyperdistributions, the learned joint distribution over parameters and hyperparameters is given by $Q_\text{joint}(f, P) = Q(f|P)\mathcal{Q}(P)$, and the reference joint distribution before seeing data is $P_\text{joint}(f, P) = P(f)\mathcal{P}(P)$. The KL divergence between these two joint distributions quantifies the adaptation to data in both parameter space and hyperparameter space, and can be decomposed as:
+\begin{align}
+& KL(Q_\text{joint} \| P_\text{joint}) \notag\\
+&\quad =\; 
+\mathbb{E}_{P \sim \mathcal{Q}} \big[\, KL(Q(f|P)\;\|\;P(f))\, \big] 
++ KL(\mathcal{Q} \| \mathcal{P}).
+\end{align}
+
+% \begin{align}
+% & KL(Q_\text{joint} \| P_\text{joint})  =\; 
+% \mathbb{E}_{P \sim \mathcal{Q}} \big[\, KL(Q(f|P)\;\|\;P(f))\, \big] 
+% + KL(\mathcal{Q} \| \mathcal{P}).
+% \end{align}
+
+
+
+Taking the expectation over the hyperposterior $P \sim \mathcal{Q}$, the PAC-Bayes bound for hyperdistributions is:
+
+
+
+\begin{equation}
+\begin{aligned}
+    & \mathbb{E}_{P \sim \mathcal{Q}} \Big[\, \mathbb{E}_{f \sim Q(P)} [L_{\mathcal{D}}(f)] \,\Big] \\
+    &\leq\; \mathbb{E}_{P \sim \mathcal{Q}} \Big[\, \mathbb{E}_{f \sim Q(P)} [\hat{L}_{S}(f)] \,\Big] \\
+    &\quad +\, (b-a)\Bigg\{
+        \frac{1}{2(m-1)} \bigg[
+            \mathbb{E}_{P \sim \mathcal{Q}}\left[ KL(Q(P)\|P) \right] \\
+    &\qquad\qquad
+            +\; KL(\mathcal{Q}\|\mathcal{P}) \\
+    &\qquad\qquad
+            +\; \log \frac{m}{\delta}
+        \bigg]
+    \Bigg\}^{1/2}
+\end{aligned}
+\end{equation}
+
+
+% \begin{equation}
+% \begin{aligned}
+%     \mathbb{E}_{P \sim \mathcal{Q}} \Big[\, \mathbb{E}_{f \sim Q(P)} [L_{\mathcal{D}}(f)] \,\Big] 
+%     & \leq\; \mathbb{E}_{P \sim \mathcal{Q}} \Big[\, \mathbb{E}_{f \sim Q(P)} [\hat{L}_{S}(f)] \,\Big] \\
+%     &\quad +\, (b-a)\Bigg\{
+%         \frac{1}{2(m-1)} \bigg[
+%             \mathbb{E}_{P \sim \mathcal{Q}}\left[ KL(Q(P)\|P) \right] 
+%             +\; KL(\mathcal{Q}\|\mathcal{P}) 
+%             +\; \log \frac{m}{\delta}
+%         \bigg]
+%     \Bigg\}^{1/2}
+% \end{aligned}
+% \end{equation}
+
+
+Now, let $Q = \mathcal{N}(\hat{\boldsymbol{\theta}}, \rho^2 I)$, where $\hat{\boldsymbol{\theta}}$ is the trained parameter vector. Then,
+$$\mathbb{E}_{\boldsymbol{\theta} \sim Q}[\hat{L}_S(\boldsymbol{\theta})] = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}[\hat{L}_S(\hat{\boldsymbol{\theta}} + \boldsymbol{\epsilon})].$$
+Refer the \textbf{expected sharpness} definition :
+$$\mathrm{Sh}_S(\hat{\boldsymbol{\theta}}, \rho^2) := \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}\left[ \hat{L}_S(\hat{\boldsymbol{\theta}} + \boldsymbol{\epsilon}) \right] - \hat{L}_S(\hat{\boldsymbol{\theta}})$$
+Thus,
+$$\mathbb{E}_{\boldsymbol{\theta} \sim Q}[\hat{L}_S(\boldsymbol{\theta})] = \hat{L}_S(\hat{\boldsymbol{\theta}}) + \mathrm{Sh}_S(\hat{\boldsymbol{\theta}}, \rho^2)$$
+
+In the LoRA framework, the full-model parameters are $\boldsymbol{W}_1 = \boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$, where $\boldsymbol{W}_0$ denotes the frozen pre-trained backbone and $\Delta\boldsymbol{W}_1$ is the task-specific low-rank adaptation. The full-model distributions factorize as $Q_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes Q_1$ and $P_1^{\text{full}} = \delta_{\boldsymbol{W}_0} \otimes P_1$, leading to:
+\begin{equation}
+    \text{KL}^{\text{task}}(Q_1^{\text{full}} \| P_1^{\text{full}}) = \text{KL}^{\text{task}}(Q_1 \| P_1),
+\end{equation}
+where $Q_1$ and $P_1$ are distributions over $\Delta\boldsymbol{W}_1$. 
+
+
+Although the posterior $Q$ is defined only over $\Delta\boldsymbol{W}_1$, the model prediction and corresponding loss are determined by the entire effective parameter $\boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$. Therefore, when evaluating sharpness, the perturbation is applied to the full parameter vector $\boldsymbol{W}_0 + \Delta\boldsymbol{W}_1$, not just to the low-rank increment $\Delta\boldsymbol{W}_1$. Formally, the expected sharpness in the learned model $\boldsymbol{W}_0 + \hat{\Delta\boldsymbol{W}}_1$ is defined as:
+\begin{equation}
+\begin{aligned}
+&\mathrm{Sh}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1, \rho^2\big) := \\
+& \qquad \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)} \Big[
+    \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon}\big)
+\Big]  \\
+& \qquad- \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1\big) 
+\notag
+\end{aligned}
+\end{equation}
+
+% \begin{equation}
+% \begin{aligned}
+% &\mathrm{Sh}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1, \rho^2\big) :=  \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)} \Big[
+%     \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon}\big)
+% \Big]  
+% - \widehat{L}_S\big(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1\big) 
+% \notag
+% \end{aligned}
+% \end{equation}
+where $\boldsymbol{W}_0 +\hat{\Delta\boldsymbol{W}}_1$ is the optimal LoRA with the base model for task $1$, the perturbation $\boldsymbol{\epsilon}$ is added to the full parameter vector. Thus,
+\begin{equation}
+    \begin{aligned}
+    &\mathbb{E}_{\Delta\mathbf{W} \sim Q}[\widehat{L}_S(\mathbf{W}_0 + \Delta\mathbf{W}_1)] \\
+    &= \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}[\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon})]  \\
+    &=\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1) + \mathrm{Sh}_S(\mathbf{W}_0+\hat{\Delta\mathbf{W}}_1, \rho^2)
+\end{aligned}
+\end{equation}
+
+% \begin{equation}
+%     \begin{aligned}
+%     &\mathbb{E}_{\Delta\mathbf{W} \sim Q}[\widehat{L}_S(\mathbf{W}_0 + \Delta\mathbf{W}_1)] \\
+%     &= \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \rho^2 I)}[\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1 + \boldsymbol{\epsilon})]  \\
+%     &=\widehat{L}_S(\mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1) + \mathrm{Sh}_S(\mathbf{W}_0+\hat{\Delta\mathbf{W}}_1, \rho^2)
+% \end{aligned}
+% \end{equation}
+
+
+Finally, the corresponding PAC-Bayes bound, incorporating sharpness under the LoRA setting, is as follows:
+
+
+
+\begin{align}
+& \mathbb{E}_{P \sim \mathcal{Q}}\, \mathbb{E}_{\Delta\mathbf{W} \sim Q(P)} 
+    \big[ L_{\mathcal{D}}(\boldsymbol{W}_0 + \Delta\mathbf{W}_1) \big] \notag \\
+&\leq\; \mathbb{E}_{P \sim \mathcal{Q}} \Big[
+        \widehat{L}_S(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1)
+        + \mathrm{Sh}_S(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1,\, \rho^2)
+    \Big] \notag \\
+&+\, (b-a) \Bigg\{
+        \frac{1}{2(m-1)} \bigg[
+            KL^{\text{task}}_1 \notag 
+            +\; KL^{\text{hyper}}_1 \notag 
+            +\; \log\frac{m}{\delta}
+        \bigg]
+    \Bigg\}^{1/2}
+\label{eq:single-task-pac-bayes}
+\end{align}
+where $KL^{\text{task}}_1 = \mathbb{E}_{P \sim \mathcal{Q}}\left[ KL(Q(P)|P) \right]$,
+$KL^{\text{hyper}}_1 = KL(\mathcal{Q}|\mathcal{P})$,
+and $\log(m/\delta)$ is the parameter term.
+% \begin{align}
+%  \mathbb{E}_{P \sim \mathcal{Q}}\, \mathbb{E}_{\Delta\mathbf{W} \sim Q(P)} 
+%     \big[ L_{\mathcal{D}}(\boldsymbol{W}_0 + \Delta\mathbf{W}_1) \big] \notag 
+% &\leq \mathbb{E}_{P \sim \mathcal{Q}} \Big[
+%         \widehat{L}_S(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1)
+%         + \mathrm{Sh}_S(\boldsymbol{W}_0 + \hat{\Delta\mathbf{W}}_1,\, \rho^2)
+%     \Big] \notag \\
+% &\quad +\, (b-a) \Bigg\{
+%         \frac{1}{2(m-1)} \bigg[
+%             KL^{\text{task}}_1
+%             +\; KL^{\text{hyper}}_1
+%             +\; \log\frac{m}{\delta}
+%         \bigg]
+%     \Bigg\}^{1/2}
+% \label{eq:single-task-pac-bayes}
+% \end{align}
+
+
+
+
+
+\textbf{Step 2: Extending the PAC-Bayes Bound from One Task to Two Tasks} To extend the result to two sequential tasks ($n=2$), we consider the incremetnal LoRA scenario in which the LoRA parameter block for the second task, $\Delta\mathbf{W}_2$, is trained independently, with the backbone fixed at $\mathbf{W}_1 = \mathbf{W}_0 + \hat{\Delta\mathbf{W}}_1$. 
+
+
+In incremental LoRA, we consider the parameter increments for each task to be the formation of mutually orthogonal subspaces in the parameter space. Formally, let $U_t$ denote the subspace spanned by the LoRA parameter block for task $t$. The orthogonality condition requires that for any pair of tasks $i \neq t$,
+$$ \forall\, u \in U_i,\, w \in U_t, \quad \langle u, w \rangle = 0$$
+where $\langle \cdot, \cdot \rangle$ denotes the inner product in the parameter space. Therefore, achieving orthogonality between the LoRA subspaces of task $i$ and task $t$ can be expressed as
+$${O}_{i,t} = A_i^{\top} A_t = 0,$$
+where $A_i$ and $A_t$ are the adaptation matrices for tasks $i$ and $t$, respectively. Under this assumption, the joint KL divergence of product measures satisfies:   \begin{equation}
+      KL\left(\bigotimes_{t=1}^n Q_t \, \bigg\| \, \bigotimes_{t=1}^n P_t\right) = \sum_{t=1}^n KL(Q_t \| P_t).
+  \end{equation}
+where $Q_t$ and $P_t$ denote the posterior and prior distributions over the LoRA parameters for task $t$.
+
+
+
+The corresponding joint hyperprior and hyperposterior for the two-task setting are denoted as $\mathcal{P}_{1:2}$ and $\mathcal{Q}_{1:2}$. Here, $\mathcal{P}_{1:2}$ represents the joint hyperprior over both tasks, where the hyperprior for the second task is conditionally dependent on the hyperposterior of the first task, i.e.,
+$\mathcal{P}_{1:2} = \mathcal{P}_1 \otimes \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1).$
+Similarly, the joint hyperposterior is given by
+$\mathcal{Q}_{1:2} = \mathcal{Q}_1 \otimes \mathcal{Q}_2,$
+assuming conditional independence between the task-wise hyperposteriors. Because $\mathcal{P}_2$ is conditionally dependent on $\mathcal{Q}_1$, the joint KL divergence between the hyperdistributions admits a chain-structured decomposition:
+\begin{equation}
+\begin{aligned}
+    KL^{\text{hyper}}_2&=KL(\mathcal{Q}_{1:2}\,\|\,\mathcal{P}_{1:2})  \\
+    &= KL(\mathcal{Q}_1\,\|\,\mathcal{P}_1) + \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2\,\|\,\mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right].
+\end{aligned}
+\end{equation}
+This structure reflects that the uncertainty or inductive bias for the second task is informed by the knowledge gained from the first task. In practical terms, the conditional hyperprior $\mathcal{P}_2(\cdot,|,\mathcal{Q}_1)$ can take the form of a Gaussian distribution whose parameters (e.g., covariance) are derived from the posterior statistics of the previous task. For example,
+$P_2 = \mathcal{N}\big(\mathbf{0},\, \mathbf{F}_1^{-1}\big),$
+where $\mathbf{F}_1$ is the Fisher information matrix estimated from the first task, thus encoding the structure and uncertainty learned in the previous stage.
+
+
+Analogously, for the parameter-level distributions, the KL divergence decomposes as
+\begin{align*}
+ &KL^{\text{task}}_2 =KL(Q_{1:2}\,\|\,P_{1:2})  \\
+ &   = KL(Q_1\,\|\,P_1) + KL(Q_2\,\|\,P_2)
+\end{align*}
+where $P_2$ is sampled from the conditional hyperprior $\mathcal{P}_2(\cdot|\mathcal{Q}_1)$.
+
+
+
+Therefore, the generalization bound for two sequential tasks with recursive, dependent hyperdistributions takes the following form:
+
+
+
+\begin{align}
+& L(\mathcal{Q}_{1:2}) \leq\;  \frac{1}{2} \sum_{t=1}^2 
+    \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} 
+    \Big[\, 
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag \\
+&\qquad
+    +\; \mathrm{Sh}_t\big(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2\big)
+    \Big] \notag \\
+&\quad
+    +\, (b-a)\Bigg\{ \frac{1}{2(\bar{m}_2 - 1)} \bigg[
+            KL^{\text{task}}_2 \notag \\
+&\qquad\qquad
+            +\; KL^{\text{hyper}}_2 \notag \\
+&\qquad\qquad
+            +\; \log\frac{\bar{m}_2}{\delta}
+        \bigg] \Bigg\}^{1/2}
+\end{align}
+
+% \begin{align}
+%  L(\mathcal{Q}_{1:2}) &\leq \frac{1}{2} \sum_{t=1}^2 
+%     \mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} 
+%     \Big[\, 
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) 
+%     + \mathrm{Sh}_t\big(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2\big)
+%     \Big] \notag \\
+% &+\, (b-a)\Bigg\{ \frac{1}{2(\bar{m}_2 - 1)} \bigg[
+%             KL^{\text{task}}_2 
+%             +\; KL^{\text{hyper}}_2 
+%             +\; \log\frac{\bar{m}_2}{\delta}
+%         \bigg] \Bigg\}^{1/2}
+% \end{align}
+
+
+where 
+\begin{align*}
+L(\mathcal{Q}_{1:2}) &= \\
+&\mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} 
+\left[
+    \frac{1}{2} \mathbb{E}_{\Delta\mathbf{W}_1 \sim Q_1(P_1)} 
+    \left[
+        L_{\mathcal{D}_1}(\mathbf{W}_0 + \Delta\mathbf{W}_1)
+    \right] \right.\\
+&\quad \left.
+    +\, \frac{1}{2} \mathbb{E}_{\Delta\mathbf{W}_2 \sim Q_2(P_2)} 
+    \left[
+        L_{\mathcal{D}_2}(\mathbf{W}_1 + \Delta\mathbf{W}_2)
+    \right]
+\right] \\
+KL^{\text{task}}_2 &=\; 
+    \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\left[ KL(Q_1(P_1)\|P_1) \right] \\
+& \quad +\; \mathbb{E}_{P_2 \sim \mathcal{Q}_2}\left[ KL(Q_2(P_2)\|P_2) \right] \\[1.2ex]
+KL^{\text{hyper}}_2 &=\; 
+    KL(\mathcal{Q}_1\|\mathcal{P}_1) \\
+& \quad +\; \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2 \| \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right] \\
+\bar{m}_2 &=\;  2\, /\, \left(\frac{1}{m_1} + \frac{1}{m_2}\right)
+\end{align*}
+
+
+% \begin{align*}
+% L(\mathcal{Q}_{1:2}) &=\mathbb{E}_{P_{1:2} \sim \mathcal{Q}_{1:2}} 
+% \left[
+%     \frac{1}{2} \mathbb{E}_{\Delta\mathbf{W}_1 \sim Q_1(P_1)} 
+%     \left[
+%         L_{\mathcal{D}_1}(\mathbf{W}_0 + \Delta\mathbf{W}_1)
+%     \right] \right. \left.
+%     +\, \frac{1}{2} \mathbb{E}_{\Delta\mathbf{W}_2 \sim Q_2(P_2)} 
+%     \left[
+%         L_{\mathcal{D}_2}(\mathbf{W}_1 + \Delta\mathbf{W}_2)
+%     \right]
+% \right] \\
+% KL^{\text{task}}_2 &=
+%     \mathbb{E}_{P_1 \sim \mathcal{Q}_1}\left[ KL(Q_1(P_1)\|P_1) \right] + \mathbb{E}_{P_2 \sim \mathcal{Q}_2}\left[ KL(Q_2(P_2)\|P_2) \right] \\[1.2ex]
+% KL^{\text{hyper}}_2 &=
+%     KL(\mathcal{Q}_1\|\mathcal{P}_1)  +\; \mathbb{E}_{\mathcal{Q}_1}\left[ KL(\mathcal{Q}_2 \| \mathcal{P}_2(\cdot\,|\,\mathcal{Q}_1)) \right] \\
+% \bar{m}_2 &=\;  2\, /\, \left(\frac{1}{m_1} + \frac{1}{m_2}\right)
+% \end{align*}
+
+
+ All terms involving empirical risk, sharpness, and complexity are averaged over the joint hyperposterior $\mathcal{Q}_{1:2}$. The chain-structured KL terms reflect that each new task's hyperprior may depend on the hyperposterior of previous tasks, capturing the transfer and adaptation of uncertainty and prior structure in incremental learning.
+
+
+\textbf{Step 3: Multi-task PAC-Bayes Bound (n→n+1)}Assume the following holds for $n$ sequential tasks:
+
+
+\textbf{Parameter Distribution KL:}
+    \begin{align}
+     KL^{\text{task}}_n=KL(Q_{1:n} \| P_{1:n}) 
+    &= \sum_{t=1}^n KL(Q_t \| P_t)
+    \end{align}
+
+ 
+\textbf{Hyperdistribution KL:}
+    % \begin{align}
+    % &KL^{\text{hyper}}_n =KL(\mathcal{Q}_{1:n} \| \mathcal{P}_{1:n}) \notag \\
+    % & \quad  \qquad= KL(\mathcal{Q}_1 \| \mathcal{P}_1)  + \sum_{t=2}^n 
+    %     \mathbb{E}_{\mathcal{Q}_{1:t-1}} \left[ 
+    %         KL\left(\mathcal{Q}_t \| \mathcal{P}_t\big(\cdot\,|\,\mathcal{Q}_{1:t-1}\big)\right) 
+    %     \right]
+    % \end{align}
+
+
+     \begin{align}
+    &KL^{\text{hyper}}_n =KL(\mathcal{Q}_{1:n} \| \mathcal{P}_{1:n}) \notag \\
+    & \quad  \qquad= KL(\mathcal{Q}_1 \| \mathcal{P}_1) \notag  \\
+      & \qquad \qquad + \sum_{t=2}^n 
+        \mathbb{E}_{\mathcal{Q}_{1:t-1}} \left[ 
+            KL\left(\mathcal{Q}_t \| \mathcal{P}_t\big(\cdot\,|\,\mathcal{Q}_{1:t-1}\big)\right) 
+        \right]
+    \end{align}
+
+\textbf{Generalization Bound:}
+
+\begin{align}
+& L(\mathcal{Q}_{1:n}) \leq\;  \frac{1}{n} \sum_{t=1}^n 
+    \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:2}} 
+    \Big[\, 
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag \\
+&\qquad
+    +\; \mathrm{Sh}_t\big(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2\big)
+    \Big] \notag \\
+&\quad
+    +\, (b-a)\Bigg\{ \frac{1}{n(\bar{m}_n - 1)} \bigg[
+            KL^{\text{task}}_n \notag \\
+&\qquad\qquad
+            +\; KL^{\text{hyper}}_n \notag \\
+&\qquad\qquad
+            +\; \log\frac{\bar{m}_n}{\delta}
+        \bigg] \Bigg\}^{1/2}
+\end{align}
+
+
+% \begin{align}
+%  L(\mathcal{Q}_{1:n}) &\leq  \frac{1}{n} \sum_{t=1}^n 
+%     \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:2}} 
+%     \Big[\, 
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) 
+%     + \mathrm{Sh}_t\big(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2\big)
+%     \Big] \notag \\
+% &+ (b-a)\Bigg\{ \frac{1}{n(\bar{m}_n - 1)} \bigg[
+%             KL^{\text{task}}_n 
+%             + KL^{\text{hyper}}_n 
+%             +\log\frac{\bar{m}_n}{\delta}
+%         \bigg] \Bigg\}^{1/2}
+% \end{align}
+
+    
+    where
+
+
+\begin{align}
+&L(\mathcal{Q}_{1:n}) = \notag\\
+& \frac{1}{n} \sum_{t=1}^n\;
+    \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\;
+    \mathbb{E}_{\Delta\mathbf{W}_t \sim Q_t(P_t)}
+    \big[
+        L_{\mathcal{D}_t}(\mathbf{W}_{t-1} + \Delta\mathbf{W}_t)
+    \big] \notag \\
+&\bar{m}_n =
+    n \Big/ \bigg( \sum_{t=1}^n \frac{1}{m_t} \bigg) \notag
+\end{align}
+
+% \begin{align}
+% L(\mathcal{Q}_{1:n}) &=  \frac{1}{n} \sum_{t=1}^n\;
+%     \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\;
+%     \mathbb{E}_{\Delta\mathbf{W}_t \sim Q_t(P_t)}
+%     \big[
+%         L_{\mathcal{D}_t}(\mathbf{W}_{t-1} + \Delta\mathbf{W}_t)
+%     \big] \notag \\
+% \bar{m}_n &=
+%     n \Big/ \bigg( \sum_{t=1}^n \frac{1}{m_t} \bigg) \notag
+% \end{align}
+
+
+\textbf{Inductive Step: From $n$ to $n+1$ Tasks}
+
+
+\textbf{(a) Extension of Orthogonality.}
+The LoRA parameter block $\Delta\mathbf{W}_{n+1}$ is constrained to be orthogonal to all previous blocks:
+    \begin{align}
+        \forall\, i \leq n, \quad A_i^\top A_{n+1} = 0 \notag
+    \end{align}
+    Thus,
+    \begin{equation}
+        KL^{\text{task}}_{n+1}=KL(Q_{1:n+1} \| P_{1:n+1}) = \sum_{t=1}^{n+1} KL(Q_t \| P_t)
+    \end{equation}
+
+\textbf{(b) Chain-Structured Hyperprior.}
+    The hyperprior for task $n+1$ is conditioned on the cumulative hyperposterior:
+    \begin{align}
+        \mathcal{P}_{1:n+1} = \mathcal{P}_{1:n} \otimes \mathcal{P}_{n+1}(\cdot\,|\,\mathcal{Q}_{1:n}) \notag
+    \end{align}
+    So,
+    \begin{equation}
+        \begin{aligned}
+        &KL^{\text{hyper}}_{n+1}
+        =KL(\mathcal{Q}_{1:n+1} \| \mathcal{P}_{1:n+1}) \\
+        &= KL(\mathcal{Q}_{1:n} \| \mathcal{P}_{1:n}) +\mathbb{E}_{\mathcal{Q}_{1:n}}\left[ KL\big(\mathcal{Q}_{n+1} \| \mathcal{P}_{n+1}(\cdot\,|\,\mathcal{Q}_{1:n})\big) \right] 
+        \\
+        &= KL(\mathcal{Q}_1 \| \mathcal{P}_1) +
+         \sum_{t=2}^{n+1} \mathbb{E}_{\mathcal{Q}_{1:t-1}}\left[ KL\left(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})\right) \right]
+    \end{aligned}
+    \end{equation}
+
+
+\textbf{(c) Generalization Bound.}
+    The empirical risk and sharpness terms for the new task are averaged in:
+
+\begin{align}
+& L(\mathcal{Q}_{1:n+1})  \\
+&\leq\; \frac{1}{n+1} \sum_{t=1}^{n+1}
+    \mathbb{E}_{P_{1:n+1} \sim \mathcal{Q}_{1:n+1}}\big[
+        \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag \\
+&\qquad
+    +\; \mathrm{Sh}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+    \big] \notag \\
+&\quad
+    +\, (b-a) \Bigg\{
+        \frac{1}{2(\bar{m}_{n+1} - 1)} \bigg[
+            KL_{n+1}^{\text{task}} \notag \\
+&\qquad\qquad
+            +\; KL_{n+1}^{\text{hyper}} \notag \\
+&\qquad\qquad
+            +\; \log\frac{\bar{m}_{n+1}}{\delta}
+        \bigg]
+    \Bigg\}^{1/2}
+\end{align}
+
+% \begin{align}
+%  L(\mathcal{Q}_{1:n+1}) &\leq \frac{1}{n+1} \sum_{t=1}^{n+1}
+%     \mathbb{E}_{P_{1:n+1} \sim \mathcal{Q}_{1:n+1}}\big[
+%         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) 
+%     + \mathrm{Sh}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+%     \big] \notag \\
+% &+ (b-a) \Bigg\{
+%         \frac{1}{2(\bar{m}_{n+1} - 1)} \bigg[
+%             KL_{n+1}^{\text{task}} \notag 
+%             +\ KL_{n+1}^{\text{hyper}} 
+%             + \log\frac{\bar{m}_{n+1}}{\delta}
+%         \bigg]
+%     \Bigg\}^{1/2}
+% \end{align}
+where
+
+\begin{equation}
+    \begin{aligned}
+        KL_{n+1}^{\text{task}} &= \sum_{t=1}^{n+1} KL(Q_t\|P_t)\\
+        KL_{n+1}^{\text{hyper}} = & KL(\mathcal{Q}_1\|\mathcal{P}_1)  \\
+        &+\sum_{t=2}^{n+1} \mathbb{E}_{\mathcal{Q}_{1:t-1}}
+        \left[ KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})) \right] \\
+        \bar{m}_{n+1} &= (n+1)/\big(\sum_{t=1}^{n+1} 1/m_t\big) \notag
+    \end{aligned}
+\end{equation}
+    
+    % \begin{equation}
+    %     \begin{aligned}
+    %     KL_{n+1}^{\text{task}} &= \sum_{t=1}^{n+1} KL(Q_t\|P_t)\\
+    %     KL_{n+1}^{\text{hyper}} = & KL(\mathcal{Q}_1\|\mathcal{P}_1)  +\sum_{t=2}^{n+1} \mathbb{E}_{\mathcal{Q}_{1:t-1}}
+    %     \left[ KL(\mathcal{Q}_t \| \mathcal{P}_t(\cdot\,|\,\mathcal{Q}_{1:t-1})) \right] \\
+    %     \bar{m}_{n+1} &= (n+1)/\big(\sum_{t=1}^{n+1} 1/m_t\big) \notag
+    % \end{aligned}
+    % \end{equation}
+
+\textbf{Step4: Conclusion General Bound for $n$ Tasks}By induction, the PAC-Bayesian generalization bound for incremental multi-task LoRA with orthogonal blocks and recursively dependent hyperpriors is:
+\begin{equation}
+    \begin{aligned}
+        L(\mathcal{Q}_{1:n}) \leq & \frac{1}{n} \sum_{t=1}^{n}
+        \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\big[
+            \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t) \notag\\
+        & + \mathrm{Sh}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+        \big] \notag\\
+        & + \frac{1 }{n(\bar{m}_n - 1)}\sqrt{
+            \frac{KL_{n}^{\text{task}} + KL_{n}^{\text{hyper}} +\log(\bar{m}_{n}/\delta)}{2(\bar{m}_{n} - 1)}
+        } \notag
+\end{aligned}
+\end{equation}
+
+    
+
+    % \begin{align}
+    %     L(\mathcal{Q}_{1:n}) \leq & \frac{1}{n} \sum_{t=1}^{n}
+    %     \mathbb{E}_{P_{1:n} \sim \mathcal{Q}_{1:n}}\big[
+    %         \widehat{L}_{S_t}(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t)  + \mathrm{Sh}_t(\mathbf{W}_{t-1} + \hat{\Delta\mathbf{W}}_t,\, \rho_t^2)
+    %     \big] \notag\\
+    %     & + \frac{1 }{n(\bar{m}_n - 1)}\sqrt{
+    %         \frac{KL_{n}^{\text{task}} + KL_{n}^{\text{hyper}} +\log(\bar{m}_{n}/\delta)}{2(\bar{m}_{n} - 1)}
+    %     }
+    % \end{align}
+
+
+ This result demonstrates that, under the incremental LoRA framework, orthogonalization of parameter spaces and sequential modeling of hyperpriors allow the single-task PAC-Bayes theory to be strictly extended to multi-task continual learning. This structure ensures that model complexity, empirical risk, and sharpness are balanced while enabling transfer and retention of knowledge across tasks.
+
+
+
+
+\end{proof}
+
+
+
+
+\begin{table*}[tbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l p{11.3cm} l}
+\toprule
+\textbf{Symbol} & \textbf{Description} & \textbf{Section} \\
+\midrule
+$\mathcal{X}$, $\mathcal{Y}$ & Input and output spaces. & Sec. 3.1 \\
+
+$\mathcal{D}_t$ & Data distribution over $(x, y)$ pairs for task $t$. & Sec. 3.1 \\
+$\mathcal{T}$, $t$ & Task environment $\mathcal{T}$ is a distribution over task-specific data distributions $\mathcal{D}_t$. Each task $t \in \{1, \dots, n\}$ is independently drawn from $\mathcal{T}$ during continual learning. & Sec. 3.1 \\
+$S_t$, $m_t$ & Empirical training set for task $t$ drawn i.i.d. from $\mathcal{D}_t$, with $m_t = |S_t|$. & Sec. 3.1 \\
+
+$\mathcal{F}$, $f$, $\mathbf{W}$ & Hypothesis space $\mathcal{F}$, prediction function $f \in \mathcal{F}$ with associated parameters $\mathbf{W}$. & Sec. 3.1 \\
+
+$\ell: \mathcal{F} \times \mathcal{X} \times \mathcal{Y} \rightarrow \mathbb{R}_{\geq 0}$ & Loss function mapping a model, input, and label to a non-negative real value. & Sec. 3.1 \\
+$L(f)$ & Expected loss over data distribution $\mathcal{D}$: $\mathbb{E}_{(x, y) \sim \mathcal{D}}[\ell(f(x), y)]$. & Sec. 3.1 \\
+$\widehat{L}_S(f)$ & Empirical loss over dataset $S$: $\frac{1}{|S|} \sum_{(x,y)\in S} \ell(f(x), y)$. & Sec. 3.1 \\
+$\mathrm{E\text{-}Sh}_t$ & Expected sharpness for task $t$: $\mathbb{E}_{\epsilon}[\widehat{L}_{S_t}(\hat{\mathbf{W}} + \epsilon) - \widehat{L}_{S_t}(\hat{\mathbf{W}})]$. & Sec. 3.2  \\
+
+$\hat{\mathbf{W}}_t$, $\Sigma_t$ & Mean and covariance of posterior $Q_t$: $\hat{\mathbf{W}}_t$ denotes task-specific trained parameters, and $\Sigma_t$ encodes the perturbation structure. & Sec. 3.2 \\
+$\epsilon$ & Additive perturbation vector, sampled from $\mathcal{N}(0, \Sigma_t)$. & Sec. 3.2 \\
+$P_t$, $Q_t$ & Task-specific prior and posterior distributions over model parameters. & Sec. 3.3 \\
+
+$L(Q)$ & Posterior-averaged expected loss: $\mathbb{E}_{f \sim Q} \left[ \mathbb{E}_{(x,y)\sim \mathcal{D}} [\ell(f(x), y)] \right]$. & Sec. 3.3  \\
+
+
+$KL^{\text{task}}_t$, $\mathrm{KL}(Q \| P)$ & KL divergence terms related to within-task complexity: $\mathrm{KL}(Q \| P)$ measures the divergence between posterior and prior; $KL^{\text{task}}_t = \mathbb{E}_{P_t \sim \mathcal{Q}_t}[\mathrm{KL}(Q_t \| P_t)]$ represents its expectation under the hyperposterior. & Sec. 3.3, Sec 4 \\
+$\mathcal{P}_t$, $\mathcal{Q}_t$ & Hyperprior and hyperposterior distributions over task-level priors. & Sec. 4 \\
+
+$KL^{\text{hyper}}_t$, $\mathrm{KL}(\mathcal{Q} \| \mathcal{P})$ & KL divergence terms related to hyperprior complexity: $\mathrm{KL}(\mathcal{Q} \| \mathcal{P})$ quantifies distributional shift over task priors; $KL^{\text{hyper}}_t$ captures its contribution in the PAC-Bayesian bound. & Sec. 4 \\
+$L(\mathcal{Q})$ & Future-task generalization risk: expected performance on unseen future tasks under task distribution $\mathcal{T}$. & Sec. 4 \\
+
+$L(\mathcal{Q}_{1:n})$ & Expected generalization risk on observed tasks: average expected loss across all encountered tasks, approximating future performance. & Sec. 4 \\
+
+$\hat{L}(\mathcal{Q}_{1:n})$ & Empirical risk on observed tasks: average empirical loss over seen tasks, computable surrogate using available training data. & Sec. 4 \\
+
+\bottomrule
+\end{tabular}
+}
+\caption{Summary of Notation Used Throughout the Paper}
+\label{tab:notation}
+\end{table*}
+
+
+
+
+
+\section{B. Evaluation Metrics}
+\label{appendix:  Evaluation Metrics}
+
+
+\begin{figure}[hptb]
+  \centering
+  \includegraphics[width=0.9\linewidth]{images/metrics_only.pdf}
+  \caption{Illustration of the accuracy matrix $R$ used to compute continual learning metrics. Each cell $R_{i,j}$ denotes the test accuracy on task $j$ after training on task $i$. Diagonal entries represent Current Accuracy (CA); lower triangular entries are used for Backward Transfer (BWT), and upper triangular entries for Forward Generalization (FG). Sequence-level metrics such as AA, LA, ABWT, and AFG are computed by averaging the respective regions.}
+  \label{fig:metric}
+\end{figure}
+
+We provide the formal definitions of all continual learning metrics and illustrate how they are computed from the accuracy matrix $R \in \mathbb{R}^{T \times T}$, where $T$ is the number of tasks. Each entry $R_{i,j}$ represents the test accuracy on task $j$ after the model has been trained on task $i$.
+
+\textbf{Step-wise Metrics}At each training step $t \in \{1, \dots, T\}$:
+
+\begin{itemize}
+    \item  \textbf{Current Accuracy (CA\textsubscript{t})}  Accuracy on task $t$ immediately after it is learned:
+$$\mathrm{CA}_t = R_{t,t}.$$
+ \item
+\item \textbf{Backward Transfer (BWT\textsubscript{t})}  
+Average influence of learning task $t$ on previous tasks $1$ through $t{-}1$:
+\[
+\mathrm{BWT}_t = \frac{1}{t - 1} \sum_{i=1}^{t - 1} \left(R_{t,i} - R_{i,i}\right), \quad \text{for } t > 1.
+\]
+\item \textbf{Forward Generalization (FG\textsubscript{t})}  
+Accuracy on future tasks $t{+}1$ through $T$ after training on task $t$:
+\[
+\mathrm{FG}_t = \frac{1}{T - t} \sum_{j = t + 1}^{T} R_{t,j}, \quad \text{for } t < T.
+\]
+\end{itemize}
+
+\textbf{Sequence-level Metrics} After trained on all step $T$,
+\begin{itemize}
+    \item  \textbf{Average Accuracy (AA)}  
+Mean of all diagonal entries, representing accuracy on each task immediately after it is learned:
+\[
+\mathrm{AA} = \frac{1}{T} \sum_{t=1}^{T} R_{t,t}.
+\]
+\item \textbf{Last Accuracy (LA)}  
+Final model’s average accuracy on all tasks after learning the last task:
+\[
+\mathrm{LA} = \frac{1}{T} \sum_{j=1}^{T} R_{T,j}.
+\]
+\item \textbf{Average Backward Transfer (ABWT)}  
+Average BWT across all training steps:
+\[
+\mathrm{ABWT} = \frac{1}{T - 1} \sum_{t=2}^{T} \mathrm{BWT}_t.
+\]
+\item \textbf{Average Forward Generalization (AFG)}  
+Average FG across all training steps:
+\[
+\mathrm{AFG} = \frac{1}{T - 1} \sum_{t=1}^{T - 1} \mathrm{FG}_t.
+\]
+\end{itemize}
+
+
+
+
+
+
+\section{C. Additional Experiments}
+
+
+
+\subsection{C.1 Complete Results}
+
+
+
+
+\begin{table*}[thp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{cc|cccc|cccc|cccc|cccc}
+\toprule
+& & \multicolumn{4}{c|}{\textbf{Order1}} 
+  & \multicolumn{4}{c|}{\textbf{Order2}} 
+  & \multicolumn{4}{c|}{\textbf{Order3}} 
+  & \multicolumn{4}{c}{\textbf{Average (Avg)}} \\
+\cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14} \cmidrule(lr){15-18}
+\textbf{Baseline} & \textbf{Method}
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}}
+&No Noise & -9.02 & 80.66 & 45.59 & 73.41 & \textbf{-3.95} & 79.95 & 44.13 & 75.74 & -4.83 & 80.80 & 58.27 & 77.55 & -5.93 & 80.47 & 49.33 & 75.57 \\ 
+&Full-Fisher & -6.50 & \textbf{80.79} & 44.62 & 74.72 & -4.90 & \textbf{80.86} & 39.71 & 75.27 & -4.57 & \textbf{80.95} & 58.03 & 78.55 & -5.32 & \textbf{80.87} & 47.45 & 76.18 \\ 
+&Full-Gaussian & \textbf{-6.31} & 80.53 & 44.82 & 74.56 & -4.20 & 80.49 & 42.11 & 76.00 & -5.47 & 80.75 & 58.43 & 77.10 & -5.33 & 80.59 & 48.45 & 75.89 \\ 
+&LoRA-SAM & -7.39 & 80.19 & 46.14 & 73.69 & -5.14 & 80.10 & 43.93 & 76.07 & -1.63 & 79.40 & 58.63 & 77.70 & -4.72 & 79.90 & 49.57 & 75.82 \\ 
+&LoRA-Fisher & -6.79 & 80.43 & 43.31 & \textbf{74.92} & -4.89 & 80.37 & 39.65 & 75.39 & -2.13 & 80.65 & 59.30 & 78.95 & -4.60 & 80.48 & 47.42 & 76.42 \\ 
+&LoRA-Gaussian & -6.65 & 80.70 & \textbf{47.74} & 74.75 & -4.09 & 80.70 & \textbf{45.70} & \textbf{76.67} & \textbf{-1.53} & 79.75 & \textbf{59.30} & \textbf{79.10} & \textbf{-4.09} & 80.38 & \textbf{50.91} & \textbf{76.84} \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}}
+&No Noise & -2.83 & \textbf{79.28} & 48.27 & 76.58 & -3.33 & 79.33 & 48.08 & 75.55 & -2.13 & \textbf{80.15} & 59.37 & 79.00 & -2.76 & \textbf{79.59} & 51.91 & 77.04 \\ 
+&Full-Fisher & -1.45 & 78.65 & 45.70 & 77.65 & -2.03 & 79.03 & 46.48 & 76.35 & -2.87 & 78.95 & 59.07 & 77.00 & -2.12 & 78.88 & 50.42 & 77.00 \\ 
+&Full-Gaussian & -1.90 & 78.85 & 44.82 & 77.48 & -1.90 & 79.32 & 45.53 & 76.80 & -2.60 & 79.05 & 58.90 & 77.55 & -2.13 & 79.07 & 49.75 & 77.28 \\ 
+&LoRA-SAM & -1.55 & 78.78 & 45.78 & 77.10 & -2.20 & 78.48 & 46.98 & 75.70 & -1.20 & 78.40 & 58.53 & 77.20 & -1.65 & 78.55 & 50.43 & 76.67 \\ 
+&LoRA-Fisher & \textbf{-0.23} & 78.90 & 48.63 & \textbf{78.30} & \textbf{-0.93} & \textbf{79.55} & 48.87 & \textbf{77.25} & -1.80 & 79.20 & 59.27 & 78.25 & -0.99 & 79.22 & 52.26 & 77.93 \\ 
+&LoRA-Gaussian & -0.80 & 79.13 & \textbf{48.75} & 78.00 & -1.37 & 79.03 & \textbf{49.28} & 76.85 & \textbf{-0.70} & 79.30 & \textbf{59.53} & \textbf{79.10} & \textbf{-0.96} & 79.15 & \textbf{52.52} & \textbf{78.32} \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}}
+&No Noise & -1.42 & 74.93 & 46.98 & 72.83 & \textbf{-0.70} & 74.20 & 46.43 & 73.25 & -1.90 & 74.35 & 58.97 & 73.15 & -1.34 & \textbf{74.49} & 50.79 & 73.08 \\ 
+&Full-Fisher & -2.33 & 73.18 & 46.73 & 70.45 & -2.77 & 73.68 & 47.00 & 71.40 & -1.70 & 74.28 & 58.63 & 73.08 & -2.27 & 73.71 & 50.79 & 71.64 \\ 
+&Full-Gaussian & -3.33 & 72.58 & 46.07 & 68.30 & -3.75 & 73.43 & 45.82 & 70.10 & -1.63 & 73.85 & 58.77 & 73.20 & -2.90 & 73.29 & 50.22 & 70.53 \\ 
+&LoRA-SAM & \textbf{-1.33} & \textbf{75.40} & 47.92 & \textbf{73.70} & -1.47 & \textbf{75.00} & 47.42 & \textbf{73.45} & -1.07 & 72.95 & 58.43 & 72.25 & \textbf{-1.29} & 74.45 & 51.26 & \textbf{73.13} \\ 
+&LoRA-Fisher & -2.28 & 72.35 & 47.50 & 69.23 & -3.07 & 72.40 & 47.68 & 70.05 & -2.60 & 74.25 & 59.23 & 72.60 & -2.65 & 73.00 & 51.47 & 70.63 \\ 
+&LoRA-Gaussian & -1.72 & 72.40 & \textbf{48.55} & 69.68 & -2.30 & 72.68 & \textbf{48.60} & 70.65 & \textbf{-0.80} & \textbf{74.70} & \textbf{59.53} & \textbf{74.30} & -1.61 & 73.26 & \textbf{52.23} & 71.54 \\
+\bottomrule
+\end{tabular}
+}
+\caption{
+Continual learning performance (Order1–3) across three LoRA-based architectures under flatness-promoting perturbation strategies. Best values per metric and architecture are highlighted in bold. Metrics: ABWT (Avg. Backward Transfer), AA (Avg. Accuracy), AFG (Avg. Forward Generalization), LA (Last Accuracy).
+}
+\label{tab:order1_3_all}
+\end{table*}
+
+
+\begin{table*}[thp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{cc|cccc|cccc|cccc|cccc}
+\toprule
+& & \multicolumn{4}{c|}{\textbf{Order4}} 
+  & \multicolumn{4}{c|}{\textbf{Order5}} 
+  & \multicolumn{4}{c|}{\textbf{Order6}} 
+  & \multicolumn{4}{c}{\textbf{Average (Avg)}} \\
+\cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14} \cmidrule(lr){15-18}
+\textbf{Baseline} & \textbf{Method}
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA
+& ABWT & AA & AFG & LA \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}}
+&No Noise & -14.42 & 81.14 & 20.04 & \textbf{70.44} & -22.57 & 81.99 & 14.22 & 68.11 & -16.61 & 81.00 & \textbf{43.84} & 38.85 & -17.87 & 81.38 & 26.03 & 59.13 \\ 
+&Full-Fisher & -14.97 & 80.93 & 21.46 & 68.43 & \textbf{-17.26} & 81.88 & 14.18 & \textbf{68.70} & -18.47 & 81.21 & 41.89 & 25.07 & f{-16.92} & 81.34 & 25.84 & 54.07 \\ 
+&Full-Gaussian & -16.96 & \textbf{81.78} & 20.84 & 67.74 & -18.40 & 81.47 & 13.90 & 65.11 & -19.50 & \textbf{81.43} & 42.11 & 27.79 & -18.29 & \textbf{81.56} & 25.62 & 53.55 \\ 
+&LoRA-SAM & -11.02 & 78.98 & 22.74 & 70.17 & -19.27 & 80.83 & 13.41 & 66.87 & -19.54 & 79.64 & 43.18 & 18.11 & \textbf{-16.61} & 79.82 & 26.44 & 51.72 \\ 
+&LoRA-Fisher & -14.89 & 81.24 & \textbf{23.16} & 68.99 & -20.69 & \textbf{82.23} & \textbf{17.43} & 66.03 & \textbf{-15.56} & 80.80 & 42.30 & \textbf{45.07} & -17.05 & 81.42 & \textbf{27.63} & \textbf{60.03} \\ 
+&LoRA-Gaussian & -14.78 & 80.77 & 21.40 & 68.08 & -18.29 & 81.87 & 14.22 & 67.64 & -17.91 & \textbf{81.43} & 41.77 & 31.83 & -16.99 & 81.36 & 25.80 & 55.85 \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}}
+&No Noise & -12.23 & 80.09 & 22.18 & 70.13 & -14.60 & \textbf{81.03} & 14.31 & 70.13 & -13.77 & 66.70 & 43.52 & 43.16 & -13.53 & 75.94 & 26.67 & 61.14 \\ 
+&Full-Fisher & -10.95 & 80.05 & 24.48 & 69.24 & -16.52 & 80.73 & 14.04 & 70.02 & \textbf{-9.00} & 70.54 & \textbf{47.17} & 70.75 & -12.16 & 77.11 & \textbf{28.56} & 70.00 \\ 
+&Full-Gaussian & -12.87 & 80.43 & 23.35 & 69.48 & -18.67 & 80.67 & 15.26 & 69.17 & -9.80 & 70.86 & 44.54 & 65.16 & -13.78 & 77.32 & 27.72 & 67.94 \\ 
+&LoRA-SAM & -10.72 & 79.91 & \textbf{24.62} & 68.69 & -16.45 & 80.11 & 14.40 & 68.52 & -9.45 & 69.68 & 45.39 & 70.69 & -12.21 & 76.57 & 28.14 & 69.30 \\ 
+&LoRA-Fisher & \textbf{-10.50} & 80.63 & 23.68 & 69.29 & \textbf{-12.44} & 72.57 & \textbf{16.90} & \textbf{72.52} & -9.46 & \textbf{70.91} & 43.02 & \textbf{72.20} & \textbf{-10.80} & 74.70 & 28.53 & \textbf{71.34} \\ 
+&LoRA-Gaussian & -11.32 & \textbf{80.65} & 24.42 & \textbf{70.44} & -17.96 & 80.87 & 13.96 & 71.07 & -10.01 & 70.60 & 44.11 & 67.52 & -13.10 & \textbf{77.37} & 27.50 & 69.68 \\
+\midrule
+\multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}}
+&No Noise & -6.27 & 75.33 & 23.42 & 66.95 & \textbf{-7.70} & 74.91 & 13.35 & 66.91 & -5.14 & 70.37 & \textbf{56.05} & 70.84 & \textbf{-6.37} & 73.54 & \textbf{30.94} & 68.23 \\ 
+&Full-Fisher & -6.01 & 75.36 & 24.08 & 67.93 & -10.20 & 75.07 & 13.22 & 65.73 & -4.11 & 71.88 & 55.46 & 72.76 & -6.77 & 74.10 & 30.92 & 68.81 \\ 
+&Full-Gaussian & \textbf{-5.19} & 74.79 & 23.35 & 67.64 & -10.02 & 75.52 & 13.19 & 65.03 & -4.61 & 72.23 & 55.72 & 72.80 & -6.61 & 74.18 & 30.75 & 68.49 \\ 
+&LoRA-SAM & -6.55 & \textbf{75.85} & 24.02 & \textbf{68.04} & -9.22 & \textbf{76.12} & 13.40 & \textbf{66.99} & -4.00 & 71.62 & 52.34 & 71.68 & -6.59 & 74.53 & \textbf{29.92} & \textbf{68.90} \\ 
+&LoRA-Fisher & -6.15 & 75.27 & \textbf{24.32} & 66.43 & -10.22 & 75.80 & \textbf{13.65} & 66.00 & -3.85 & 72.29 & 54.65 & 72.17 & -6.74 & 74.45 & 30.87 & 68.20 \\ 
+&LoRA-Gaussian & -5.84 & 75.80 & 24.20 & 66.41 & -10.26 & 75.60 & 13.46 & 65.21 & \textbf{-3.18} & \textbf{72.45} & 54.94 & \textbf{73.11} & \textbf{-6.43} & \textbf{74.62} & 30.87 & 68.24 \\
+\bottomrule
+\end{tabular}
+}
+\caption{
+Continual learning performance (Order4–6) across three LoRA-based architectures under flatness-promoting perturbation strategies. Best values per metric and architecture are highlighted in bold. Metrics: ABWT (Avg. Backward Transfer), AA (Avg. Accuracy), AFG (Avg. Forward Generalization), LA (Last Accuracy).
+}
+\label{tab:order4_6_all}
+\end{table*}
+
+
+To provide a more comprehensive evaluation, we include Average Accuracy (AA) in addition to the standard metrics, which are Average Backward Transfer (ABWT), Average Forward Generalization (AFG), and Last Accuracy (LA). The complete results, including AA, are reported in Tables~\ref{tab:order1_3_all} and~\ref{tab:order4_6_all}. This additional metric captures the model’s immediate task-level stability before interference from subsequent tasks occurs.
+
+
+The inclusion of AA further corroborates our main findings. As shown in Tables~\ref{tab:order1_3_all} and~\ref{tab:order4_6_all}, SeqLoRA consistently achieves the highest AA scores, indicating a strong ability to fit the current task. However, this often leads to increased forgetting of previous tasks. In contrast, OLoRA exhibits lower AA, reflecting a limited capacity to quickly adapt to new tasks, especially when the task sequence is relatively homogeneous. Nevertheless, it remains robust against cross-task interference. These patterns further support our conclusion that IncLoRA offers the most effective balance between plasticity and stability in diverse continual learning scenarios.
+
+
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|ccc|ccc|ccc|ccc}
+% \toprule
+% & & \multicolumn{3}{c|}{\textbf{Order1}}
+%   & \multicolumn{3}{c|}{\textbf{Order2}}
+%   & \multicolumn{3}{c|}{\textbf{Order3}}
+%   & \multicolumn{3}{c}{\textbf{Average (Avg)}} \\
+% \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-14}
+% \textbf{Baseline} & \textbf{Method}
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA \\
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & Naive        & -9.02 & 45.59 & 73.41 
+%                   & \textbf{-3.95} & 44.13 & 75.74 
+%                   & -4.83 & 58.27 & 77.55 
+%                   & -5.93 & 49.33 & 75.57 \\
+% \cmidrule(lr){2-14}
+% & Full-Fisher     & -6.50 & 44.62 & 74.72 
+%                   & -4.90 & 39.71 & 75.27 
+%                   & -4.57 & 58.03 & 78.55 
+%                   & -5.32 & 47.45 & 76.18  \\
+% & Full-Gaussian   & \textbf{-6.31} & 44.82 & 74.56 
+%                   & -4.20 & 42.11 & 76.00 
+%                   & -5.47 & 58.43 & 77.10 
+%                   & -5.33 & 48.45 & 75.89 \\
+% \cmidrule(lr){2-14}
+% & LoRA-SAM        & -7.39 & 46.14 & 73.69 
+%                   & -5.14 & 43.93 & 76.07 
+%                   & -1.63 & 58.63 & 77.70 
+%                   & -4.72 & 49.57 & 75.82 \\
+% & LoRA-Fisher     & -6.79 & 43.31 & \textbf{74.92} 
+%                   & -4.89 & 39.65 & 75.39 
+%                   & -2.13 & 59.30 & 78.95 
+%                   & -4.60 & 47.42 & 76.42 \\
+% & LoRA-Gaussian   & -6.65 & \textbf{47.74} & 74.75 
+%                   & -4.09 & \textbf{45.70} & \textbf{76.67} 
+%                   & \textbf{-1.53} & \textbf{59.53} & \textbf{79.10}
+%                   & \textbf{-4.09} & \textbf{50.99} & \textbf{76.84}  \\
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & Naive       & -2.83 & 48.27 & 76.58 
+%                   & -3.33 & 48.08 & 75.55 
+%                   & -2.13 & \textbf{59.37} & 79.00 
+%                   & -2.76 & 51.91 & 77.04 \\
+% \cmidrule(lr){2-14}
+% & Full-Fisher     & -1.45 & 45.70 & 77.65 
+%                   & -2.03 & 46.48 & 76.35 
+%                   & -2.87 & 59.07 & 77.00 
+%                   & -2.12 & 50.42 & 77.00 \\
+% & Full-Gaussian   & -1.90 & 44.82 & 77.48 
+%                   & -1.90 & 45.53 & 76.80 
+%                   & -2.60 & 58.90 & 77.55 
+%                   & -2.13 & 49.75 & 77.28 \\
+% \cmidrule(lr){2-14}
+% & LoRA-SAM        & -1.55 & 45.78 & 77.10 
+%                   & -2.20 & 46.98 & 75.70 
+%                   & -1.20 & 58.53 & 77.20 
+%                   & -1.65 & 50.43 & 76.67 \\
+% & LoRA-Fisher     & \textbf{-0.23} & 48.63 & \textbf{78.30} 
+%                   & \textbf{-0.93} & 48.87 & \textbf{77.25} 
+%                   & -1.80 & 59.27 & 78.25 
+%                   & -0.99 & 52.26 & 77.93 \\
+% & LoRA-Gaussian   & -0.80 & \textbf{48.75} & 78.00 
+%                   & -1.37 & \textbf{49.28} & 76.85 
+%                   & \textbf{-0.70} & 59.53 & \textbf{79.10} 
+%                   & \textbf{-0.96} & \textbf{52.52} & \textbf{77.98} \\
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & Naive       & -1.42 & 46.98 & 72.83 
+%                   & -0.70 & 46.43 & 73.25 
+%                   & -1.90 & 58.97 & 73.15 
+%                   & -1.34 & 50.79 & 73.08 \\
+% \cmidrule(lr){2-14}
+% & Full-Fisher     & -2.33 & 46.73 & 70.45 
+%                   & -2.77 & 47.00 & 71.40 
+%                   & -1.70 & 58.63 & 73.08 
+%                   & -2.27 & 50.79 & 71.64 \\
+% & Full-Gaussian   & -3.33 & 46.07 & 68.30 
+%                   & -3.75 & 45.82 & 70.10 
+%                   & -1.63 & 58.77 & 73.20 
+%                   & -2.90 & 50.22 & 70.53 \\
+% \cmidrule(lr){2-14}
+% & LoRA-SAM        & \textbf{-1.33} & 47.92 & \textbf{73.70} 
+%                   & -1.47 & 47.42 & 73.45 
+%                   & -1.07 & 58.43 & 72.25 
+%                   & \textbf{-1.29} & 51.26 & \textbf{73.13} \\
+% & LoRA-Fisher     & -2.28 & 47.50 & 69.23 
+%                   & -3.07 & 47.68 & 70.05 
+%                   & -2.60 & 59.23 & 72.60 
+%                   & -2.65 & 51.47 & 70.63 \\
+% & LoRA-Gaussian   & -1.72 & \textbf{48.55} & 69.68 
+%                   & -2.30 & 48.60 & 70.65 
+%                   & \textbf{-0.80} & \textbf{59.53} & \textbf{74.30} 
+%                   & -1.61 & \textbf{52.23} & 71.54 \\
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{CL results of SeqLoRA, IncLoRA, and OLoRA on the Standard Benchmark (Orders 1–3), measured by ABWT, AFG, and LA. Best values per metric and architecture are highlighted in bold.}
+% \label{tab:all_orders3_corrected}
+% \end{table*}
+
+
+
+
+
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|cccc|cccc|cccc|cccc|cccc|cccc}
+% \toprule
+% & & \multicolumn{4}{c|}{\textbf{Order1}} 
+%   & \multicolumn{4}{c|}{\textbf{Order2}} 
+%   & \multicolumn{4}{c|}{\textbf{Order3}} 
+%   & \multicolumn{4}{c|}{\textbf{Order4}} 
+%   & \multicolumn{4}{c|}{\textbf{Order5}} 
+%   & \multicolumn{4}{c}{\textbf{Order6}} \\
+% \cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
+% \cmidrule(lr){15-18} \cmidrule(lr){19-22} \cmidrule(lr){23-26}
+% \textbf{Baseline} & \textbf{Method} 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & No Noise         & -9.02 & 80.66 & 45.59 & 73.41   & \textbf{-3.95} & 79.95 & 44.13 & 75.74   & -4.83 & 80.80 & 58.27 & 77.55
+%                   & -14.425 & 81.139 & 20.0421 & 70.4428   & -22.57 & 81.99 & 14.22 & 68.11   & -16.61 & 81.00 & 43.84 & 38.85 \\
+% & LoRA-SAM        & -7.39 & 80.19 & 46.14 & 73.69   & -5.14 & 80.10 & 43.93 & 76.07   & -1.63 & 79.40 & 58.63 & 77.70
+%                   & -11.02 & 78.98 & 22.74 & 70.17   & -19.27 & 80.83 & 13.41 & 66.87   & -19.54 & 79.64 & 43.18 & 18.11 \\
+% & LoRA-Gaussian   & -6.65 & 80.70 & \textbf{47.74} & 74.75   & -4.09 & 80.70 & \textbf{45.70} & \textbf{76.67}   & -1.53 & 79.75 & 59.53 & 79.10
+%                   & -14.78— & 80.77 & 21.40— & 68.08   & -18.29 & 81.87 & 14.22 & 67.64   & -17.91 & 81.43 & 41.77 & 31.83 \\
+% & LoRA-Fisher     & -6.79 & 80.43 & 43.31 & \textbf{74.92}   & -4.89 & 80.37 & 39.65 & 75.39   & -2.13 & 80.65 & 59.30 & 78.95
+%                   & -14.89 & 81.24 & 23.16 & 68.99   & -20.69 & 82.23 & 17.43 & 66.03   & -15.56 & 80.80 & 42.30 & 45.07 \\
+% & Full-Gaussian   & \textbf{-6.31} & 80.53 & 44.82 & 74.56   & -4.20 & 80.49 & 42.11 & 76.00   & -5.47 & 80.75 & 58.43 & 77.10
+%                   & -16.96 & 81.78 & 20.84 & 67.74   & -18.40 & 81.47 & 13.90 & 65.11   & -19.50 & 81.43 & 42.11 & 27.79 \\
+% & Full-Fisher     & -6.50 & \textbf{80.79} & 44.62 & 74.72   & -4.90 & \textbf{80.86} & 39.71 & 75.27   &-4.57 & 80.95 & 58.03 & 78.55
+%                   & 14.97— & 80.93 & 21.46— & 68.43   & -17.26 & 81.88 & 14.18 & 68.70   & -18.47 & 81.21 & 41.89 & 25.07 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & -2.83 & \textbf{79.28} & 48.27 & 76.58   & -3.33 & 79.33 & 48.08 & 75.55   & -2.13 & \textbf{80.15} & 59.37 & 79
+%                   & -12.23 & 80.09 & 22.18 & 70.13   & -14.60 & \textbf{81.03} & 14.31 & 70.13   & -13.77 & 66.70 & 43.52 & 43.16 \\
+% & LoRA-SAM        & -1.55 & 78.78 & 45.78 & 77.10   & -2.20 & 78.48 & 46.98 & 75.70  & -1.20 & 78.40 & 58.53 & 77.20 
+%                   & -10.72 & 79.91 & \textbf{24.62} & 68.69   & -16.45 & 80.11 & 14.40 & 68.52   & \textbf{-9.45} & 69.68 & 45.39 & 70.69 \\
+% & LoRA-Gaussian   & -0.80 & 79.13 & \textbf{48.75} & 78   & -1.37 & 79.03 & \textbf{49.28} & 76.85   & \textbf{-0.70} & 79.30 & \textbf{59.53} & \textbf{79.10}
+%                   & -11.32 & \textbf{80.65} & 24.42 & \textbf{70.44}   & -17.96 & 80.87 & 13.96 & 71.07   & -10.01 & 70.60 & 44.11 & 67.52 \\
+% & LoRA-Fisher     & \textbf{-0.23} & 78.90 & 48.63 & \textbf{78.30}   & \textbf{-0.93} & \textbf{79.55} & 48.87 & \textbf{77.25}   & -1.80 & 79.20 & 59.27 & 78.25
+%                   & \textbf{-10.50} & 80.63 & 23.68 & 69.29   & \textbf{-12.44} & 72.57 & \textbf{16.90} & \textbf{72.52}   & -9.46 & \textbf{70.91} & 43.02 & \textbf{72.20} \\
+% & Full-Gaussian   & -1.90 & 78.85 & 44.82 & 77.48   & -1.90 & 79.32 & 45.53 & 76.80   & -2.60 & 79.05 & 58.90 & 77.55 
+%                   & -12.87 & 80.43 & 23.35 & 69.48   & -18.67 & 80.67 & 15.26 & 69.17   & -9.80 & 70.86 & 44.54 & 65.16 \\
+% & Full-Fisher     & -1.45 & 78.65 & 45.70 & 77.65   & -2.03 & 79.03 & 46.48 & 76.35& -2.87 & 78.95 & 59.07 & 77
+%                   & -10.95 & 80.05 & 24.48 & 69.24   & -16.52 & 80.73 & 14.04 & 70.02   & -9.00 & 70.54 & \textbf{47.17} & 70.75 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & -1.42 & 74.93 & 46.98 & 72.83   & -0.70 & 74.20 & 46.43 & 73.25   & -1.90 & 74.35 & 58.97 & 73.15 
+%                   & -6.27 & 75.33 & 23.42 & 66.95   & \textbf{-7.70} & 74.91 & 13.35 & 66.91   & -5.14 & 70.37 & \textbf{56.05} & 70.84 \\
+% & LoRA-SAM        & \textbf{-1.33} & \textbf{75.40} & 47.92 & \textbf{73.70}   & -1.47 & 75 & 47.42 & 73.45   & -1.07 & 72.95 & 58.43 & 72.25
+%                   & -6.55 & \textbf{75.85} & 24.02 & \textbf{68.04}   & -9.22 & \textbf{76.12} & 13.40 & \textbf{66.99}   & -4.00 & 71.62 & 52.34 & 71.68 \\
+% & LoRA-Gaussian   & -1.72 & 72.40 & \textbf{48.55} & 69.68   & -2.30 & 72.68 & 48.60 & 70.65   & \textbf{-0.80} & \textbf{74.7} & \textbf{59.53} & \textbf{74.30} 
+%                   & \textbf{-5.84} & 75.80 & 24.20 & 66.41   & -10.26 & 75.60 & 13.46 & 65.21   & \textbf{-3.18} & \textbf{72.45} & 54.94 & \textbf{73.11} \\
+% & LoRA-Fisher     & -2.28 & 72.35 & 47.50 & 69.23   & -3.07 & 72.40 & 47.68 & 70.05   & -2.60 & 74.25 & 59.23 & 72.60 
+%                   & -6.15 & 75.27 & \textbf{24.32} & 66.43   & -10.22 & 75.80 & \textbf{13.65} & 66.00   & -3.85 & 72.29 & 54.65 & 72.17 \\
+% & Full-Gaussian   & -3.33 & 72.58 & 46.07 & 68.30   & -3.75 & 73.43 & 45.82 & 70.10   & -1.63 & 73.85 & 58.77 & 73.20 
+%                   & -5.19 & 74.79 & 23.35 & 67.64   & -10.02 & 75.52 & 13.19 & 65.03   & -4.61 & 72.23 & 55.72 & 72.80 \\
+% & Full-Fisher     & -2.33 & 73.18 & 46.73 & 70.45   & -2.77 & 73.68 & 47 & 71.40   & -1.70 & 74.28 & 58.63 & 73.08 
+%                   & -6.01 & 75.36 & 24.08 & 67.93   & -10.20 & 75.07 & 13.22 & 65.73   & -4.11 & 71.88 & 55.46 & 72.76 \\
+
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{
+% Continual learning performance of three LoRA-based architectures (SeqLoRA, IncLoRA, OLoRA) under flatness-promoting perturbations. Results are reported across six task orders. Orders 1–3 correspond to the short sequence benchmark; Orders 4–6 are from the long sequence benchmark. Metrics include average backward transfer (ABWT), average accuracy (AA), average forward transfer (AFG), and last accuracy (LA).
+% }
+% \label{tab:comparison_all_orders}
+% \end{table*}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|ccc|ccc|ccc}
+% \toprule
+% & & \multicolumn{3}{c|}{\textbf{Order1}}
+%   & \multicolumn{3}{c|}{\textbf{Order2}}
+%   & \multicolumn{3}{c}{\textbf{Order3}} \\
+% \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
+% \textbf{Baseline} & \textbf{Method}
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & No Noise        & -9.02 & 45.59 & 73.41 
+%                   & \textbf{-3.95} & 44.13 & 75.74 
+%                   & -4.83 & 48.86 & 76.46 \\
+% & Full-Fisher     & -6.50 & 44.62 & 74.72 
+%                   & -4.90 & 39.71 & 75.27 
+%                   & \textbf{-6.30} & 51.22 & \textbf{77.50} \\
+% & Full-Gaussian   & \textbf{-6.31} & 44.82 & 74.56 
+%                   & -4.20 & 42.11 & 76.00 
+%                   & -7.23 & 50.19 & 76.72 \\
+% & LoRA-SAM        & -7.39 & 46.14 & 73.69 
+%                   & -5.14 & 43.93 & 76.07 
+%                   & -7.60 & \textbf{54.22} & 76.12 \\
+% & LoRA-Fisher     & -6.79 & 43.31 & \textbf{74.92} 
+%                   & -4.89 & 39.65 & 75.39 
+%                   & -7.50 & 49.38 & 75.54 \\
+% & LoRA-Gaussian   & -6.65 & \textbf{47.74} & 74.75 
+%                   & -4.09 & \textbf{45.70} & \textbf{76.67} 
+%                   & -6.91 & 49.49 & 75.72 \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & -2.83 & 48.27 & 76.58 
+%                   & -3.33 & 48.08 & 75.55 
+%                   & -2.13 & 59.37 & 79.00 \\
+% & Full-Fisher     & -1.45 & 45.70 & 77.65 
+%                   & -2.03 & 46.48 & 76.35 
+%                   & -2.87 & 59.07 & 77.00 \\
+% & Full-Gaussian   & -1.90 & 44.82 & 77.48 
+%                   & -1.90 & 45.53 & 76.80 
+%                   & -2.60 & 58.90 & 77.55 \\
+% & LoRA-SAM        & -1.55 & 45.78 & 77.10 
+%                   & -2.20 & 46.98 & 75.70 
+%                   & -1.20 & 58.53 & 77.20 \\
+% & LoRA-Fisher     & \textbf{-0.23} & 48.63 & \textbf{78.30} 
+%                   & \textbf{-0.93} & 48.87 & \textbf{77.25} 
+%                   & -1.80 & 59.27 & 78.25 \\
+% & LoRA-Gaussian   & -0.80 & \textbf{48.75} & 78.00 
+%                   & -1.37 & \textbf{49.28} & 76.85 
+%                   & \textbf{-0.70} & \textbf{59.53} & \textbf{79.10} \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & -1.42 & 46.98 & 72.83 
+%                   & -0.70 & 46.43 & 73.25 
+%                   & -1.90 & 58.97 & 73.15 \\
+% & Full-Fisher     & -2.33 & 46.73 & 70.45 
+%                   & -2.77 & 47.00 & 71.40 
+%                   & -1.70 & 58.63 & 73.08 \\
+% & Full-Gaussian   & -3.33 & 46.07 & 68.30 
+%                   & -3.75 & 45.82 & 70.10 
+%                   & -1.63 & 58.77 & 73.20 \\
+% & LoRA-SAM        & \textbf{-1.33} & 47.92 & \textbf{73.70} 
+%                   & -1.47 & 47.42 & 73.45 
+%                   & -1.07 & 58.43 & 72.25 \\
+% & LoRA-Fisher     & -2.28 & 47.50 & 69.23 
+%                   & -3.07 & 47.68 & 70.05 
+%                   & -2.60 & 59.23 & 72.60 \\
+% & LoRA-Gaussian   & -1.72 & \textbf{48.55} & 69.68 
+%                   & \textbf{-2.30} & \textbf{48.60} & \textbf{70.65} 
+%                   & \textbf{-0.80} & \textbf{59.53} & \textbf{74.30} \\
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{
+% Continual learning performance (Order1–3) for three LoRA-based architectures under different perturbation strategies. Metrics: ABWT (Avg. Backward Transfer), AFG (Avg. Forward Generalization), LA (Last Accuracy).
+% }
+% \label{tab:order1_3}
+% \end{table*}
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|ccc|ccc|ccc}
+% \toprule
+% & & \multicolumn{3}{c|}{\textbf{Order4}}
+%   & \multicolumn{3}{c|}{\textbf{Order5}}
+%   & \multicolumn{3}{c}{\textbf{Order6}} \\
+% \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}
+% \textbf{Baseline} & \textbf{Method}
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA
+% & ABWT & AFG & LA \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & No Noise        & -14.43 & 20.04 & 70.44 
+%                   & -22.57 & 14.22 & 68.11 
+%                   & -16.61 & 43.84 & 38.85 \\
+% & Full-Fisher     & 14.97 & 21.46 & 68.43 
+%                   & -17.26 & 14.18 & 68.70 
+%                   & -18.47 & 41.89 & 25.07 \\
+% & Full-Gaussian   & -16.96 & 20.84 & 67.74 
+%                   & -18.40 & 13.90 & 65.11 
+%                   & -19.50 & 42.11 & 27.79 \\
+% & LoRA-SAM        & -11.02 & 22.74 & 70.17 
+%                   & -19.27 & 13.41 & 66.87 
+%                   & -19.54 & 43.18 & 18.11 \\
+% & LoRA-Fisher     & -14.89 & 23.16 & 68.99 
+%                   & -20.69 & 17.43 & 66.03 
+%                   & -15.56 & 42.30 & 45.07 \\
+% & LoRA-Gaussian   & -14.78 & 21.40 & 68.08 
+%                   & -18.29 & 14.22 & 67.64 
+%                   & -17.91 & 41.77 & 31.83 \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & -12.23 & 22.18 & 70.13 
+%                   & -14.60 & 14.31 & 70.13 
+%                   & -13.77 & 43.52 & 43.16 \\
+% & Full-Fisher     & -10.95 & 24.48 & 69.24 
+%                   & -16.52 & 14.04 & 70.02 
+%                   & -9.00 & \textbf{47.17} & 70.75 \\
+% & Full-Gaussian   & -12.87 & 23.35 & 69.48 
+%                   & -18.67 & 15.26 & 69.17 
+%                   & -9.80 & 44.54 & 65.16 \\
+% & LoRA-SAM        & -10.72 & \textbf{24.62} & 68.69 
+%                   & -16.45 & 14.40 & 68.52 
+%                   & \textbf{-9.45} & 45.39 & 70.69 \\
+% & LoRA-Fisher     & \textbf{-10.50} & 23.68 & 69.29 
+%                   & \textbf{-12.44} & \textbf{16.90} & \textbf{72.52} 
+%                   & -9.46 & 43.02 & \textbf{72.20} \\
+% & LoRA-Gaussian   & -11.32 & 24.42 & \textbf{70.44} 
+%                   & -17.96 & 13.96 & 71.07 
+%                   & -10.01 & 44.11 & 67.52 \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & -6.27 & 23.42 & 66.95 
+%                   & \textbf{-7.70} & 13.35 & 66.91 
+%                   & -5.14 & \textbf{56.05} & 70.84 \\
+% & Full-Fisher     & -6.01 & 24.08 & 67.93 
+%                   & -10.20 & 13.22 & 65.73 
+%                   & -4.11 & 55.46 & 72.76 \\
+% & Full-Gaussian   & -5.19 & 23.35 & 67.64 
+%                   & -10.02 & 13.19 & 65.03 
+%                   & -4.61 & 55.72 & 72.80 \\
+% & LoRA-SAM        & -6.55 & 24.02 & \textbf{68.04} 
+%                   & -9.22 & 13.40 & \textbf{66.99} 
+%                   & -4.00 & 52.34 & 71.68 \\
+% & LoRA-Fisher     & -6.15 & \textbf{24.32} & 66.43 
+%                   & -10.22 & \textbf{13.65} & 66.00 
+%                   & -3.85 & 54.65 & 72.17 \\
+% & LoRA-Gaussian   & \textbf{-5.84} & 24.20 & 66.41 
+%                   & -10.26 & 13.46 & 65.21 
+%                   & \textbf{-3.18} & 54.94 & \textbf{73.11} \\
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{
+% Continual learning performance (Order4–6) for three LoRA-based architectures under different perturbation strategies. Metrics: ABWT (Avg. Backward Transfer), AFG (Avg. Forward Generalization), LA (Last Accuracy).
+% }
+% \label{tab:order4_6}
+% \end{table*}
+
+
+
+
+\subsection{C.2 Ablation Studies}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1\linewidth]{images/Paper_Order3_accuracy_lr_epoch_compare-3methods.pdf}
+  \caption{Performance comparison of SeqFT, IncLoRA, and FT-LoRA, where FT-LoRA denotes training a LoRA on the finetuned model. Results are reported on Order3 with varying learning rates (1e-3, 1e-4, 1e-5) and training epochs (1, 3, 5, and 10), while the sample size is fixed at 5000.}
+  \label{fig result: epoch VS Learning rate}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1\linewidth]{images/Paper_Order3_accuracy_samples_epoch_compare-3methods.pdf}
+  \caption{Performance comparison of SeqFT, IncLoRA, and
+FT-LoRA on Order3, varying sample size (500, 1000, 3000, 5000) and training epochs (1, 3, 5, 10), with learning rate fixed at 1e-4 for IncLoRA and 1e-5 for SeqFT.}
+  \label{fig result: epoch VS sample sizes}
+\end{figure}
+\textbf{Trade-offs among Learning Rate, Sample Size, and Training Epochs} We investigate how key hyperparameters, including learning rate, training sample size, and number of epochs, affect the trade-off between task adaptation and knowledge retention in continual learning.
+As shown in Fig.\ref{fig result: epoch VS Learning rate} and Fig.\ref{fig result: epoch VS sample sizes}, we observe that higher learning rates and excessive training epochs accelerate forgetting and reduce generalization to previous and future tasks, despite yielding higher accuracy on the current task.Increasing the training set size improves immediate task performance, but also exacerbates catastrophic forgetting. LoRA-based methods (IncLoRA, FT-LoRA) achieve performance comparable to full finetuning(SeqFT) while retaining parameter efficiency.
+Based on these findings, we select a baseline hyperparameter configuration that carefully balances current-task optimization and knowledge retention, and use it consistently for all subsequent experiments to ensure fairness and reproducibility.
+
+
+\textbf{Trade-offs Perturbation Strength in Flatness-Promoting Methods} We further investigate how the strength and scope of perturbations affect continual learning performance under flatness-promoting regularization. As shown in Fig.~\ref{fig:sam_rho_tradeoff}, we observe a clear trade-off: weak perturbations may fail to sufficiently enhance generalization, while overly strong perturbations can impair current task performance. These findings suggest the necessity of tuning perturbation strength to balance stability and plasticity. Similar conclusions have been reported in prior work\cite{liRevisitingRandomWeight2024}, supporting the general effectiveness of perturbation-based regularization for improving generalization under structural constraints.
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1\linewidth]{images/SAM_RWP_Rho_Paper2_line.pdf}
+  \caption{Performance of IncLoRA under varying perturbation strengths and perturbation scopes. The figure reports accuracy on past (Yahoo), current (Amazon), and future tasks (AGNews and DBpedia), comparing three flatness-promoting strategies: LoRA-SAM, LoRA-Gaussian, and Full-Gaussian.}
+  \label{fig:sam_rho_tradeoff}
+\end{figure}
+
+
+\subsection{C.3 Robustness Analysis }
+
+
+All experimental results reported in this paper are averaged over three independent runs with different random seeds. This ensures that our conclusions are not sensitive to initialization or data order. Across all experiments, we observe consistent performance trends with minimal variation across runs. Therefore, for clarity and conciseness, we report only the averaged results without listing individual trial outcomes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{D: Datasets}
+
+
+Table \ref{table:benchmark} shows details of the 15 datasets we used for our short and long experiments, along with their evaluation metrics. Overall, we used datasets from CL benchmark (Zhang et al., 2015), GLUE (Wang et al., 2018) and SuperGLUE (Wang et al., 2019) benchmarks, and added IMDB movie reviews dataset, following (Razdaibiedina et al., 2023). Table \ref{tab:task_orders} presents the six task orders used in the experiments to evaluate the robustness of continual learning based on the selected base model. Table \ref{tab:task_prompts} provides the detailed instructions employed for each task, outlining the specific prompts or directives given to guide the model's behavior across different task settings. 
+
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lllll}
+\toprule
+\textbf{Dataset Name} & \textbf{Category} & \textbf{Task} & \textbf{Domain} & \textbf{Metric} \\
+\midrule
+1. Yelp     & CL Benchmark & Sentiment Analysis         & Yelp Reviews         & Accuracy \\
+2. Amazon   & CL Benchmark & Sentiment Analysis         & Amazon Reviews       & Accuracy \\
+3. DBpedia  & CL Benchmark & Topic Classification       & Wikipedia            & Accuracy \\
+4. Yahoo    & CL Benchmark & Topic Classification       & Yahoo QA             & Accuracy \\
+5. AG News  & CL Benchmark & Topic Classification       & News                 & Accuracy \\
+6. MNLI     & GLUE         & Natural Language Inference & Various              & Accuracy \\
+7. QQP      & GLUE         & Paraphrase Detection       & Quora                & Accuracy \\
+8. RTE      & GLUE         & Natural Language Inference & News, Wikipedia      & Accuracy \\
+9. SST-2    & GLUE         & Sentiment Analysis         & Movie Reviews        & Accuracy \\
+10. WiC     & SuperGLUE    & Word Sense Disambiguation  & Lexical Databases    & Accuracy \\
+11. CB      & SuperGLUE    & Natural Language Inference & Various              & Accuracy \\
+12. COPA    & SuperGLUE    & Question Answering         & Blogs, Encyclopedia  & Accuracy \\
+13. BoolQA  & SuperGLUE    & Boolean QA                 & Wikipedia            & Accuracy \\
+14. MultiRC & SuperGLUE    & Question Answering         & Various              & Accuracy \\
+15. IMDB    & SuperGLUE    & Sentiment Analysis         & Movie Reviews        & Accuracy \\
+\bottomrule
+\end{tabular}
+}
+\caption{
+Details of the 15 datasets used in our CL experiments. NLI denotes natural language inference, QA denotes question answering. The first five tasks correspond to the standard CL benchmark; the remaining tasks are used in long-sequence experiments.
+}
+\label{table:benchmark}
+\end{table*}
+
+
+
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{clp{15cm}}
+\toprule
+\textbf{Order} & \textbf{Model} & \textbf{Task Sequence} \\
+\midrule
+1 & T5, LLaMA & dbpedia $\rightarrow$ amazon $\rightarrow$ yahoo $\rightarrow$ ag \\
+2 & T5, LLaMA & dbpedia $\rightarrow$ amazon $\rightarrow$ ag $\rightarrow$ yahoo \\
+3 & T5, LLaMA & yahoo $\rightarrow$ amazon $\rightarrow$ ag $\rightarrow$ dbpedia \\
+\midrule
+4 & T5 & mnli $\rightarrow$ cb $\rightarrow$ wic $\rightarrow$ copa $\rightarrow$ qqp $\rightarrow$ boolqa $\rightarrow$ rte $\rightarrow$ imdb $\rightarrow$ yelp $\rightarrow$ amazon $\rightarrow$ sst-2 $\rightarrow$ dbpedia $\rightarrow$ ag $\rightarrow$ multirc $\rightarrow$ yahoo \\
+5 & T5 & multirc $\rightarrow$ boolqa $\rightarrow$ wic $\rightarrow$ mnli $\rightarrow$ cb $\rightarrow$ copa $\rightarrow$ qqp $\rightarrow$ rte $\rightarrow$ imdb $\rightarrow$ sst-2 $\rightarrow$ dbpedia $\rightarrow$ ag $\rightarrow$ yelp $\rightarrow$ amazon $\rightarrow$ yahoo \\
+6 & T5 & yelp $\rightarrow$ amazon $\rightarrow$ mnli $\rightarrow$ cb $\rightarrow$ copa $\rightarrow$ qqp $\rightarrow$ rte $\rightarrow$ imdb $\rightarrow$ sst-2 $\rightarrow$ dbpedia $\rightarrow$ ag $\rightarrow$ yahoo $\rightarrow$ multirc $\rightarrow$ boolqa $\rightarrow$ wic \\
+\bottomrule
+\end{tabular}
+}
+\caption{
+Six different orders of task sequences used in continual learning experiments. Orders 1–3 correspond to the standard CL benchmark adopted in prior works. Orders 4–6 represent long-sequence settings spanning 15 tasks.
+}
+\label{tab:task_orders}
+\end{table*}
+
+
+
+
+\begin{table*}[htbp]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lp{14.5cm}}
+\toprule
+\textbf{Task Type} & \textbf{Instruction Prompt} \\
+\midrule
+NLI & What is the logical relationship between the "sentence 1" and the "sentence 2"? Choose one from the option. \\
+QQP & Whether the "first sentence" and the "second sentence" have the same meaning? Choose one from the option. \\
+SC  & What is the sentiment of the following paragraph? Choose one from the option. \\
+TC  & What is the topic of the following paragraph? Choose one from the option. \\
+BoolQA & According to the following passage, is the question true or false? Choose one from the option. \\
+MultiRC & According to the following passage and question, is the candidate answer true or false? Choose one from the option. \\
+WiC & Given a word and two sentences, whether the word is used with the same sense in both sentence? Choose one from the option. \\
+\bottomrule
+\end{tabular}
+}
+\caption{Instruction templates used for different task types in our experiments.}
+\label{tab:task_prompts}
+\end{table*}
+
+% \begin{table}[htbp]
+% \centering
+% \caption{An overview of dataset statistics in TRACE. \textquotesingle Source\textquotesingle{} indicates the context’s origin. \textquotesingle Avg len\textquotesingle{} represents word count for English, German, and code datasets, and character count for Chinese. \textquotesingle SARI\textquotesingle{} is a score specific to simplification.}
+% \label{tab:trace_datasets}
+% \begin{tabular}{llcccc}
+% \toprule
+% \textbf{Dataset} & \textbf{Source} & \textbf{Avg len} & \textbf{Metric} & \textbf{Language} & \textbf{\#data} \\
+% \midrule
+% \multicolumn{6}{l}{\textit{Domain-specific}} \\
+% ScienceQA     & Science   & 210   & Accuracy  & English & 5,000 \\
+% FOMC          & Finance   & 51    & Accuracy  & English & 5,000 \\
+% MeetingBank   & Meeting   & 2853  & ROUGE-L   & English & 5,000 \\
+% \midrule
+% \multicolumn{6}{l}{\textit{Multi-lingual}} \\
+% C-STANCE      & Social media & 127 & Accuracy  & Chinese & 5,000 \\
+% 20Minuten     & News      & 382   & SARI      & German  & 5,000 \\
+% \midrule
+% \multicolumn{6}{l}{\textit{Code completion}} \\
+% Py150         & Github    & 422   & Edim similarity & Python  & 5,000 \\
+% \midrule
+% \multicolumn{6}{l}{\textit{Mathematical reasoning}} \\
+% NumGLUE-cm    & Math      & 32    & Accuracy  & English & 5,000 \\
+% NumGLUE-ds    & Math      & 21    & Accuracy  & English & 5,000 \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+% Table 33
+% \begin{table}[H]
+% \centering
+% \caption{Prompts applied for reasoning-based continual learning}
+% \label{tab:reasoning_prompts}
+% \begin{tabular}{lp{11cm}}
+% \toprule
+% \textbf{Dataset} & \textbf{Prompt} \\
+% \midrule
+% ScienceQA & Choose an answer for the following question. Give your reasoning first, and then the answer. \\
+% FOMC & What is the monetary policy stance for the following text? A. dovish, B. hawkish, C. neutral. Choose one from A, B and C. Give your reasoning first, and then the answer. \\
+% MeetingBank & Write a summary of the following meeting transcripts. Give your reasoning first, and then the answer. \\
+% C-STANCE & {判断以下文本对指定对象的态度,选择一项：A.支持,B.反对,C.中立。先给出推理,然后给出答案。} \\
+% 20Minuten & Provide a simplified version of the following paragraph in German. Give your reasoning first, and then the answer. \\
+% Py150 & Complete the next line of the following codes. Give your answer first, and then the reasoning. \\
+% NumGLUE-cm & Solve the following math problem. Give your reasoning first, and then the answer. \\
+% NumGLUE-ds & Solve the following math problem. Give your reasoning first, and then the answer. \\
+% \bottomrule
+% \end{tabular}
+% \end{table}
+
+
+
+% \newpage
+% \input{ReproducibilityChecklist_clean}
+
+
+
+
+
+\section{E: Implementation Details}
+
+\subsection{Computing infrastructure}
+
+All experiments are implemented in PyTorch with two NVIDIA L40 GPUs, each with 46GB of memory  and bfloat16 precision.  
+
+\subsection{Hyperparameter}
+We adopt the T5-large model for short sequence tasks and long sequence tasks.
+
+\textbf{Short Sequence Benchmark.} We use a per-device batch size of 16 (on 2 GPUs), maximum input length 512, output length 50, and train for 5 epochs. Each task uses up to 3000 training samples. The learning rate is set to $1\times10^{-4}$ with gradient accumulation steps of 1.
+
+\textbf{Long Sequence Benchmark.} Settings are the same as short sequence, except each task uses 1000 samples.
+
+
+
+
+% We follow the original TRACE Benchmark setup . Each task uses a training batch size of 1 and evaluation batch size of 16. 
+
+% Prompt and answer lengths are 1024 and 512, respectively. Learning rates and epoch counts are adopted from the original TRACE configuration.
+
+\subsection{Method Implyment}
+\textbf{Flatness-Aware Methods.}  
+We evaluate several perturbation-based flatness strategies:
+
+\begin{itemize}
+    \item \textbf{SAM}: Sharpness-Aware Minimization is applied with AdamW and a perturbation radius of 0.002.
+    \item \textbf{LoRA-Gaussian}: Gaussian noise with zero mean and standard deviation 0.002 is injected into the LoRA adapter of the current task. Learning rate is set to $1\times10^{-4}$.
+    \item \textbf{LoRA-Fisher}: Perturbations are scaled by the Fisher information of parameters. The Fisher matrix is estimated online with exponential decay (decay factor 0.99). Standard deviation is 0.002.
+    \item \textbf{Full-Gaussian}: Isotropic Gaussian noise with zero mean and a standard deviation of 0.002 is independently applied to all trainable parameters in the model, including the newly introduced LoRA adapter, the backbone, and previously learned adapters. The noise is injected uniformly across all components regardless of parameter type.
+
+    \item \textbf{Full-Fisher}: Fisher-weighted Gaussian noise is applied selectively: the newly added LoRA adapter receives adaptive noise scaled by the parameter-wise Fisher information (as in LoRA-Fisher), while all remaining components—including the frozen backbone and older adapters—receive standard Gaussian noise. This hybrid strategy retains the flatness-aware benefits in active components while introducing stochastic regularization to the full model space.
+
+    \item \textbf{OLoRA}: Applies orthogonal regularization with $\lambda_1 = 0.5$ and $\lambda_2 = 0$. All flatness-promoting strategies are compatible and used similarly as in IncLoRA.
+\end{itemize}
+
+
+
+
+
+\section{F: Code Availability and Reproducibility Statement}
+
+To support transparency and reproducibility, we provide an anonymous repository containing the key components of our implementation:
+
+
+anonymous.4open.science/r/private\_trerst\_AAAI\-71C7
+
+
+This repository includes core modules for training and evaluating LoRA-based continual learning methods, as well as implementations of sharpness-aware optimization, PAC-Bayesian bound estimation, and expected sharpness computation. It also contains scripts to reproduce the primary experiments and visualizations presented in this paper.
+
+We are actively maintaining the repository. Upon acceptance, we will release the complete source code, including additional utilities, ablation studies, and reproducibility instructions for all experiments.
+
+
+
+
+
+
+% \section{E:Supplementary Resultes}
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|cccc|cccc|cccc|cccc|cccc|cccc}
+% \toprule
+% & & \multicolumn{4}{c|}{\textbf{Order1}} 
+%   & \multicolumn{4}{c|}{\textbf{Order2}} 
+%   & \multicolumn{4}{c|}{\textbf{Order3}} 
+%   & \multicolumn{4}{c|}{\textbf{Order4}} 
+%   & \multicolumn{4}{c|}{\textbf{Order5}} 
+%   & \multicolumn{4}{c}{\textbf{Order6}} \\
+% \cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
+% \cmidrule(lr){15-18} \cmidrule(lr){19-22} \cmidrule(lr){23-26}
+% \textbf{Baseline} & \textbf{Method} 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & No Noise         & -9.02 & 80.66 & 45.59 & 73.41   & \textbf{-3.95} & 79.95 & 44.13 & 75.74   & -4.83 & 80.80 & 48.86 & 76.46
+%                   & -14.425 & 81.139 & 20.0421 & 70.4428   & -22.57 & 81.99 & 14.22 & 68.11   & -16.61 & 81.00 & 43.84 & 38.85 \\
+% & LoRA-SAM        & -7.39 & 80.19 & 46.14 & 73.69   & -5.14 & 80.10 & 43.93 & 76.07   & -1.63 & 79.40 & \textbf{54.22} & 76.12
+%                   & -11.02 & 78.98 & 22.74 & 70.17   & -19.27 & 80.83 & 13.41 & 66.87   & -19.54 & 79.64 & 43.18 & 18.11 \\
+% & LoRA-Gaussian   & -6.65 & 80.70 & \textbf{47.74} & 74.75   & -4.09 & 80.70 & \textbf{45.70} & \textbf{76.67}   & -1.53 & 79.75 & 49.49 & 75.72
+%                   & -14.78— & 80.77 & 21.40— & 68.08   & -18.29 & 81.87 & 14.22 & 67.64   & -17.91 & 81.43 & 41.77 & 31.83 \\
+% & LoRA-Fisher     & -6.79 & 80.43 & 43.31 & \textbf{74.92}   & -4.89 & 80.37 & 39.65 & 75.39   & -2.13 & 80.65 & 49.38 & 75.54
+%                   & -14.89 & 81.24 & 23.16 & 68.99   & -20.69 & 82.23 & 17.43 & 66.03   & -15.56 & 80.80 & 42.30 & 45.07 \\
+% & Full-Gaussian   & \textbf{-6.31} & 80.53 & 44.82 & 74.56   & -4.20 & 80.49 & 42.11 & 76.00   & -5.47 & 80.75 & 50.19 & 76.72
+%                   & -16.96 & 81.78 & 20.84 & 67.74   & -18.40 & 81.47 & 13.90 & 65.11   & -19.50 & 81.43 & 42.11 & 27.79 \\
+% & Full-Fisher     & -6.50 & \textbf{80.79} & 44.62 & 74.72   & -4.90 & \textbf{80.86} & 39.71 & 75.27   &-4.57 & 80.95 & 51.22 & \textbf{77.50}
+%                   & 14.97— & 80.93 & 21.46— & 68.43   & -17.26 & 81.88 & 14.18 & 68.70   & -18.47 & 81.21 & 41.89 & 25.07 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & -2.83 & \textbf{79.28} & 48.27 & 76.58   & -3.33 & 79.33 & 48.08 & 75.55   & -2.13 & \textbf{80.15} & 59.37 & 79
+%                   & -12.23 & 80.09 & 22.18 & 70.13   & -14.60 & \textbf{81.03} & 14.31 & 70.13   & -13.77 & 66.70 & 43.52 & 43.16 \\
+% & LoRA-SAM        & -1.55 & 78.78 & 45.78 & 77.10   & -2.20 & 78.48 & 46.98 & 75.70  & -1.20 & 78.40 & 58.53 & 77.20 
+%                   & -10.72 & 79.91 & \textbf{24.62} & 68.69   & -16.45 & 80.11 & 14.40 & 68.52   & \textbf{-9.45} & 69.68 & 45.39 & 70.69 \\
+% & LoRA-Gaussian   & -0.80 & 79.13 & \textbf{48.75} & 78   & -1.37 & 79.03 & \textbf{49.28} & 76.85   & \textbf{-0.70} & 79.30 & \textbf{59.53} & \textbf{79.10}
+%                   & -11.32 & \textbf{80.65} & 24.42 & \textbf{70.44}   & -17.96 & 80.87 & 13.96 & 71.07   & -10.01 & 70.60 & 44.11 & 67.52 \\
+% & LoRA-Fisher     & \textbf{-0.23} & 78.90 & 48.63 & \textbf{78.30}   & \textbf{-0.93} & \textbf{79.55} & 48.87 & \textbf{77.25}   & -1.80 & 79.20 & 59.27 & 78.25
+%                   & \textbf{-10.50} & 80.63 & 23.68 & 69.29   & \textbf{-12.44} & 72.57 & \textbf{16.90} & \textbf{72.52}   & -9.46 & \textbf{70.91} & 43.02 & \textbf{72.20} \\
+% & Full-Gaussian   & -1.90 & 78.85 & 44.82 & 77.48   & -1.90 & 79.32 & 45.53 & 76.80   & -2.60 & 79.05 & 58.90 & 77.55 
+%                   & -12.87 & 80.43 & 23.35 & 69.48   & -18.67 & 80.67 & 15.26 & 69.17   & -9.80 & 70.86 & 44.54 & 65.16 \\
+% & Full-Fisher     & -1.45 & 78.65 & 45.70 & 77.65   & -2.03 & 79.03 & 46.48 & 76.35& -2.87 & 78.95 & 59.07 & 77
+%                   & -10.95 & 80.05 & 24.48 & 69.24   & -16.52 & 80.73 & 14.04 & 70.02   & -9.00 & 70.54 & \textbf{47.17} & 70.75 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & -1.42 & 74.93 & 46.98 & 72.83   & -0.70 & 74.20 & 46.43 & 73.25   & -1.90 & 74.35 & 58.97 & 73.15 
+%                   & -6.27 & 75.33 & 23.42 & 66.95   & \textbf{-7.70} & 74.91 & 13.35 & 66.91   & -5.14 & 70.37 & \textbf{56.05} & 70.84 \\
+% & LoRA-SAM        & \textbf{-1.33} & \textbf{75.40} & 47.92 & \textbf{73.70}   & -1.47 & 75 & 47.42 & 73.45   & -1.07 & 72.95 & 58.43 & 72.25
+%                   & -6.55 & \textbf{75.85} & 24.02 & \textbf{68.04}   & -9.22 & \textbf{76.12} & 13.40 & \textbf{66.99}   & -4.00 & 71.62 & 52.34 & 71.68 \\
+% & LoRA-Gaussian   & -1.72 & 72.40 & \textbf{48.55} & 69.68   & -2.30 & 72.68 & 48.60 & 70.65   & \textbf{-0.80} & \textbf{74.7} & \textbf{59.53} & \textbf{74.30} 
+%                   & \textbf{-5.84} & 75.80 & 24.20 & 66.41   & -10.26 & 75.60 & 13.46 & 65.21   & \textbf{-3.18} & \textbf{72.45} & 54.94 & \textbf{73.11} \\
+% & LoRA-Fisher     & -2.28 & 72.35 & 47.50 & 69.23   & -3.07 & 72.40 & 47.68 & 70.05   & -2.60 & 74.25 & 59.23 & 72.60 
+%                   & -6.15 & 75.27 & \textbf{24.32} & 66.43   & -10.22 & 75.80 & \textbf{13.65} & 66.00   & -3.85 & 72.29 & 54.65 & 72.17 \\
+% & Full-Gaussian   & -3.33 & 72.58 & 46.07 & 68.30   & -3.75 & 73.43 & 45.82 & 70.10   & -1.63 & 73.85 & 58.77 & 73.20 
+%                   & -5.19 & 74.79 & 23.35 & 67.64   & -10.02 & 75.52 & 13.19 & 65.03   & -4.61 & 72.23 & 55.72 & 72.80 \\
+% & Full-Fisher     & -2.33 & 73.18 & 46.73 & 70.45   & -2.77 & 73.68 & 47 & 71.40   & -1.70 & 74.28 & 58.63 & 73.08 
+%                   & -6.01 & 75.36 & 24.08 & 67.93   & -10.20 & 75.07 & 13.22 & 65.73   & -4.11 & 71.88 & 55.46 & 72.76 \\
+
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{
+% Continual learning performance of three LoRA-based architectures (SeqLoRA, IncLoRA, OLoRA) under flatness-promoting perturbations. Results are reported across six task orders. Orders 1–3 correspond to the short sequence benchmark; Orders 4–6 are from the long sequence benchmark. Metrics include average backward transfer (ABWT), average accuracy (AA), average forward transfer (AFG), and last accuracy (LA).
+% }
+% \label{tab:comparison_all_orders}
+% \end{table*}
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|cccc|cccc|cccc|cccc|cccc|cccc}
+% \toprule
+% & & \multicolumn{4}{c|}{\textbf{Order1}} 
+%   & \multicolumn{4}{c|}{\textbf{Order2}} 
+%   & \multicolumn{4}{c|}{\textbf{Order3}} 
+%   & \multicolumn{4}{c|}{\textbf{Order4}} 
+%   & \multicolumn{4}{c|}{\textbf{Order5}} 
+%   & \multicolumn{4}{c}{\textbf{Order6}} \\
+% \cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
+% \cmidrule(lr){15-18} \cmidrule(lr){19-22} \cmidrule(lr){23-26}
+% \textbf{Baseline} & \textbf{Method} 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA \\
+% \midrule
+
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & No Noise         & -9.02 & 80.66 & 45.59 & 73.41   & \textbf{-3.95} & 79.95 & 44.13 & 75.74   & -7.57 & 76.46 & 48.86 & 76.46
+%                   & -14.42 & 81.13 & 20.04 & 70.44   & -22.57 & 81.99 & 14.22 & 68.11   & -16.61 & 81.00 & 43.84 & 38.85 \\
+% & LoRA-SAM        & -7.39 & 80.19 & 46.14 & 73.69   & -5.14 & 80.10 & 43.93 & 76.07   & -7.60 & 76.12 & \textbf{54.22} & 76.12
+%                   & -11.02 & 78.98 & 22.74 & 70.17   & -19.27 & 80.83 & 13.41 & 66.87   & -19.54 & 79.64 & 43.18 & 18.11 \\
+% & LoRA-Gaussian   & -6.65 & 80.70 & \textbf{47.74} & 74.75   & -4.09 & 80.70 & \textbf{45.70} & \textbf{76.67}   & -6.91 & 75.72 & 49.49 & 75.72
+%                   & -14.78 & 80.77 & 21.40 & 68.08   & -18.29 & 81.87 & 14.22 & 67.64   & -17.91 & 81.43 & 41.77 & 31.83 \\
+% & LoRA-Fisher     & -6.79 & 80.43 & 43.31 & \textbf{74.92}   & -4.89 & 80.37 & 39.65 & 75.39   & -7.50 & 75.54 & 49.38 & 75.54
+%                   & -14.89 & 81.24 & 23.16 & 68.99   & -20.69 & 82.23 & 17.43 & 66.03   & -15.56 & 80.80 & 42.30 & 45.07 \\
+% & Full-Gaussian   & \textbf{-6.31} & 80.53 & 44.82 & 74.56   & -4.20 & 80.49 & 42.11 & 76.00   & -7.23 & 76.72 & 50.19 & 76.72
+%                   & -16.96 & 81.78 & 20.84 & 67.74   & -18.40 & 81.47 & 13.90 & 65.11   & -19.50 & 81.43 & 42.11 & 27.79 \\
+% & Full-Fisher     & -6.50 & \textbf{80.79} & 44.62 & 74.72   & -4.90 & \textbf{80.86} & 39.71 & 75.27   & \textbf{-6.30} & \textbf{77.50} & 51.22 & \textbf{77.50}
+%                   & 14.97 & 80.93 & 21.46 & 68.43   & -17.26 & 81.88 & 14.18 & 68.70   & -18.47 & 81.21 & 41.89 & 25.07 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & -2.83 & \textbf{79.28} & 48.27 & 76.58   & -3.33 & 79.33 & 48.08 & 75.55   & -2.13 & \textbf{80.15} & 59.37 & 79
+%                   & -12.23 & 80.09 & 22.18 & 70.13   & -14.60 & \textbf{81.03} & 14.31 & 70.13   & -13.77 & 66.70 & 43.52 & 43.16 \\
+% & LoRA-SAM        & -1.55 & 78.78 & 45.78 & 77.10   & -2.20 & 78.48 & 46.98 & 75.70  & -1.20 & 78.40 & 58.53 & 77.20 
+%                   & -10.72 & 79.91 & \textbf{24.62} & 68.69   & -16.45 & 80.11 & 14.40 & 68.52   & \textbf{-9.45} & 69.68 & 45.39 & 70.69 \\
+% & LoRA-Gaussian   & -0.80 & 79.13 & \textbf{48.75} & 78   & -1.37 & 79.03 & \textbf{49.28} & 76.85   & \textbf{-0.70} & 79.30 & \textbf{59.53} & \textbf{79.10}
+%                   & -11.32 & \textbf{80.65} & 24.42 & \textbf{70.44}   & -17.96 & 80.87 & 13.96 & 71.07   & -10.01 & 70.60 & 44.11 & 67.52 \\
+% & LoRA-Fisher     & \textbf{-0.23} & 78.90 & 48.63 & \textbf{78.30}   & \textbf{-0.93} & \textbf{79.55} & 48.87 & \textbf{77.25}   & -1.80 & 79.20 & 59.27 & 78.25
+%                   & \textbf{-10.50} & 80.63 & 23.68 & 69.29   & \textbf{-12.44} & 72.57 & \textbf{16.90} & \textbf{72.52}   & -9.46 & \textbf{70.91} & 43.02 & \textbf{72.20} \\
+% & Full-Gaussian   & -1.90 & 78.85 & 44.82 & 77.48   & -1.90 & 79.32 & 45.53 & 76.80   & -2.60 & 79.05 & 58.90 & 77.55 
+%                   & -12.87 & 80.43 & 23.35 & 69.48   & -18.67 & 80.67 & 15.26 & 69.17   & -9.80 & 70.86 & 44.54 & 65.16 \\
+% & Full-Fisher     & -1.45 & 78.65 & 45.70 & 77.65   & -2.03 & 79.03 & 46.48 & 76.35& -2.87 & 78.95 & 59.07 & 77
+%                   & -10.95 & 80.05 & 24.48 & 69.24   & -16.52 & 80.73 & 14.04 & 70.02   & -9.00 & 70.54 & \textbf{47.17} & 70.75 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & -1.42 & 74.93 & 46.98 & 72.83   & -0.70 & 74.20 & 46.43 & 73.25   & -1.90 & 74.35 & 58.97 & 73.15 
+%                   & -6.27 & 75.33 & 23.42 & 66.95   & \textbf{-7.70} & 74.91 & 13.35 & 66.91   & -5.14 & 70.37 & \textbf{56.05} & 70.84 \\
+% & LoRA-SAM        & \textbf{-1.33} & \textbf{75.40} & 47.92 & \textbf{73.70}   & -1.47 & 75 & 47.42 & 73.45   & -1.07 & 72.95 & 58.43 & 72.25
+%                   & -6.55 & \textbf{75.85} & 24.02 & \textbf{68.04}   & -9.22 & \textbf{76.12} & 13.40 & \textbf{66.99}   & -4.00 & 71.62 & 52.34 & 71.68 \\
+% & LoRA-Gaussian   & -1.72 & 72.40 & \textbf{48.55} & 69.68   & -2.30 & 72.68 & 48.60 & 70.65   & \textbf{-0.80} & \textbf{74.7} & \textbf{59.53} & \textbf{74.30} 
+%                   & \textbf{-5.84} & 75.80 & 24.20 & 66.41   & -10.26 & 75.60 & 13.46 & 65.21   & \textbf{-3.18} & \textbf{72.45} & 54.94 & \textbf{73.11} \\
+% & LoRA-Fisher     & -2.28 & 72.35 & 47.50 & 69.23   & -3.07 & 72.40 & 47.68 & 70.05   & -2.60 & 74.25 & 59.23 & 72.60 
+%                   & -6.15 & 75.27 & \textbf{24.32} & 66.43   & -10.22 & 75.80 & \textbf{13.65} & 66.00   & -3.85 & 72.29 & 54.65 & 72.17 \\
+% & Full-Gaussian   & -3.33 & 72.58 & 46.07 & 68.30   & -3.75 & 73.43 & 45.82 & 70.10   & -1.63 & 73.85 & 58.77 & 73.20 
+%                   & -5.19 & 74.79 & 23.35 & 67.64   & -10.02 & 75.52 & 13.19 & 65.03   & -4.61 & 72.23 & 55.72 & 72.80 \\
+% & Full-Fisher     & -2.33 & 73.18 & 46.73 & 70.45   & -2.77 & 73.68 & 47 & 71.40   & -1.70 & 74.28 & 58.63 & 73.08 
+%                   & -6.01 & 75.36 & 24.08 & 67.93   & -10.20 & 75.07 & 13.22 & 65.73   & -4.11 & 71.88 & 55.46 & 72.76 \\
+
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{
+% Continual learning performance of three LoRA-based architectures (SeqLoRA, IncLoRA, OLoRA) under flatness-promoting perturbations. Results are reported across six task orders. Orders 1–3 correspond to the short sequence benchmark; Orders 4–6 are from the long sequence benchmark. Metrics include average backward transfer (ABWT), average accuracy (AA), average forward transfer (AFG), and last accuracy (LA).
+% }
+% \label{tab:comparison_all_orders}
+% \end{table*}
+
+
+
+
+
+
+
+
+
+
+
+
+
+% \begin{table*}[thbp]
+% \centering
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{cc|cccc|cccc|cccc|cccc|cccc|cccc}
+% \toprule
+% & & \multicolumn{4}{c|}{\textbf{Order1}} 
+%   & \multicolumn{4}{c|}{\textbf{Order2}} 
+%   & \multicolumn{4}{c|}{\textbf{Order3}} 
+%   & \multicolumn{4}{c|}{\textbf{Order4}} 
+%   & \multicolumn{4}{c|}{\textbf{Order5}} 
+%   & \multicolumn{4}{c}{\textbf{Order6}} \\
+% \cmidrule(lr){3-6} \cmidrule(lr){7-10} \cmidrule(lr){11-14}
+% \cmidrule(lr){15-18} \cmidrule(lr){19-22} \cmidrule(lr){23-26}
+% \textbf{Baseline} & \textbf{Method} 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA 
+% & ABWT & AA & AFG & LA \\
+% \midrule
+% SeqLoRA
+% & \textbf{No Noise}         & -9.02 & 80.66 & 45.59 & 73.41   & {-3.95} & 79.95 & 44.13 & 75.74   & -7.57 & 76.46 & 48.86 & 76.46
+%                   & -14.42 & 81.13 & 20.04 & {70.44}   & -22.57 & 81.99 & 14.22 & 68.11   & -16.61 & 81.00 & {43.84} & 38.85 \\
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{SeqLoRA}} 
+% & {No Noise}         & 0.00 & 0.00 & 0.00 & 0.00   & \textbf{0.00} & 0.00 & 0.00 & 0.00   & 0.00 & 0.00 & 0.00 & 0.00
+%                   & 0.00 & 0.00 & 0.00 & \textbf{0.00}   & 0.00 & 0.00 & 0.00 & 0.00   & 0.00 & 0.00 & \textbf{0.00} & 0.00 \\
+% & LoRA-SAM        & 1.63 & -0.47 & 0.55 & 0.28   & -1.19 & 0.15 & -0.20 & 0.33   & -0.03 & -0.34 & \textbf{5.36} & -0.34
+%                   & \textbf{3.40} & -2.15 & 2.70 & -0.27   & 3.30 & -1.16 & -0.81 & -1.24   & -2.93 & -1.36 & -0.66 & -20.74 \\
+% & LoRA-Gaussian   & 2.37 & 0.04 & \textbf{2.15} & 1.34   & -0.14 & 0.75 & \textbf{1.57} & \textbf{0.93}   & 0.66 & -0.74 & 0.63 & -0.74
+%                   & -0.36 & -0.36 & 1.36 & -2.36   & 4.28 & -0.12 & 0.00 & -0.47   & -1.30 & \textbf{0.43} & -2.07 & -7.02 \\
+% & LoRA-Fisher     & 2.23 & -0.23 & -2.28 & \textbf{1.51}   & -0.94 & 0.42 & -4.48 & -0.35   & 0.07 & -0.92 & 0.52 & -0.92
+%                   & -0.47 & 0.11 & \textbf{3.12} & -1.45   & 1.88 & \textbf{0.24} & \textbf{3.21} & -2.08   & \textbf{1.05} & -0.20 & -1.54 & \textbf{6.22} \\
+% & Full-Gaussian   & \textbf{2.71} & -0.13 & -0.77 & 1.15   & -0.25 & 0.54 & -2.02 & 0.26   & 0.34 & 0.26 & 1.33 & 0.26
+%                   & -2.54 & \textbf{0.65} & 0.80 & -2.70   & 4.17 & -0.52 & -0.32 & -3.00   & -2.89 & 0.43 & -1.73 & -11.06 \\
+%         & Full-Fisher     & 2.52 & \textbf{0.13} & -0.97 & 1.31   & -0.95 & \textbf{0.91} & -4.42 & -0.47   & \textbf{1.27} & \textbf{1.04} & 2.36 & \textbf{1.04}
+%                   & -0.05 & -0.20 & 1.42 & -2.01   & \textbf{5.31} & -0.11 & -0.04 & \textbf{0.59}   & -1.86 & 0.21 & -1.95 & -13.78 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{IncLoRA}} 
+% & No Noise        & 6.19 & \textbf{-1.38} & 2.68 & 3.17   & 0.62 & -0.62 & 3.95 & -0.19   & 5.44 & 3.69 & 10.51 & 2.54
+%                   & 2.19 & -1.04 & 2.14 & -0.31   & 7.97 & \textbf{-0.96} & 0.09 & 2.02   & 2.84 & -14.30 & -0.32 & 4.31 \\
+% & LoRA-SAM        & 7.47 & -1.88 & 0.19 & \textbf{3.69}   & 1.75 & -1.47 & 2.85 & -0.04   & 6.37 & 1.94 & 9.67 & 0.74
+%                   & 3.70 & -1.22 & \textbf{4.58} & -1.75   & 6.12 & -1.88 & 0.18 & 0.41   & \textbf{7.16} & -11.32 & 1.55 & 31.84 \\
+% & LoRA-Gaussian   & 8.22 & -1.53 & \textbf{3.16} & 4.59   & 2.58 & -0.92 & \textbf{5.15} & 1.11   & \textbf{6.87} & 2.84 & \textbf{10.67} & \textbf{2.64}
+%                   & 3.10 & \textbf{-0.48} & 4.38 & \textbf{0.00}   & 4.61 & -1.12 & -0.26 & 2.96   & 6.60 & -10.40 & 0.27 & 28.67 \\
+% & LoRA-Fisher     & \textbf{8.79} & -1.76 & 3.04 & \textbf{4.89}   & \textbf{3.02} & \textbf{-0.40} & 4.74 & \textbf{1.51}   & 5.77 & 2.74 & 10.41 & 1.79
+%                   & \textbf{3.92} & -0.50 & 3.64 & -1.15   & \textbf{10.13} & -9.42 & \textbf{2.68} & \textbf{4.41}   & 7.15 & \textbf{-10.09} & -0.82 & \textbf{33.35} \\
+% & Full-Gaussian   & 7.12 & -1.81 & -0.77 & 4.07   & 2.05 & -0.63 & 1.40 & 1.06   & 4.97 & 2.59 & 10.04 & 1.09
+%                   & 1.55 & -0.70 & 3.31 & -0.96   & 3.90 & -1.32 & 1.04 & 1.06   & 6.81 & -10.14 & 0.70 & 26.31 \\
+% & Full-Fisher     & 7.57 & -2.01 & 0.11 & 4.24   & 1.92 & -0.92 & 2.35 & 0.61   & 4.70 & 2.49 & 10.21 & 0.54
+%                   & 3.47 & -1.08 & 4.44 & -1.20   & 6.05 & -1.26 & -0.18 & 1.91   & 7.61 & -10.46 & \textbf{3.33} & 31.90 \\
+
+% \midrule
+% \multirow{6}{*}{\rotatebox[origin=c]{90}{OLoRA}} 
+% & No Noise        & 7.60 & -5.73 & 1.39 & -0.58   & \textbf{3.25} & -5.75 & 2.30 & -2.49   & 5.67 & -2.11 & 10.11 & -3.31
+%                   & 8.15 & -5.80 & 3.38 & -3.49   & \textbf{14.87} & -7.08 & -0.87 & -1.20   & 11.47 & -10.63 & \textbf{12.21} & 31.99 \\
+%     & LoRA-SAM        & \textbf{7.69} & \textbf{-5.26} & 2.33 & \textbf{0.29}   & 2.48 & \textbf{-4.9} & 3.29 & \textbf{-2.29}   & 6.50 & -3.51 & 9.57 & -4.21
+%                   & 7.87 & \textbf{-5.28} & 3.98 & \textbf{-2.40}   & 13.35 & \textbf{-5.87} & -0.82 & \textbf{-1.12}   & 12.61 & -9.38 & 8.50 & 32.83 \\
+% & LoRA-Gaussian   & 7.30 & -8.26 & \textbf{2.96} & -3.73   & 1.65 & -7.27 & \textbf{4.47} & -5.09   & \textbf{6.77} & \textbf{-1.76} & \textbf{10.67} & \textbf{-2.16}
+%                   & \textbf{8.58} & -5.33 & 4.16 & -4.03   & 12.31 & -6.39 & -0.76 & -2.90   & \textbf{13.43} & \textbf{-8.55} & 11.10 & \textbf{34.26} \\
+% & LoRA-Fisher     & 6.74 & -8.31 & 1.91 & -4.18   & 0.88 & -7.55 & 3.55 & -5.69   & 4.97 & -2.21 & 10.37 & -3.86
+%                   & 8.27 & -5.86 & \textbf{4.28} & -4.01   & 12.35 & -6.19 & \textbf{-0.57} & -2.11   & 12.76 & -8.71 & 10.81 & 33.32 \\
+% & Full-Gaussian   & 5.69 & -8.08 & 0.48 & -5.11   & 0.20 & -6.52 & 1.69 & -5.64   & 5.94 & -2.61 & 9.91 & -3.26
+%                   & 9.23 & -6.34 & 3.31 & -2.80   & 12.55 & -6.47 & -1.03 & -3.08   & 12.00 & -8.77 & 11.88 & 33.95 \\
+% & Full-Fisher     & 6.69 & -7.48 & 1.14 & -2.96   & 1.18 & -6.27 & 2.87 & -4.34   & 5.87 & -2.18 & 9.77 & -3.38
+%                   & 8.41 & -5.77 & 4.04 & -2.51   & 12.37 & -6.92 & -1.00 & -2.38   & 12.50 & -9.12 & 11.62 & 33.91 \\
+
+% \bottomrule
+% \end{tabular}
+% }
+% \caption{Relative performance results with SeqLoRA (No Noise) as the baseline, where relative values are calculated as the difference between each method's metric and the corresponding baseline metric. The metrics include average backward transfer (ABWT), average accuracy (AA), average forward transfer (AFG), and last accuracy (LA). Bold values indicate the best performance in each category.}
+% \label{tab:relative_results_corrected}
+% \end{table*}
+
+
+
+
+
+% \subsection{Supplementary Figures}
+% \subsection{Loss Landscape Visualizations}
+
+% \begin{figure}[ptb]
+%   \centering
+%   \includegraphics[width=1\linewidth]{images/lossland_3x4_zoom.pdf}
+%   \caption{ Loss landscape visualization of the final model trained on the Order 1, evaluated across four test sets. The top row shows the loss surface under full-model perturbations, while the bottom row applies perturbations only to the LoRA adapters. The middle row presents a zoomed-in view to highlight curvature differences. The visualization reflects the geometry of the learned solution and its performance across tasks.}
+%   \label{fig:lossland_short}
+% \end{figure}
+
+% \subsection{Hyperparameter Sensitivity}
+
+
+
+
+
+
+% \section{F: Code Describe}
+
+% \begin{table*}[htbp]
+% \centering
+% \caption{Summary of notations used throughout the paper.}
+% \label{tab:notation-summary}
+% \resizebox{\textwidth}{!}{
+% \begin{tabular}{lll}
+% \toprule
+% \textbf{Symbol} & \textbf{Meaning} & \textbf{Reference Section} \\
+% \midrule
+% ${x}, {y}$ & Input sample and label & Sec 3.1 \\
+% $\mathcal{D}_t$ & Training data for task $t$ & Sec 4.1 \\
+% $\mathcal{D}_t$ & Training data for task $t$ & Sec 4.1 \\
+
+% $f(x; w)$ & Model output given parameters $w$ & Sec 3.1 \\
+% $L(w)$ & Empirical loss  & Eq. (1) \\
+% $L(w + \varepsilon)$ & Perturbed loss under noise $\varepsilon$ & Eq. (2), (3) \\
+% $\mathbb{E}_{\varepsilon}[L(w + \varepsilon)]$ & Expected perturbed loss (sharpness term) & Eq. (3) \\
+% $\mathcal{D}$ & Training dataset & Sec 3.1 \\
+% $p(w)$ & Prior distribution over model parameters & Eq. (4) \\
+% $q(w)$ & Posterior distribution (task-specific or hierarchical) & Eq. (4), (6) \\
+% $\mathrm{KL}(q \| p)$ & Kullback-Leibler divergence & Eq. (4) \\
+% $\mathbb{E}_{q}[L(w)]$ & Posterior-weighted empirical loss & Eq. (4), Theorem 1 \\
+% $w_0$ & Frozen pre-trained model parameters & Sec 3.2 \\
+% $\Delta w_t$ & Task-specific adapter for task $t$ & Sec 3.2 \\
+% $A_t, B_t$ & Low-rank matrices in LoRA ($\Delta w_t = A_t B_t$) & Sec 3.2 \\
+% $\lambda$ & Orthogonality regularization coefficient & Sec 4.2 \\
+% $R$ & Accuracy matrix, $R_{i,j}$ = acc. on task $j$ after task $i$ & Sec 5.1 \\
+% AA & Average Accuracy & Appendix D.1 \\
+% ABWT & Average Backward Transfer & Appendix D.1 \\
+% AFWT & Average Forward Transfer & Appendix D.1 \\
+% AAG & Accuracy Above Generalization baseline & Appendix D.1 \\
+% $\varepsilon$ & Noise perturbation (Gaussian, SAM, etc.) & Sec 4.3 \\
+% $\mathcal{N}(0, \sigma^2 I)$ & Isotropic Gaussian noise & Sec 4.3 \\
+% SAM($\varepsilon_{\text{sam}}$) & Perturbation from Sharpness-Aware Minimization & Sec 4.3 \\
+% $F_t$ & Fisher Information Matrix of task $t$ & Sec 4.4 \\
+% $q(w_{1:T})$ & Joint posterior across all tasks & Theorem 2 \\
+% $q(w_t \mid w_{t-1})$ & Conditional posterior in chain-structured model & Theorem 2 \\
+% $\mathcal{C}_{\text{flatness}}$ & Flatness-based complexity term & Eq. (5) \\
+% $\mathcal{C}_{\text{structure}}$ & Structural complexity from hierarchical KL & Eq. (6) \\
+% \bottomrule
+% \end{tabular}
+% }
+% \end{table*}
+
+
+
+
+\small % 此处设置参考文献字体为9pt
+\bibliography{aaai2026}
+
+
+\end{document}

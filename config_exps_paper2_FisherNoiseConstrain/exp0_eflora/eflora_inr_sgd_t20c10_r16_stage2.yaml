@@ -1,0 +1,77 @@
+prefix: "eflora_inr_sgd_imagenetr_t20_rank16_1993_stage2"
+
+memory_size: 0
+memory_per_class: 0
+fixed_memory: false
+
+# ---------------- Dataset ----------------
+dataset: "imagenetr"
+
+# Task split
+class_shuffle: true
+init_cls: 10
+increment: 10
+nb_tasks: 20
+total_sessions: 20
+
+seed:
+  - 1993
+
+all_or_inc: inc
+
+backbone_type: "vit_base_patch16_224"
+
+device:
+  - "6"
+
+# ---------------- Method ----------------
+model_name: "eflora"
+lora_rank: 16
+
+# ---------------- Train ----------------
+batch_size: 128
+
+optimizer: "sgd"
+optimizer_type: "sgd"
+
+scheduler: cosine
+init_epoch: 20
+init_lr: 0.01
+init_momentum: 0
+init_weight_decay: 0
+
+epochs: 20
+lrate: 0.01
+momentum: 0
+weight_decay: 0
+
+# ---------------- EFLoRA (core) ----------------
+efalign_enable: true
+efalign_topk: 16
+efalign_max_batches: 4
+efalign_init_task0: true
+efalign_init_updates: true
+efalign_complement: true
+efalign_basis_cap: 128
+efalign_init_scale: 1.0
+efalign_save_json: true
+
+# ---------------- Stage-2 minimal mechanism eval ----------------
+# Keep only feature-space EFM metrics on a light subset for fast trend plotting.
+flat_eval: false
+feature_flat_eval: true
+feature_flat_max_batches: 8
+feature_flat_topk: 32
+feature_flat_eps: 1e-12
+feature_flat_rank_tol: 1e-6
+feature_flat_max_examples_per_batch: 128
+
+# still off in stage-2
+feature_cka_eval: false
+feature_proto_eval: false
+feature_drift_eval: false
+attention_probe_eval: false
+linear_probe_softmax_joint_seen_eval: false
+linear_probe_softmax_per_task_eval: false
+
+save_final_model: true

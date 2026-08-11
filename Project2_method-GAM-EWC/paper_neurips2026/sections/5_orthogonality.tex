@@ -1,0 +1,271 @@
+\section{The Orthogonality Principle}
+\label{sec:orthogonality}
+
+The core finding of this paper is that the AS$^1$ flatness gradient and the Fisher gradient
+are \emph{near-orthogonal} in the adapter parameter space.
+We now state this formally, develop a two-step theoretical argument,
+and report empirical evidence across six datasets.
+
+\subsection{Definition and Measurement Space}
+\label{sec:cosine_def}
+
+All LoRA adapter parameters are concatenated into a single vector
+$\phi = \mathrm{vec}(A_1, B_1, \ldots, A_L, B_L) \in \mathbb{R}^p$
+where $p = 2Lrd$ for $L$ layers, rank $r$, and dimension $d$.
+All three gradient vectors $\gclean, \ggam, \gfisher$ live in this space $\mathbb{R}^p$
+(see Eqs.~\eqref{eq:gclean}--\eqref{eq:gfisher}).
+
+\begin{definition}[Gradient cosine statistic]
+\label{def:cosff}
+For task $t$ and batch $\mathcal{B}$, define
+\begin{equation}
+  \cosff^{(t)} \;=\; \frac{(\ggam - \gclean)^\top \gfisher}
+    {\|\ggam - \gclean\| \cdot \|\gfisher\|},
+  \label{eq:cosff}
+\end{equation}
+where all vectors are in $\mathbb{R}^p$ (the flattened $(A,B)$ parameter space)
+and $\top$ denotes the Euclidean inner product.
+\end{definition}
+
+We log $\cosff^{(t)}$ at the end of every task.
+If $\cosff \approx 0$, the flatness and Fisher gradient components are nearly orthogonal
+in parameter space and can be combined without mutual interference.
+
+\subsection{Gradient Structure in the $(A,B)$ Parameter Space}
+\label{sec:grad_structure}
+
+A key subtlety is that Fisher is \emph{defined} in $\DeltaW$-space but the cosine is
+\emph{measured} in $(A,B)$-space.
+The connection is the Jacobian of the LoRA reparametrization.
+
+\textbf{Jacobian of $\DeltaW$ w.r.t.\ $(A, B)$.}
+For layer $l$, $\DeltaW_l = B_l A_l$ with $B_l\in\mathbb{R}^{d\times r}$,
+$A_l\in\mathbb{R}^{r\times d}$.
+Using the standard Kronecker-product identity $\mathrm{vec}(XY)=(I\otimes X)\,\mathrm{vec}(Y)$:
+\begin{equation}
+  \frac{\partial\,\mathrm{vec}(\DeltaW_l)}{\partial\,\mathrm{vec}(A_l)}
+    = I_d \otimes B_l,
+  \qquad
+  \frac{\partial\,\mathrm{vec}(\DeltaW_l)}{\partial\,\mathrm{vec}(B_l)}
+    = A_l^\top \otimes I_d.
+  \label{eq:jacobian}
+\end{equation}
+Stacking across all layers yields the full Jacobian
+$J \in \mathbb{R}^{Ld^2 \times p}$ with
+$JJ^\top = \bigoplus_l \bigl[(I_d\otimes B_lB_l^\top) + (A_lA_l^\top\otimes I_d)\bigr]$,
+where $\bigoplus$ denotes block-diagonal concatenation.
+
+\textbf{Fisher gradient in $(A,B)$-space.}
+The EWC penalty $\Lfisher = \tfrac{\lambdaewc}{2}\sum_l \Ftilde_l\odot(\DeltaW_l-\DeltaW_l^*)^2$
+is defined in $\DeltaW$-space.
+Its gradient in $(A,B)$-space follows by the chain rule:
+\begin{equation}
+  \gfisher \;=\; \nabla_\phi\Lfisher \;=\; J^\top\, \mathbf{f},
+  \label{eq:gfisher_chain}
+\end{equation}
+where $\mathbf{f} = \lambdaewc\,\mathrm{vec}(\Ftilde_l\odot(\DeltaW_l-\DeltaW_l^*))_{l=1}^L
+\in\mathbb{R}^{Ld^2}$ is the Fisher-weighted drift vector in $\DeltaW$-space.
+Concretely, for layer $l$:
+\begin{equation}
+  \frac{\partial\Lfisher}{\partial B_l} = \lambdaewc\,(\Ftilde_l\odot d_l)\,A_l^\top,
+  \qquad
+  \frac{\partial\Lfisher}{\partial A_l} = \lambdaewc\,B_l^\top(\Ftilde_l\odot d_l),
+  \label{eq:gfisher_explicit}
+\end{equation}
+where $d_l = \DeltaW_l - \DeltaW_l^*$.
+The $\DeltaW$-space Fisher enters $(A,B)$-space through multiplication by $A_l$ and $B_l$.
+
+\textbf{Flat gradient in $(A,B)$-space.}
+The GAM perturbation is $\hat\phi = \phi + \rho\,\gclean/\|\gclean\|$,
+so $\ggam - \gclean \approx H_\phi\,\epsilon$,
+where $\epsilon = \rho\,\gclean/\|\gclean\|$ and $H_\phi = \nabla^2_\phi\Ltask$
+is the $(A,B)$-space Hessian.
+By the Gauss-Newton approximation (tight at optima and valid during training
+when the task loss is small):
+\begin{equation}
+  H_\phi \;\approx\; J^\top H_{\DeltaW}\, J \;+\; R,
+  \label{eq:hessian_chain}
+\end{equation}
+where $H_{\DeltaW} = \nabla^2_{\DeltaW}\Ltask$ is the $\DeltaW$-space Hessian and
+$R = \sum_l\nabla^2_{\DeltaW_l}\langle\nabla_{\DeltaW_l}\Ltask, \DeltaW_l\rangle$
+is a residual that vanishes at local minima.
+
+\subsection{Theoretical Explanation}
+\label{sec:theory}
+
+The cosine in $(A,B)$-space depends on both the $\DeltaW$-space spectral structure
+and the Jacobian $J$.
+We state the formal condition under which $\cosff\approx 0$.
+
+\begin{proposition}[Near-orthogonality: two conditions]
+\label{prop:orthogonality}
+Let $H_{\DeltaW} = \nabla^2_{\DeltaW}\Ltask$ be the current-task $\DeltaW$-space Hessian,
+and $F_{t'}$ the past-task $\DeltaW$-space Fisher.
+Define $\mathbf{f}_{t'} = F_{t'}\odot d_{t'}$ as the Fisher-weighted drift.
+Let $P_J = J(J^\top J)^\dagger J^\top \in \mathbb{R}^{Ld^2\times Ld^2}$ denote orthogonal
+projection onto $\operatorname{Im}(J)$, the column space of $J$.
+Note: since $J\in\mathbb{R}^{Ld^2\times p}$ with $p=2Lrd$, $\operatorname{Im}(J)$ has
+dimension at most $p \ll Ld^2$, so $P_J \neq I$.
+Assume:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Spectral separation within $\operatorname{Im}(J)$:} the top-$k$ eigenvectors of
+    $H_{\DeltaW}$ and $F_{t'}$, \emph{projected onto} $\operatorname{Im}(J)$, have large principal angles:
+    $\|P_J U_H\|_F \cdot \|P_J U_F\|_F \gg 0$
+    and $\|(P_J U_H)^\top (P_J U_F)\|_F \approx 0$;
+  \item \textbf{Restricted Jacobian isotropy:} $J$ has approximately equal nonzero singular
+    values, i.e., $JJ^\top\big|_{\operatorname{Im}(J)} \approx c^2 P_J$ for some scalar $c>0$.
+    Equivalently, $P_J JJ^\top P_J \approx c^2 P_J$.
+    (This is a condition on the LoRA factors' isotropy within the reachable adapter update subspace,
+    not a full-rank identity claim---$P_J$ is low-rank by construction.)
+\end{enumerate}
+Then, neglecting the residual $R$ in Eq.~\eqref{eq:hessian_chain}:
+\begin{equation}
+  \cosff \;\approx\;
+  \frac{\epsilon^\top J^\top H_{\DeltaW}\,(JJ^\top)\,\mathbf{f}_{t'}}
+    {\|\ggam-\gclean\|\,\|\gfisher\|}
+  \;\approx\;
+  c^2\,\frac{(J\epsilon)^\top H_{\DeltaW}\,P_J\mathbf{f}_{t'}}
+    {\|\ggam-\gclean\|\,\|\gfisher\|}
+  \;\approx\; 0.
+\end{equation}
+The last step uses condition~(i): $H_{\DeltaW}(P_J\mathbf{f}_{t'})$ lies near zero
+because $P_J U_F$ and $P_J U_H$ occupy near-orthogonal directions within $\operatorname{Im}(J)$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Note that both $\ggam - \gclean \approx J^\top H_{\DeltaW} J\epsilon$ and
+$\gfisher = J^\top\mathbf{f}_{t'}$ live in $\operatorname{Im}(J^\top) = \operatorname{rowspace}(J)$.
+Expanding the numerator:
+\begin{equation}
+  (\ggam-\gclean)^\top\gfisher
+  \;\approx\; (J^\top H_{\DeltaW} J\epsilon)^\top (J^\top\mathbf{f}_{t'})
+  \;=\; \epsilon^\top J^\top H_{\DeltaW}\, (JJ^\top)\, \mathbf{f}_{t'}.
+  \label{eq:dot_expand}
+\end{equation}
+Since $JJ^\top \mathbf{f}_{t'} = JJ^\top (P_J\mathbf{f}_{t'} + (I-P_J)\mathbf{f}_{t'})
+= JJ^\top P_J\mathbf{f}_{t'}$ (as $(I-P_J)\mathbf{f}_{t'} \perp \operatorname{Im}(J)$ is
+annihilated by $JJ^\top$), and under condition~(ii) $JJ^\top P_J \approx c^2 P_J$:
+\begin{equation}
+  (\ggam-\gclean)^\top\gfisher \;\approx\; c^2\,\epsilon^\top J^\top (H_{\DeltaW}\,P_J\mathbf{f}_{t'}).
+  \label{eq:dot_simplified}
+\end{equation}
+Let $U_H^J = P_J U_H / \|P_J U_H\|$ and $U_F^J = P_J U_F / \|P_J U_F\|$ be the
+projected top-$k$ eigenvector matrices restricted to $\operatorname{Im}(J)$.
+Since $P_J\mathbf{f}_{t'} \in \operatorname{Im}(J)$ is approximated by $(U_F^J)(U_F^J)^\top P_J\mathbf{f}_{t'}$,
+the cross-overlap within $\operatorname{Im}(J)$ satisfies
+$\|(U_H^J)^\top U_F^J\|_F = (\sum_i \cos^2\theta_i)^{1/2} \approx 0$
+when principal angles are near $\pi/2$ (condition~(i)).
+Therefore $H_{\DeltaW} P_J\mathbf{f}_{t'} \approx 0$,
+and the inner product $(J\epsilon)^\top H_{\DeltaW} P_J\mathbf{f}_{t'} \approx 0$.
+See Appendix~\ref{sec:proof_orthogonality} for the full bound.
+\end{proof}
+
+\textbf{Condition (i): Spectral separation from task diversity.}
+The current-task Hessian $H_{\DeltaW}$ concentrates on directions most sensitive to
+the new task's class embeddings and visual features.
+The past-task Fisher $F_{t'}$ concentrates on directions most sensitive to old-task classes.
+In class-incremental learning with non-overlapping class sets and diverse domains,
+these principal subspaces are naturally distinct.
+This is a geometric consequence of task diversity, not a design assumption.
+
+\textbf{Condition (ii): Restricted isotropy on $\operatorname{Im}(J)$, not a full-rank claim.}
+A critical clarification: $J \in \mathbb{R}^{Ld^2 \times p}$ has $\operatorname{rank}(J) \leq p = 2Lrd$,
+so $JJ^\top$ is a \emph{low-rank} matrix of rank $\leq p \ll Ld^2$.
+Condition~(ii) is \emph{not} the claim $JJ^\top \approx c^2 I_{Ld^2}$ (which would require
+$JJ^\top$ to be full-rank and is impossible when $r \ll d$).
+It is the weaker, correct statement that the nonzero singular values of $J$
+are approximately equal---equivalently, $P_J JJ^\top P_J \approx c^2 P_J$.
+This says the Jacobian acts isotropically \emph{within} the reachable adapter update subspace
+$\operatorname{Im}(J)$, not across all of $\mathbb{R}^{Ld^2}$.
+
+From Eq.~\eqref{eq:jacobian}, for layer $l$:
+$J_l J_l^\top = (I_d\otimes B_lB_l^\top) + (A_lA_l^\top\otimes I_d)$.
+Restricted to $\operatorname{Im}(J_l)$, this is approximately $c_l^2 P_{J_l}$ when
+$A_lA_l^\top\approx\sigma_A^2 I_r$ and $B_lB_l^\top\approx\sigma_B^2 I_r$---that is,
+when the LoRA factors themselves have approximately isotropic singular values
+in their low-$r$-dimensional range.
+During SGD training with $r \geq 4$, factors do not collapse to rank-1 degenerate configurations
+and maintain sufficient spectral spread; we plan to empirically verify this via singular value
+diagnostics in future work.
+
+\textbf{Role of each condition.}
+Condition~(i) (spectral separation within $\operatorname{Im}(J)$) is the \emph{primary} driver:
+task diversity causes $P_J U_H$ and $P_J U_F$ to be near-orthogonal.
+Condition~(ii) (restricted isotropy) is a \emph{simplifying} assumption:
+it allows the analysis to decompose the cosine in terms of $H_{\DeltaW}$ and $F_{t'}$ geometry
+within the reachable subspace.
+The empirical near-zero cosine $|\cosff| \leq 0.03$ (Table~\ref{tab:cosine}) is
+\emph{consistent with} both conditions holding in practice for $r\in\{10,16\}$,
+though direct measurement of Jacobian singular values and Hessian-Fisher principal angles
+is needed to verify each condition independently.
+
+\textbf{Why decoupling preserves the orthogonality.}
+If the GAM closure includes $\Lfisher$ (the coupled ``Layer 1'' baseline),
+the perturbation step is shaped by $\nabla_\phi(\Ltask + \lambdaewc\Lfisher)$,
+so the flat gradient becomes
+$\ggam^\mathrm{coupled} - \gclean \approx (H_\phi + \lambdaewc H_\phi^\mathrm{fisher})\epsilon$,
+where $H_\phi^\mathrm{fisher} = J^\top F_{t'} J + R_F$.
+The resulting mixed term $\lambdaewc J^\top F_{t'} J\epsilon$ projects directly onto the
+$F_{t'}$ eigenspace and produces a non-zero inner product with $\gfisher = J^\top\mathbf{f}_{t'}$.
+Decoupling the GAM closure (Eq.~\eqref{eq:ggam}) eliminates this term,
+restoring $\cosff\approx 0$.
+
+\subsection{Empirical Evidence}
+\label{sec:cosine_evidence}
+
+Table~\ref{tab:cosine} reports the mean $\cosff$ across tasks for each dataset,
+using the configuration ($\lambdaewc=2000$, $\lambdaflat=1.0$, trace-normalized Fisher)
+that is also used in the main results.
+$\cosff$ is logged per batch throughout training and averaged over all tasks.
+
+\begin{table}[h]
+\caption{Near-orthogonality of AS$^1$ and Fisher gradient components in $(A,B)$-space.
+$\cosff \approx 0$ across all six datasets, consistent with both conditions of
+Proposition~\ref{prop:orthogonality} being satisfied in practice.}
+\label{tab:cosine}
+\centering
+\begin{tabular}{lcccccc}
+\toprule
+Dataset & Tasks & $r$ & $\cosff$ & Fisher/clean & Flat/clean & CNN FAA \\
+\midrule
+CUB200    & 10$\times$20 & 16 & $-0.030$ & 0.025 & 4.223  & 74.224 \\
+Cars196   & 10$\times$20 & 16 & $-0.012$ & 0.191 & 13.560 & 51.741 \\
+Aircraft  & 10$\times$10 & 16 & $-0.001$ & 0.075 & 4.128  & 46.660 \\
+Flowers   & 10$\times$10 & 16 & $-0.025$ & 0.010 & 9.486  & 86.747 \\
+OxfordPet &  9$\times$4  & 16 & $-0.018$ & 0.154 & 203.6  & 78.824 \\
+ImageNet-R& 20$\times$10 & 16 & $-0.017$ & 0.017 & 2.257  & 73.143 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Key observations:
+\begin{itemize}
+  \item \textbf{Universal near-zero cosine.}
+    $\cosff \in [-0.030, -0.001]$ across all datasets and all $\lambdaewc$ values tested.
+    This is \emph{consistent with} conditions~(i) and~(ii) both holding in practice for
+    standard fine-grained and domain-incremental benchmarks with LoRA rank $r=16$.
+    The empirical cosine alone confirms that the two gradient components are near-orthogonal;
+    it does not separately confirm spectral separation or restricted Jacobian isotropy,
+    which require direct measurement of principal angles and singular value spectra
+    (planned as future diagnostic experiments---see Section~\ref{sec:experiments} discussion).
+    Notably, all observed values are \emph{slightly negative}, not exactly zero.
+    This consistent mild anti-alignment ($|\cosff| \leq 0.03$) reflects that the
+    flatness perturbation marginally redirects the update away from regions of high
+    Fisher-weighted drift---a structurally benign interaction that reinforces
+    rather than undermines the Fisher penalty's protective role.
+  \item \textbf{Fisher component is active, not dominant.}
+    Fisher/clean ratios range from $0.010$ to $0.191$, confirming that
+    $\gfisher$ makes a genuine contribution to the update
+    (it is not negligible, as raw-Fisher configurations tend to be;
+    see Table~\ref{tab:norm_ratio}).
+  \item \textbf{Flat component dominates.}
+    Flat/clean ratios of $2$--$14$ confirm that AS$^1$ substantially modifies the update
+    direction.
+    OxfordPet (ratio $204$) is an outlier due to near-zero task gradient scale;
+    see Section~\ref{sec:discussion}.
+  \item \textbf{Cosine is independent of $\lambdaewc$.}
+    CUB200 experiments with $\lambdaewc \in \{500, 2000, 5000\}$ all yield
+    $\cosff \in [-0.030, -0.028]$, consistent with the theoretical prediction
+    that orthogonality arises from the spectral structure of $H_{\DeltaW}$ and $F_{t'}$,
+    not from the magnitude of the Fisher penalty.
+\end{itemize}

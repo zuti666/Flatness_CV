@@ -286,6 +286,33 @@ def get_backbone(args, pretrained=False):
         else:
             raise NotImplementedError("Unknown type {}".format(name))
         return model
+    elif 'resnet' in name and 'lora' in method_name:
+        from backbone.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
+        from backbone.lora import LoRA_ResNet
+        _resnet_map = {
+            'resnet18': resnet18, 'resnet34': resnet34, 'resnet50': resnet50,
+            'resnet101': resnet101, 'resnet152': resnet152,
+        }
+        fn = _resnet_map.get(name)
+        if fn is None:
+            raise NotImplementedError(f"Unknown ResNet variant for LoRA: {name}")
+        base = fn(pretrained=True, args=args)
+        rank = int(args.get("lora_rank", 16))
+        lora_layers = args.get("lora_layers", None)  # e.g. [2, 3]
+        model = LoRA_ResNet(base, r=rank, lora_layers=lora_layers)
+        return model
+
+    elif 'resnet' in name:
+        from backbone.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
+        _resnet_map = {
+            'resnet18': resnet18, 'resnet34': resnet34, 'resnet50': resnet50,
+            'resnet101': resnet101, 'resnet152': resnet152,
+        }
+        fn = _resnet_map.get(name)
+        if fn is None:
+            raise NotImplementedError(f"Unknown ResNet variant: {name}")
+        return fn(pretrained=True, args=args)
+
     else:
         raise NotImplementedError("Unknown type {}".format(name))
 
@@ -311,7 +338,7 @@ class BaseNet(nn.Module):
 
     def extract_vector(self, x):
         if self.model_type == 'cnn':
-            self.backbone(x)['features']
+            return self.backbone(x)['features']
         else:
             return self.backbone(x)
 

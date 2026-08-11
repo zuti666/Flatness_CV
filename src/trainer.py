@@ -1,6 +1,7 @@
 import sys
 import logging
 import copy
+import re
 import torch
 from torch.utils.data import DataLoader
 from utils import factory
@@ -100,9 +101,81 @@ def _resolve_task_indices(spec, nb_tasks):
     return sorted(set(resolved))
 
 
+def _resolve_conditioned_task_indices(spec, current_task, nb_tasks):
+    if spec is None:
+        return list(range(current_task + 1))
+    if isinstance(spec, str):
+        lowered = spec.strip().lower()
+        if lowered in {"", "seen", "all_seen", "seen_so_far"}:
+            return list(range(current_task + 1))
+        if lowered in {"old", "previous"}:
+            return list(range(current_task))
+        if lowered in {"current", "cur"}:
+            return [current_task]
+    resolved = _resolve_task_indices(spec, nb_tasks)
+    if resolved is None:
+        resolved = list(range(nb_tasks))
+    return [idx for idx in resolved if 0 <= idx <= current_task]
+
+
 def print_args(args):
     for key, value in args.items():
         logging.info("{}: {}".format(key, value))
+
+
+def _optimizer_schedule_tag(spec):
+    if spec is None:
+        return None
+    if isinstance(spec, str):
+        text = spec.strip()
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+            except Exception:
+                parsed = [item.strip() for item in text.split(",") if item.strip()]
+        else:
+            parsed = [item.strip() for item in text.split(",") if item.strip()]
+    elif isinstance(spec, (list, tuple)):
+        parsed = list(spec)
+    else:
+        parsed = [spec]
+    items = [str(item).strip().lower() for item in parsed if str(item).strip()]
+    if not items:
+        return None
+    tag = "_".join(items)
+    return "taskwise_" + re.sub(r"[^a-zA-Z0-9_.-]+", "_", tag)
+
+
+def _matrix_rows_from_json(json_path, section, resume_task):
+    """Load prefix evaluation rows from a previous consolidated metrics JSON."""
+    if not json_path:
+        return []
+    json_path = os.path.abspath(os.path.expanduser(str(json_path)))
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"resume metrics JSON not found: {json_path}")
+    with open(json_path, "r", encoding="utf-8") as f:
+        book = json.load(f)
+    matrices = book.get(section, {}).get("matrices", {})
+    key = f"t{int(resume_task):02d}"
+    matrix = matrices.get(key, matrices.get("final", None))
+    if matrix is None:
+        raise KeyError(f"metrics JSON has no {section}.matrices.{key} or final: {json_path}")
+    matrix = np.asarray(matrix, dtype=float)
+    rows = []
+    upto = min(int(resume_task) + 1, matrix.shape[0])
+    for row_idx in range(upto):
+        width = min(row_idx + 1, matrix.shape[1])
+        row = matrix[row_idx, :width]
+        rows.append([float(x) for x in row])
+    return rows
+
+
+def _top1_curve_from_rows(rows):
+    curve = []
+    for row in rows:
+        arr = np.asarray(row, dtype=float)
+        curve.append(float(np.nanmean(arr)) if arr.size else float("nan"))
+    return curve
 
 def train(args):
     seed_list = copy.deepcopy(args["seed"])
@@ -127,10 +200,16 @@ def _train(args):
 
     is_lora = "lora" in str(args["model_name"])
     # optimizer tag
-    if args["optimizer_type"] == "rwp":
-        opt_tag = f"rwp_{args.get('rwp_range')}"
+    if args.get("optimizer_tag_override", None):
+        opt_tag = str(args["optimizer_tag_override"])
     else:
-        opt_tag = str(args["optimizer_type"])
+        schedule_tag = _optimizer_schedule_tag(args.get("optimizer_type_by_task", None))
+        if schedule_tag is not None:
+            opt_tag = schedule_tag
+        elif args["optimizer_type"] == "rwp":
+            opt_tag = f"rwp_{args.get('rwp_range')}"
+        else:
+            opt_tag = str(args["optimizer_type"])
     # mode tag
     if args["optimizer_type"] == "rwp":
         mode = "rwp_full" if args.get("rwp_range") == "full" else ("rwp_lora" if args.get("rwp_range") == "lora" else "rwp")
@@ -203,6 +282,7 @@ def _train(args):
 
     
     args["nb_classes"] = data_manager.nb_classes # update args
+    args["task_increments"] = list(data_manager._increments)  # per-task class counts
     try:
         _max_tasks_req = args.get("max_train_tasks", data_manager.nb_tasks)
         _max_tasks_req = int(_max_tasks_req) if _max_tasks_req is not None else data_manager.nb_tasks
@@ -225,6 +305,30 @@ def _train(args):
         bb.to(model._device)
     else:
         net_obj.to(model._device)
+
+    resume_task_arg = args.get("resume_from_task", -1)
+    resume_task = -1 if resume_task_arg in {None, ""} else int(resume_task_arg)
+    start_task = 0
+    if resume_task >= 0:
+        resume_ckpt_dir = args.get("resume_from_checkpoint_dir", None)
+        if not resume_ckpt_dir:
+            raise ValueError("resume_from_task requires resume_from_checkpoint_dir")
+        if not hasattr(model, "load_task_checkpoint"):
+            raise AttributeError(
+                f"Model {args.get('model_name')} does not implement load_task_checkpoint"
+            )
+        if resume_task >= nb_tasks:
+            raise ValueError(
+                f"resume_from_task={resume_task} must be smaller than nb_tasks={nb_tasks}"
+            )
+        model.load_task_checkpoint(resume_ckpt_dir, resume_task, data_manager)
+        start_task = resume_task + 1
+        net_obj = getattr(model, "_network", None)
+        logging.info(
+            "[Resume] Continuing training from task %d to task %d",
+            start_task,
+            nb_tasks - 1,
+        )
 
     for name, _param in net_obj.named_parameters():
         logging.info("[LoRA] net_obj param name: %s", name)
@@ -253,9 +357,31 @@ def _train(args):
     # ---------------------------
     cnn_curve, nme_curve = {"top1": [], "top5": []}, {"top1": [], "top5": []}
     cnn_matrix, nme_matrix = [], []
+    mechanism_curve = []
+
+    if start_task > 0:
+        resume_metrics_json = args.get("resume_from_metrics_json", None)
+        if not resume_metrics_json:
+            raise ValueError(
+                "resume_from_task requires resume_from_metrics_json so final "
+                "metrics keep the complete prefix accuracy matrix"
+            )
+        cnn_matrix = _matrix_rows_from_json(resume_metrics_json, "cnn", resume_task)
+        cnn_curve["top1"] = _top1_curve_from_rows(cnn_matrix)
+        try:
+            nme_matrix = _matrix_rows_from_json(resume_metrics_json, "nme", resume_task)
+            nme_curve["top1"] = _top1_curve_from_rows(nme_matrix)
+        except Exception:
+            nme_matrix = []
+            nme_curve["top1"] = []
+        logging.info(
+            "[Resume] Loaded %d CNN prefix rows from %s",
+            len(cnn_matrix),
+            resume_metrics_json,
+        )
 
     logging.info("Start traing CL")
-    for task in range(nb_tasks):
+    for task in range(start_task, nb_tasks):
         logging.info("All params: {}".format(count_parameters(model._network)))
         logging.info(
             "Trainable params: {}".format(count_parameters(model._network, True))
@@ -332,6 +458,21 @@ def _train(args):
             )
 
         model.after_task()
+        if bool(args.get("mechanism_eval", False)) and hasattr(model, "get_mechanism_metrics"):
+            try:
+                mechanism_metrics = model.get_mechanism_metrics()
+                if mechanism_metrics:
+                    mechanism_curve.append(mechanism_metrics)
+                    write_step_metrics(
+                        metrics_path,
+                        section="mechanism",
+                        step=task,
+                        metrics=mechanism_metrics,
+                        matrix=None,
+                        json_safe=json_safe,
+                    )
+            except Exception as _mech_exc:
+                logging.exception("[MechanismEval] Failed to write mechanism metrics: %s", _mech_exc)
         gc.collect(); 
         torch.cuda.empty_cache(); 
         torch.cuda.ipc_collect()
@@ -746,17 +887,23 @@ def _train(args):
             start_seen = class_ranges[task][0]
             end_seen = class_ranges[task][1]
             num_classes =  end_seen - start_seen 
+            data_source = str(args.get("flat_eval_data_source", "train")).lower()
+            data_mode = str(args.get("flat_eval_data_mode", "train")).lower()
+            flat_loader_shuffle = bool(args.get("flat_eval_loader_shuffle", True))
 
             try:
                 # ----------------- build the shared flat_loader once -----------------
                 if train_loader is not None:
-                    data_source = str(args.get("flat_eval_data_source", "train")).lower()
                     if data_source not in {"train", "test"}:
                         logging.warning(
                             "[FlatEval] Unknown flat_eval_data_source=%s, fallback to test", data_source
                         )
                         # data_source = "test"
-                    data_mode = "train"  # if data_source == "train" else "test"
+                    if data_mode not in {"train", "test", "flip"}:
+                        logging.warning(
+                            "[FlatEval] Unknown flat_eval_data_mode=%s, fallback to train", data_mode
+                        )
+                        data_mode = "train"
                     dataset_seen = data_manager.get_dataset(
                         np.arange(start_seen, end_seen),
                         source=data_source,
@@ -765,7 +912,7 @@ def _train(args):
                     loader_seen = DataLoader(
                         dataset_seen, 
                         batch_size=args.get("flat_eval_batch_size", 32), 
-                        shuffle=True, num_workers=0)
+                        shuffle=flat_loader_shuffle, num_workers=0)
 
 
                     flat_loader = fractional_loader(
@@ -773,7 +920,8 @@ def _train(args):
                         fraction=args.get("flat_eval_dataset_fraction", 0.1),
                         seed=args.get("flat_eval_dataset_fraction_seed", args.get("seed", 42)),
                         balanced=True,
-                        batch_size=args.get("flat_eval_batch_size", 32)
+                        batch_size=args.get("flat_eval_batch_size", 32),
+                        shuffle=flat_loader_shuffle,
                     )
 
                 # ================= weight-space flatness =================
@@ -803,6 +951,7 @@ def _train(args):
                             flat_loader,
                             device=model._device,
                             config=flat_cfg,
+                            known_classes=start_seen,
                             params_override=flat_params,
                         )
                     finally:
@@ -811,6 +960,92 @@ def _train(args):
                             _p.requires_grad_(_old)
 
                     logging.info("Flatness metrics (task %d): %s", task, flat_metrics)
+
+                    if bool(args.get("flat_eval_task_conditioned", False)):
+                        cond_dir = os.path.join(log_dir, "flatness_task_conditioned")
+                        os.makedirs(cond_dir, exist_ok=True)
+                        cond_tasks = _resolve_conditioned_task_indices(
+                            args.get("flat_eval_conditioned_task_indices", "seen"),
+                            task,
+                            nb_tasks,
+                        )
+                        cond_loss_mode = str(args.get("flat_eval_conditioned_loss_mode", "global")).lower()
+                        for loss_task in cond_tasks:
+                            loss_start, loss_end = class_ranges[loss_task]
+                            dataset_loss_task = data_manager.get_dataset(
+                                np.arange(loss_start, loss_end),
+                                source=data_source,
+                                mode=data_mode,
+                            )
+                            loader_loss_task = DataLoader(
+                                dataset_loss_task,
+                                batch_size=args.get("flat_eval_batch_size", 32),
+                                shuffle=flat_loader_shuffle,
+                                num_workers=0,
+                            )
+                            cond_loader = fractional_loader(
+                                loader=loader_loss_task,
+                                fraction=args.get("flat_eval_dataset_fraction", 0.1),
+                                seed=args.get("flat_eval_dataset_fraction_seed", args.get("seed", 42)),
+                                balanced=True,
+                                batch_size=args.get("flat_eval_batch_size", 32),
+                                shuffle=flat_loader_shuffle,
+                            )
+                            cond_cfg = FlatnessConfig(
+                                args=args,
+                                save_metrics_path=cond_dir,
+                                save_prefix=(
+                                    f"{os.path.basename(logfilename)}"
+                                    f"_theta_t{task:02d}_loss_task{loss_task:02d}"
+                                ),
+                            )
+                            saved_requires_cond = [(p, bool(p.requires_grad)) for _, p in net.named_parameters()]
+                            try:
+                                cond_params = _select_params_by_name(
+                                    net,
+                                    getattr(cond_cfg, "param_name_substrings", None),
+                                    include_frozen=bool(cond_cfg.include_frozen_params),
+                                )
+                                cond_known_classes = None
+                                if cond_loss_mode in {"tail", "task_tail", "current_tail"}:
+                                    cond_known_classes = loss_start
+                                cond_metrics = evaluate_flatness_metrics(
+                                    net,
+                                    cond_loader,
+                                    device=model._device,
+                                    config=cond_cfg,
+                                    known_classes=cond_known_classes,
+                                    params_override=cond_params,
+                                )
+                                cond_metrics.update(
+                                    {
+                                        "model_task": int(task),
+                                        "loss_task": int(loss_task),
+                                        "loss_task_start": int(loss_start),
+                                        "loss_task_end": int(loss_end),
+                                        "conditioned_loss_mode": cond_loss_mode,
+                                        "conditioned_known_classes": cond_known_classes,
+                                        "sharpness_index": f"Sh_{{{loss_task}->theta{task}}}^S",
+                                    }
+                                )
+                                cond_file = os.path.join(
+                                    cond_dir,
+                                    (
+                                        f"{os.path.basename(logfilename)}"
+                                        f"_theta_t{task:02d}_loss_task{loss_task:02d}_metrics.json"
+                                    ),
+                                )
+                                with open(cond_file, "w", encoding="utf-8") as fh:
+                                    json.dump(json_safe(cond_metrics), fh, ensure_ascii=False, indent=2)
+                                logging.info(
+                                    "Task-conditioned flatness metrics (theta task %d, loss task %d): %s",
+                                    task,
+                                    loss_task,
+                                    cond_metrics,
+                                )
+                            finally:
+                                for _p, _old in saved_requires_cond:
+                                    _p.requires_grad_(_old)
 
                 # ================= feature-space flatness =================
                 if do_feature_eval and (flat_loader is not None):
@@ -1088,5 +1323,17 @@ def _train(args):
                 metrics_path, "nme",
                 final_metrics=compute_sequence_metrics(nme_time_by_task),
                 final_matrix=nme_time_by_task,
+                json_safe=json_safe,
+            )
+
+        if mechanism_curve:
+            write_final_metrics(
+                metrics_path,
+                "mechanism",
+                final_metrics={
+                    "tasks": mechanism_curve,
+                    "last": mechanism_curve[-1],
+                },
+                final_matrix=None,
                 json_safe=json_safe,
             )

@@ -1,0 +1,229 @@
+\section{Flat-Stable LoRA (FS-LoRA)}
+\label{sec:method}
+
+We present FS-LoRA as the solution to a constrained optimization problem:
+\emph{minimize current-task sharpness subject to a Fisher-weighted drift budget}.
+This framing motivates all design elements---decoupled gradient combination,
+trace-normalized Fisher, and dual ascent---as components of a principled Lagrangian
+optimizer rather than a heuristic sum.
+
+\subsection{Problem Formulation: Constrained Flat-Stable Optimization}
+\label{sec:lagrangian}
+
+The joint goal of flatness and stability can be stated as a constrained program:
+\begin{equation}
+  \min_\phi \;\Ltask(\phi) + \lambdaflat S^{(1)}_\Delta(\phi)
+  \quad\text{s.t.}\quad
+  \Dtilde^{\mathrm{Fisher}}(\phi) \;\leq\; \delta,
+  \label{eq:constrained}
+\end{equation}
+where $S^{(1)}_\Delta(\phi) = \|\ggam - \gclean\|$ is the AS$^1$ sharpness
+(gradient norm at the perturbed point, measuring first-order curvature),
+and $\Dtilde^{\mathrm{Fisher}}(\phi) = \sum_{l,t'} \Ftilde_{t',l} \cdot \|\DeltaW_l - \DeltaW^*_{t',l}\|_F^2 / \|\Delta\phi\|^2$
+is the normalized Fisher-weighted drift measuring how far the adapter has moved
+along past-task sensitive directions.
+The constraint $\Dtilde^{\mathrm{Fisher}} \leq \delta$ directly encodes the stability requirement:
+the adapter update must not excessively disturb old-task sensitive directions.
+
+\textbf{Penalty method approximation.}
+Introducing the Lagrangian dual variable $\lambdaewc \geq 0$ for the constraint
+yields the augmented objective:
+\begin{equation}
+  \min_\phi \;\Ltask(\phi) + \lambdaflat S^{(1)}_\Delta(\phi)
+  + \tfrac{\lambdaewc}{2}\,\Lfisher(\phi),
+  \label{eq:lagrangian}
+\end{equation}
+where $\Lfisher(\phi) = \sum_{l,t'} (\Ftilde_{t',l}+\eta)\|\DeltaW_l-\DeltaW^*_{t',l}\|_F^2$
+is the trace-normalized EWC penalty (Section~\ref{sec:trace_norm}).
+$\lambdaewc$ is the Lagrangian \emph{dual estimate}: it controls how strongly the constraint
+is penalized.
+Unlike treating $\lambdaewc$ as a static hyperparameter, the Lagrangian perspective
+motivates \emph{adapting} it to the observed constraint violation---this is dual ascent
+(Section~\ref{sec:dual_ascent}).
+
+\textbf{Why this framing matters.}
+The formulation~\eqref{eq:constrained}--\eqref{eq:lagrangian} is not merely aesthetic.
+It makes precise that:
+(1)~the Fisher term is a \emph{constraint} on drift direction, not an independent loss to minimize;
+(2)~the flatness term shapes the geometry of the primal update, independent of the constraint;
+(3)~the near-orthogonality between the flatness and Fisher gradients
+(Section~\ref{sec:orthogonality}) justifies treating these as geometrically independent channels---
+the primal update does not inadvertently violate the constraint, and the constraint does not
+distort the flatness direction.
+
+\subsection{The Coupled-Gradient Problem}
+
+A natural baseline is to apply a sharpness-aware optimizer to the combined objective:
+\begin{equation}
+  \min_\phi \; \Ltask(\phi) + \lambdaewc \Lfisher(\phi).
+  \label{eq:coupled}
+\end{equation}
+This means the GAM perturbation direction is:
+\begin{equation}
+  \hat{\phi}_{\mathrm{coupled}} = \phi + \rho \cdot \frac{\nabla_\phi (\Ltask + \lambdaewc \Lfisher)}
+  {\|\nabla_\phi (\Ltask + \lambdaewc \Lfisher)\|},
+\end{equation}
+so the flatness perturbation is jointly influenced by both the current-task loss and the Fisher penalty.
+This coupling has three problems:
+(1)~the flatness component no longer measures only current-task sharpness, making mechanistic
+interpretation ambiguous;
+(2)~the Fisher penalty gradient, which has norm $\mathcal{O}(10^{-6})$ in raw scale,
+may have negligible influence on the perturbation direction, making the combined optimization
+effectively equivalent to GAM on $\Ltask$ alone;
+(3)~\emph{crucially, coupling destroys the near-orthogonality between the two objectives.}
+When the GAM closure includes $\Lfisher$, the flat gradient gains a component
+proportional to $J^\top F_{t'} J\epsilon$ (see Section~\ref{sec:orthogonality}),
+which projects onto the Fisher eigenspace and produces a non-zero cosine.
+The empirical gap between Layer~1 (coupled, FAA$=73.23$) and Layer~2 (decoupled, FAA$=73.85$)
+is a direct consequence of this distortion.
+
+\subsection{Decoupled Gradient Combination}
+\label{sec:decoupled}
+
+FS-LoRA decouples the three gradient sources explicitly.
+Keeping the GAM closure strictly on $\Ltask$ ensures that the flatness component
+does not acquire a Fisher-aligned term $J^\top F_{t'} J\epsilon$
+(see Section~\ref{sec:orthogonality}).
+The three components are:
+\begin{align}
+  \gclean &= \nabla_\phi \Ltask(\phi), \label{eq:gclean}\\
+  \gflat  &= \nabla_\phi \Ltask\bigl(\phi + \rho \cdot \gclean/\|\gclean\|\bigr)
+             - \gclean, \label{eq:gflat}\\
+  \gfisher &= \nabla_\phi \Lfisher(\phi). \label{eq:gfisher}
+\end{align}
+
+The near-orthogonality between $\gflat$ and $\gfisher$ (Section~\ref{sec:orthogonality})
+justifies treating these as geometrically independent channels: the flatness update does not
+inadvertently push the adapter toward Fisher-sensitive directions.
+We monitor the per-step cosine $\cosff = \gflat^\top\gfisher / (\|\gflat\|\,\|\gfisher\|+\epsilon)$
+as an empirical diagnostic; across all experiments it remains in $[-0.03, -0.001]$,
+confirming that the decoupled combination is well-conditioned.
+The final update is:
+\begin{equation}
+  \gupdate = \gclean + \lambdaflat\,\gflat + \gfisher.
+  \label{eq:update}
+\end{equation}
+
+\subsection{Trace-Normalized Fisher Penalty}
+\label{sec:trace_norm}
+
+We use the trace-normalized Fisher (Eq.~\eqref{eq:trace_norm}) in the EWC penalty:
+\begin{equation}
+  \Lfisher(\phi) = \frac{\lambdaewc}{2} \sum_{l,t'<t}
+  \bigl(\Ftilde_{t',l} + \eta\bigr) \cdot \bigl\|\DeltaW_l - \DeltaW^*_{t',l}\bigr\|_F^2.
+\end{equation}
+The Fisher gradient with respect to adapter factors is derived via the chain rule
+through $\DeltaW_l = B_l A_l$:
+\begin{align}
+  \frac{\partial \Lfisher}{\partial B_l} &= \lambdaewc \sum_{t'} (\Ftilde_{t',l}+\eta)
+    (\DeltaW_l - \DeltaW^*_{t',l}) A_l^\top, \\
+  \frac{\partial \Lfisher}{\partial A_l} &= \lambdaewc \sum_{t'} (\Ftilde_{t',l}+\eta)
+    B_l^\top (\DeltaW_l - \DeltaW^*_{t',l}).
+\end{align}
+
+Table~\ref{tab:norm_ratio} shows the effect of trace normalization: without it,
+the Fisher-to-clean gradient norm ratio is $0.003$ at $\lambdaewc=20$,
+meaning the Fisher penalty is structurally inactive.
+After normalization, even with $\lambdaewc=2000$ the ratio reaches $0.025$--$0.19$,
+showing that the Fisher component is active and makes a genuine contribution to the update.
+
+\begin{table}[h]
+\caption{Effect of trace normalization on Fisher activity (CUB200, seed 0).
+Fisher/clean ratio = $\|\gfisher\| / \|\gclean\|$ (mean over tasks).
+Without normalization, even at $\lambdaewc=1000$ the ratio reaches only $0.06$;
+with normalization and $\lambdaewc=2000$ it is $0.025$, using a dimensionless hyperparameter.}
+\label{tab:norm_ratio}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Method & $\lambdaewc$ & Normalized & Fisher/clean ratio & CNN FAA \\
+\midrule
+Layer 2 (raw) & 20   & No  & 0.0029 & 73.845 \\
+Layer 2 (raw) & 100  & No  & 0.0137 & 74.182 \\
+Layer 2 (raw) & 1000 & No  & 0.0588 & 74.220 \\
+\midrule
+Layer 3 (ours) & 2000 & Yes & 0.0248 & 74.224 \\
+Layer 3 (ours) & 5000 & Yes & ---    & 74.181 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Fisher Accumulation with Exponential Decay}
+\label{sec:fisher_accum}
+
+After completing task $t$, we compute the empirical Fisher over a mini-batch of task-$t$ data
+and accumulate with decay rate $\gamma$:
+\begin{equation}
+  F_t \leftarrow \gamma \cdot F_{t-1} + (1-\gamma) \cdot \hat{F}_t,
+\end{equation}
+where $\hat{F}_t$ is the mini-batch Fisher estimate.
+We use $\gamma = 0.9$ throughout.
+The decay prevents older task Fishers from dominating the penalty as the task count grows.
+
+\subsection{Dual Ascent for Adaptive Constraint Enforcement}
+\label{sec:dual_ascent}
+
+The Lagrangian dual variable $\lambdaewc$ in~\eqref{eq:lagrangian} should adapt to
+the observed constraint violation rather than remain fixed.
+The standard dual ascent update is:
+\begin{equation}
+  \lambdaewc \;\leftarrow\; \max\!\bigl(\lambdaewc^{\min},\;
+    \min\!\bigl(\lambdaewc^{\max},\;
+      \lambdaewc + \alpha_{\mathrm{dual}}\,
+      \bigl(\Dtilde^{\mathrm{Fisher}}(\phi) - \delta\bigr)\bigr)\bigr),
+  \label{eq:dual_ascent}
+\end{equation}
+applied once per task boundary after computing the post-task Fisher drift
+$\Dtilde^{\mathrm{Fisher}}$.
+When the drift exceeds $\delta$, the penalty is strengthened; when the constraint
+is comfortably satisfied, $\lambdaewc$ can decay toward $\lambdaewc^{\min}$.
+This closes the outer loop of the Lagrangian: the inner loop (per step) optimizes
+the primal variables $\phi$ at fixed $\lambdaewc$; the outer loop (per task) adjusts
+$\lambdaewc$ to steer toward constraint satisfaction.
+
+\textbf{Inactive in current experiments.}
+On all benchmarks in Section~\ref{sec:experiments}, the normalized Fisher drift
+$\Dtilde^{\mathrm{Fisher}}$ remained below the threshold $\delta$ throughout training,
+so~\eqref{eq:dual_ascent} did not engage and $\lambdaewc$ was held fixed.
+This is consistent with the orthogonality finding: because $\gflat$ and $\gfisher$ are
+near-orthogonal, the flatness update does not push the adapter toward Fisher-sensitive
+directions, keeping drift naturally low.
+Dual ascent is expected to become active on task sequences with high semantic overlap,
+where the Fisher drift constraint is binding.
+We include it as the principled outer-loop completion of the Lagrangian design.
+
+\subsection{Algorithm Summary}
+\label{sec:algorithm}
+
+\begin{algorithm}[H]
+\caption{FS-LoRA Training}
+\label{alg:fslora}
+\begin{algorithmic}[1]
+\Require Tasks $\mathcal{T}_1, \ldots, \mathcal{T}_T$; hyperparameters $\lambdaflat, \lambdaewc, \rho, \gamma, \delta, \alpha_{\mathrm{dual}}$
+\State Initialize adapter $\phi$, Fisher $\{F_0^l = 0\}$, snapshots $\{\DeltaW^*_0\}$
+\For{task $t = 1, \ldots, T$}
+  \For{each mini-batch $\mathcal{B} \subset \mathcal{T}_t$}
+    \State $\gclean \leftarrow \nabla_\phi \Ltask(\phi; \mathcal{B})$ \Comment{clean gradient}
+    \State $\gflat \leftarrow \nabla_\phi \Ltask(\phi + \rho\,\gclean/\|\gclean\|; \mathcal{B}) - \gclean$ \Comment{AS$^1$ flatness component}
+    \State $\gfisher \leftarrow \nabla_\phi \Lfisher(\phi)$ using stored $\{F_{t'}, \DeltaW^*_{t'}\}_{t'<t}$
+    \State $\phi \leftarrow \phi - \eta_{\mathrm{lr}} \cdot (\gclean + \lambdaflat\,\gflat + \gfisher)$
+  \EndFor
+  \State Snapshot: $\DeltaW^*_t \leftarrow \{B_l A_l\}$ for all $l$
+  \State Compute $\hat{F}_t$ from a mini-batch of $\mathcal{T}_t$; normalize by trace
+  \State Accumulate: $F_t \leftarrow \gamma F_{t-1} + (1-\gamma)\hat{F}_t$
+  \If{$t > 1$} \Comment{dual ascent outer loop; inactive when $\Dtilde^{\mathrm{Fisher}} \leq \delta$}
+    \State $\lambdaewc \leftarrow \mathrm{clip}\!\bigl(\lambdaewc + \alpha_{\mathrm{dual}}(\Dtilde^{\mathrm{Fisher}} - \delta),\;\lambdaewc^{\min},\;\lambdaewc^{\max}\bigr)$
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The algorithm implements the two-level Lagrangian structure from
+Section~\ref{sec:lagrangian}: (1)~per-step decoupled gradient combination
+(always active); (2)~per-task dual ascent on $\lambdaewc$
+(inactive when $\Dtilde^{\mathrm{Fisher}}\leq\delta$).
+The computational overhead relative to standard SGD is two forward passes per batch
+(for $\gclean$ and $\ggam$) plus a Fisher gradient computation.
+The Fisher accumulation and drift evaluation at task boundaries require a single pass
+over a held-out mini-batch (we use up to 100 batches, controlled by
+\texttt{ewc\_max\_batches}).

@@ -1,0 +1,61 @@
+\section{Introduction}
+\label{sec:intro}
+
+LoRA-based continual learning has become a practical paradigm for adapting large pretrained models to sequential tasks~\citep{hu2022lora,Wang_2022_CVPR,Gao_2023_ICCV}.
+By keeping the backbone frozen and learning compact low-rank update matrices, these methods achieve efficiency and preserve upstream knowledge.
+The design, however, changes the geometry of learning in a fundamental way: future tasks cannot update the model freely across the full parameter space.
+Instead, each task's adaptation is confined to the directions spanned by the current LoRA matrices---a task-dependent \emph{admissible update subspace} $\mathcal{W}_{\Delta,t}$.
+
+A parallel line of work connects flat loss landscapes to improved generalization and robustness~\citep{FlatMinima1997,foretSharpnessAwareMinimizationEfficiently2021,NEURIPS2021_995f5e03}, and several papers show that flatter solutions reduce catastrophic forgetting~\citep{NEURIPS2020_518a38cc,shiOvercomingCatastrophicForgetting2021}.
+These arguments, however, are formulated for full-parameter training, where perturbations and curvature are defined over the whole model.
+In LoRA-based continual learning, full-space curvature aggregates sensitivity across directions that future tasks can never exploit.
+A model may appear flat in many frozen directions yet remain sharp along the only directions through which continual adaptation actually occurs.
+
+\textbf{The gap.} No existing theory identifies, for the frozen-backbone PECL setting, which sharpness notion is theoretically relevant to continual generalization.
+Works such as Flat-LoRA~\citep{li2024flatlora} argue that full-parameter perturbation is needed even with a frozen backbone; LoRA-SAM~\citep{NEURIPS2024_4eb2c0ad} restricts perturbations to LoRA coordinates without a theoretical justification in the CL context.
+The question we address is therefore:
+
+\begin{center}
+\emph{In frozen-backbone LoRA-based CL, which flatness notion should govern continual generalization?}
+\end{center}
+
+\textbf{A motivating observation.}
+As shown in Figure~\ref{fig:3d_loss_landscape}, applying sharpness-aware minimization restricted only to the LoRA update subspace already produces a solution whose surrounding loss landscape is flatter than SGD when probed in the full parameter space.
+Geometric control within the trainable subspace propagates to full-model sensitivity.
+This suggests that full-space flatness is not an independent design target in this regime; it is a consequence of controlling the admissible subspace geometry.
+
+\textbf{Our answer: subspace reduction.}
+We develop a sequential hierarchical PAC-Bayesian analysis tailored to LoRA-based PECL.
+Our key result (Theorem~\ref{thm:pecl-bound}) shows that, under a frozen backbone, both the KL complexity and the sharpness-dependent empirical term in the generalization bound reduce \emph{exactly} to quantities supported on $\mathcal{W}_{\Delta,t}$.
+This is not an approximation: the frozen directions contribute only degenerate factors that drop out of the reduction (Lemma~\ref{lem:kl-decomp-pecl}).
+The bound therefore identifies adapter-subspace flatness---not arbitrary full-space flatness---as the relevant notion of flatness for continual generalization in PECL.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\linewidth]{figures_TRML/2D_lossLandscape_task0_lora_opt_sam_vs_sgd_3d_compare_withxyz.pdf}
+\caption{Loss landscape of a ViT-B/16 adapted with LoRA, comparing SGD and adapter-only SAM.
+Although perturbation is restricted to the LoRA subspace, full-space probes around the solution show that adapter-only SAM yields a flatter landscape than SGD.
+Flatness control within the admissible subspace propagates to the full-model geometry.}
+\label{fig:3d_loss_landscape}
+\end{figure}
+
+\textbf{Contributions.}
+\begin{enumerate}
+\item \textbf{Geometry-aware problem formulation.} We characterize LoRA-based PECL as constrained adaptation geometry and distinguish ambient, trainable-coordinate, and admissible-update flatness as distinct objects.
+We argue that the relevant notion is determined by the PECL update mechanism, not by generic flatness intuitions from full-parameter training.
+
+\item \textbf{Sequential hierarchical PAC-Bayesian analysis.} We introduce a time-varying hyperposterior process over task priors and derive a bound with an explicit hyperposterior drift term.
+Under frozen-backbone LoRA adaptation with adapter-supported posteriors, both the KL and sharpness terms reduce to the admissible update subspace $\mathcal{W}_{\Delta,t}$, identifying adapter-subspace flatness as the bound-relevant notion of flatness in PECL.
+
+\item \textbf{Theory-grounded empirical validation.} The reduction yields falsifiable predictions about perturbation scope and type, which we verify on vision and language benchmarks.
+Adapter-scoped sharpness-aware optimization consistently improves continual performance, and curvature diagnostics confirm that the mechanism operates through the admissible geometry.
+\end{enumerate}
+
+The paper is organized as follows.
+Section~\ref{sec:related} reviews related work.
+Section~\ref{sec:pecl-geometry} formalizes PECL as constrained adaptation geometry.
+Section~\ref{sec:which-flatness} identifies the relevant flatness object.
+Sections~\ref{sec:pac-cl} and~\ref{sec:pecl-spec} develop the theoretical framework.
+Section~\ref{sec:predictions} derives testable predictions.
+Section~\ref{sec:experiments} presents experimental validation.
+Section~\ref{sec:discussion} discusses limitations.

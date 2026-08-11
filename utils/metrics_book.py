@@ -102,7 +102,8 @@ def assemble_eval_matrix(seq_rows, T, orientation: str = "time_by_task"):
     M = np.full((T, T), np.nan, dtype=float)
     for i, row in enumerate(seq_rows):
         if len(row) > 0:
-            M[i, :len(row)] = np.array(row, dtype=float)
+            n = min(len(row), T)
+            M[i, :n] = np.array(row, dtype=float)[:n]
     if orientation == "task_by_time":
         return M.T
     return M

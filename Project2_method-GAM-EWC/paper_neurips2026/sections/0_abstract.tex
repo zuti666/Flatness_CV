@@ -1,0 +1,25 @@
+Sequential LoRA adaptation (SeqLoRA) suffers from catastrophic forgetting because a single
+shared adapter drifts away from old-task optima with no structural protection.
+Two families of remedies exist---sharpness-aware optimization (flatness) and
+Fisher-weighted regularization (stability)---but their geometric interaction in the LoRA
+continual learning setting has not been studied.
+
+We ask: do these two objectives \emph{conflict} or \emph{complement} each other in gradient space?
+We show that the flatness gradient component (adapter-subspace first-order sharpness, AS$^1$)
+and the past-task Fisher gradient are \textbf{near-orthogonal}
+($\cosff \approx -0.03$ to $-0.001$, verified across six fine-grained recognition datasets).
+This orthogonality arises from spectral separation between the current-task Hessian
+and the past-task Fisher in the effective adapter update space $\DeltaW = BA$,
+amplified by the Jacobian of the LoRA reparametrization.
+
+Building on this finding, we propose \textbf{Flat-Stable LoRA (FS-LoRA)},
+which (1)~computes AS$^1$ flatness in adapter factor coordinates over the current-task loss only,
+(2)~applies trace-normalized Fisher-EWC as an independent gradient component in $\DeltaW$-space,
+and (3)~combines them via an orthogonality-preserved decoupled update that prevents the
+two objectives from coupling in a shared perturbation closure.
+Experiments on six fine-grained recognition datasets show improvements on datasets where
+the Fisher penalty is active (Flowers $+5.5$pp, CUB200 $+1.0$pp, ImageNet-R $+0.2$pp),
+with mixed results on Cars196 and Aircraft; all results are single-seed.
+On standard PECL benchmarks, LR-tuned results show FS-LoRA within $1$pp of EWC-LoRA
+on ImageNet-A ($58.92$ vs.~$59.89$), while CIFAR-100, ImageNet-R, and DomainNet
+runs are still in progress.
