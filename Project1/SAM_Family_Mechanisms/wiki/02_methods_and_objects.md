@@ -169,6 +169,15 @@ E001 只研究
 
 它不是包含 inner ascent/descent、slow-weight interpolation、学习率、动量和 weight decay 状态的完整 Lookbehind optimizer，也不能简单标成 faithful algorithm 的 $\alpha=1$。E002 必须将该 surrogate 与真实 slow-weight delta 分行，并显式记录 interpolation 系数和实际 forward/backward/data-access 成本。
 
+E002-P 已按 plain SGD、无 momentum/weight decay 的特例实现 slow-weight delta：
+
+\[
+\Delta w_{\mathrm{slow}}
+=-\eta\alpha_{\mathrm{LB}}\sum_{i=1}^{k}g_i.
+\]
+
+pilot 取 $k=2,\alpha_{\mathrm{LB}}=.5$，所以 faithful effective direction 在代数上恰等于 path mean。二者数值一致是设置恒等式，不是“算法经实验被证明等价”；换 $\alpha$、momentum 或 weight decay 后该等价不再自动成立。
+
 当 $k=1$ 时，路径定义应退化为 SAM。这一退化关系是实现验收项。
 
 ## 7. 两个路径半径协议
@@ -243,3 +252,30 @@ d_{\mathrm{LB}}
 - fixed-budget 下，$\rho_{\mathrm{eff}}=(k+1)\rho/(2k)$。
 
 比较时不能只报告 cosine，还要同时给出修正范数比、$\rho_{\mathrm{fit}}/\rho_{\mathrm{eff}}$、向量相对误差和 H1 residual。cosine 会忽略幅度失配；默认 k=5 fixed-step 虽有 correction cosine .9949，修正范数比仍为 1.221、向量相对误差为 .203。E001-S 另用二分求解原生半径实现严格 $\lVert c\rVert/\lVert g\rVert$ 匹配。
+
+## 9. E002-P 的 GAM 与 LookSAM 标签
+
+E002-P 的 `gam_exact_hvp_same_batch_alpha1` 是 GAM 论文 Algorithm 1 的 exact-HVP、同一 mini-batch mean-CE、$\alpha_{\mathrm{GAM}}=1$ 机制参考：
+
+\[
+d=g_B+\alpha_{\mathrm{GAM}}\rho H_B(w^{\mathrm{adv}})\hat g_B(w^{\mathrm{adv}}).
+\]
+
+它不是仓库中的 accelerated four-pass finite-difference GAM，也没有 on-policy 轨迹或端点；因此结果页只能称 `GAM-exact reference`，不能写成“GAM 训练性能”。
+
+LookSAM 每 $q=5$ 步刷新一次。刷新步使用真实 SAM 并缓存
+
+\[
+v_t=d_{\mathrm{SAM},t}
+-\frac{g_t^\top d_{\mathrm{SAM},t}}{\lVert g_t\rVert^2}g_t,
+\]
+
+非刷新步使用
+
+\[
+d_t=g_t+\alpha_{\mathrm{LS}}
+\frac{\lVert g_t\rVert}{\lVert v\rVert+\epsilon}v,
+\qquad \alpha_{\mathrm{LS}}=.7.
+\]
+
+on-policy 轨迹保存了 cache 与 phase。shared 表中的 `looksam_age0..4` 则是同一 probe batch、SGD anchor 历史上的 counterfactual staleness probe，不是实际 on-policy cache 分布；`age0` 仅用于验收 refresh 与 SAM 一致。

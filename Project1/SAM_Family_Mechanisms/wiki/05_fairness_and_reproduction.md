@@ -75,6 +75,8 @@ E002/E003 必须进一步固定：
 
 神经网络实验除了按 epoch/step 对齐，还要按相同训练损失对齐，例如预注册 $L_{\mathrm{train}}\in\{0.8,0.5,0.2,0.1\}$。否则更小 Hessian 可能只表示优化更慢。
 
+E002-P 已在 shared-anchor 内固定同一 SGD 参数点、同一 64 个 probe batch，并在 on-policy 内固定初始化与 batch-index stream；两类 estimand 分表保存。当前 manifest 的方法成本是算法语义预算，不是逐方法实测 wall-time/peak-memory。GPU 5 同时已有另一满载进程，因此本次 423 秒墙钟时间尤其不能用于优化器效率排名。
+
 ## 6. 可复现运行清单
 
 每次 E001 运行应按以下顺序执行：
@@ -124,3 +126,5 @@ E001 不能支持：
 - 在 FashionMNIST、CIFAR 或更大模型上会有泛化收益。
 
 这些问题分别需要 E002 的非凸轨迹证据和 E003 的端点证据。planned 不能写成 completed。
+
+E002-P 现在允许更窄的表述：在给定 SGD shared anchors、两个种子和 64 个 paired batches 下描述 $\Sigma$、$H_+/H_-$、一步 Taylor、$k=2$ 路径与 fixed-data 时间相关。它仍不能把相关性升级成最终性能来源，不能用 on-policy endpoint 给方法排名，也不能替代 E003。`formal_e002_ready=false` 必须和任何 pilot 数值一起报告。

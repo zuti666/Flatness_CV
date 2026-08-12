@@ -7,13 +7,13 @@
 ```text
 E001 算子层：20 维二次函数
     ↓ 先确认每种方法真正提取的 Hessian 信息
-E002 轨迹层：Two Moons 非凸 MLP（planned）
+E002-P 轨迹层：Two Moons 非凸 MLP（GPU 5 pilot 已运行）
     ↓ 再分析方向、随机性、路径和一步损失变化
 E003 端点层：小型 FashionMNIST（planned）
       最后检验局部机制能否解释平坦性与泛化
 ```
 
-当前已实现 E001 标准算子实验和 E001-S 敏感性审计。E002 与 E003 是路线图，不属于当前完成项；E001 的验收与敏感性结论都不等于轨迹或泛化结论成立。
+当前已实现 E001 标准算子实验、E001-S 敏感性审计，以及 E002-P 的 shared-anchor/on-policy 校准运行。E002-P 通过方法保真、Hessian 数值、协方差 PSD 与 Taylor 门槛，但因一个预注册训练 smoke 和少数 CI 精度门槛未通过，只能标为 pilot，不能写成正式轨迹/泛化结论。E003 仍只是路线图。
 
 ## 统一语言
 
@@ -45,10 +45,11 @@ SGD 只作为 $c=0$ 的参考基线。LookSAM、SAM-$k$、Noise-only、更新协
 1. [范围与研究问题](wiki/01_scope_and_rqs.md)：三级实验为什么分开，以及每一级能支持什么结论。
 2. [方法与对象](wiki/02_methods_and_objects.md)：二次问题、SAM/GAM/MS-SAM/Lookbehind，以及两个路径半径协议。
 3. [指标](wiki/03_metrics.md)：谱增益、Krylov 子空间拟合、$Q_0/Q_1$、matched-SAM 和验收不变量。
-4. [实验](wiki/04_experiments.md)：E001 配置、CLI、输出契约、四张核心图，以及 planned 的 E002/E003。
+4. [实验](wiki/04_experiments.md)：E001/E002 配置、CLI、输出契约，以及 planned 的 E003。
 5. [公平性与复现](wiki/05_fairness_and_reproduction.md)：计算预算、强度匹配、确定性与研究结论边界。
 6. [E001 结果与敏感性](wiki/06_e001_results_and_sensitivity.md)：标准结果、OFAT 扫描、假设判定与 E002 门槛。
-7. [日志](wiki/log.md)：只登记真实运行，不把预期写成结果。
+7. [E002 GPU 5 pilot](wiki/07_e002_gpu5_pilot.md)：shared-anchor、Taylor、协方差、路径、时间复用、on-policy sanity 与失败门槛。
+8. [日志](wiki/log.md)：只登记真实运行，不把预期写成结果。
 
 ## 证据标签
 

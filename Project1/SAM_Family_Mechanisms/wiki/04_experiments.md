@@ -6,10 +6,10 @@
 | --- | --- | --- | --- |
 | E001 | 20 维精确 Hessian 二次算子实验 | **implemented；工程验收 passed** | 是，标准算子运行 |
 | E001-S | E001 半径、谱、维度、$k$、初始化与强度敏感性 | **implemented；运行 passed** | 是，E001 的科学审计 |
-| E002 | Two Moons 一层隐藏层非凸轨迹实验 | **planned** | 否 |
+| E002-P | Two Moons 一层隐藏层非凸轨迹 pilot | **implemented；GPU 5 已运行；formal gate 未通过** | 是，校准范围 |
 | E003 | 小型 FashionMNIST 端点验证 | **planned** | 否 |
 
-`planned` 只表示设计已记录，不表示入口、配置、产物或结果已经存在。
+`planned` 只表示设计已记录，不表示入口、配置、产物或结果已经存在。E002-P 的 `implemented` 也只表示 pilot 入口与运行存在，不等于 formal E002 已完成。
 
 ## 2. E001：20 维二次算子实验
 
@@ -142,21 +142,30 @@ python Project1/SAM_Family_Mechanisms/run_e001_sensitivity.py \
 
 CI/smoke 可使用 `--quick --no-plots`。完整输出契约与数值解释见 [结果页](06_e001_results_and_sensitivity.md)。E001-S 仍在 PSD 恒 Hessian 二次族内，不是 E002 的替代品。
 
-## 3. E002：Two Moons 非凸轨迹实验（planned）
+## 3. E002-P：Two Moons 非凸轨迹 pilot（已运行）
 
-E002 的建议设置是：训练集 512、测试集 4096、数据噪声 0.15，可单独设置 10% 训练标签翻转；模型为 $2\to16\to2$ 的 tanh MLP，batch size 32，plain SGD、无 momentum、无 BatchNorm、无 Dropout。
+实际设置为训练/验证/测试 $512/1024/4096$、数据噪声 .15、仅训练集 10% 标签翻转；模型为 $2\to16\to2$ 的 tanh MLP，共 82 参数，batch size 32，float64、plain SGD、无 momentum/weight decay/BatchNorm/Dropout。两个种子为 3407/3408，训练 800 outer steps，学习率 .05，绝对参数半径 $\rho=.05$。
 
-计划比较：SGD、SAM、GAM、MS-SAM（$k=2,5$）、Lookbehind（$k=2,5$）、LookSAM（刷新间隔 5）和 SAM-5。Noise-only、Random/Shuffled/EMA 正交修正是机制对照，不应提前混入 E001。
+shared-anchor 比较 SGD、SAM、`GAM-exact reference`、MS-SAM $k=2$ fixed-budget、faithful/path-mean Lookbehind $k=2$、matched-SAM、LookSAM counterfactual age 0–4、SAM-5 刷新/非刷新。on-policy sanity 比较 SGD、SAM、MS-SAM、faithful Lookbehind、LookSAM-5 和 SAM-5；GAM 没有 on-policy 轨迹。Noise-only、Random/Shuffled/EMA、$k=5$ 路径与 full GAM 留给 formal E002。
 
-计划在训练进度 10%、30%、60%、90%、100% 的 checkpoint 固定同一个参数点：
+在 SGD 训练进度 10%、30%、60%、90%、100%（step 80/240/480/720/800）的 checkpoint 固定同一个参数点：
 
 1. 用完整训练集计算 $g,H$ 并完整特征分解；
-2. 对相同的 128 个 mini-batch 只做虚拟更新，估计 $\mu_m,\Sigma_m$；
+2. 对相同的 64 个 mini-batch 只做虚拟更新，估计 $\mu_m,\Sigma_m$；
 3. 计算 $\operatorname{Tr}(H_+\Sigma_m)$、归一化 Hessian 对齐、路径 cosine 与 LookSAM 时间自相关；
-4. 比较一步 Taylor 的确定性与随机二阶分解和真实一步损失变化；
-5. 用 PGD 估计多半径 $R^{(0)},R^{(1)}$。
+4. 比较 $\eta\in\{.00625,.0125,.025,.05\}$ 的一步 Taylor 分解和真实一步损失变化；
+5. 用 500 次单方法边际 bootstrap 报告协方差 trace 的 CI，并对相对半宽 $>.25$ 标记 underpowered；probe batches 在方法间配对，但本次尚未直接 bootstrap paired method contrast。
 
-这些数值是未来实验设计参数，不是当前结果。E002 尚未实现，且必须先满足 [E001 审计给出的启动门槛](06_e001_results_and_sensitivity.md#10-进入-e002-前的门槛)。特别地，固定 checkpoint 的描述性分解不能自动升级成“最终性能来源”的因果结论。
+标准入口为：
+
+```bash
+CUDA_VISIBLE_DEVICES=5 CUBLAS_WORKSPACE_CONFIG=:4096:8 \
+python run_e002_pilot.py \
+  --config configs/e002_pilot.yaml \
+  --output-dir outputs/e002_gpu5_pilot
+```
+
+必需产物包括 `manifest.json`、`integrity.json`、`resolved_config.json`、三份 NPZ/初始状态、shared/on-policy checkpoints、9 份 CSV、`metrics.json` 与 6 张图。实际数值、门槛和标签限制见 [E002-P 结果页](07_e002_gpu5_pilot.md)。固定 checkpoint 的描述性分解不能自动升级成“最终性能来源”的因果结论。
 
 ## 4. E003：FashionMNIST 端点验证（planned）
 

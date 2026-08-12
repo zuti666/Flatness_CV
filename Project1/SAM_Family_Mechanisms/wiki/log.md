@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- |
 | E001 | 20 维精确 Hessian 二次算子实验 | 已实现；标准与扩展合计 17 项 unittest 通过 | 标准运行 passed | 已作算子层解读；无跨层结论 |
 | E001-S | E001 敏感性与假设审计 | 已实现 | 17 个 OFAT 配置、强度/半径/初始化对照 passed | 已解读；科学门槛仍有缺口 |
-| E002 | Two Moons 非凸轨迹实验 | planned，尚未实现 | 未运行 | 无结果 |
+| E002-P | Two Moons 非凸轨迹 pilot | 已实现；25 项全套 unittest 通过 | GPU 5 正式运行 completed | 局部描述已解读；formal gate 未通过 |
 | E003 | 小型 FashionMNIST 端点验证 | planned，尚未实现 | 未运行 | 无结果 |
 
 ## 2026-08-11｜Wiki 初始化
@@ -65,8 +65,31 @@
 - [x] 对每条观测结论记录对象、半径协议、matched-SAM 对照及不能支持的结论；
 - [x] 补全全方法半径、条件数、维度、$k$ 与初始化敏感性；
 - [x] 补严格修正强度、固定有效半径和 Q 半径分解；
-- [ ] 增加不定二次 signed-spectrum 单元测试；
-- [ ] 完成 E002 方法保真与统计协议门槛。
+- [x] 增加不定二次 signed-spectrum 单元测试；
+- [x] 完成 E002-P 方法保真、shared-anchor/on-policy 与 Taylor 校准；
+- [ ] 扩大协方差 probe、补 paired contrast CI 和外部 reference fidelity 后进入 formal E002。
+
+## 2026-08-12｜E002-P GPU 5 正式 pilot
+
+- 状态：`completed as pilot; engineering_passed=false; formal_e002_ready=false`；
+- 命令：`CUDA_VISIBLE_DEVICES=5 CUBLAS_WORKSPACE_CONFIG=:4096:8 python run_e002_pilot.py --config configs/e002_pilot.yaml --output-dir outputs/e002_gpu5_pilot`；
+- 输出目录：`outputs/e002_gpu5_pilot`；
+- 代码指纹：`516705290632608a06172beba67fda62c4cc2fe3b45028113c25761364af6b5a`；
+- 设备：物理 GPU 5，RTX 6000 Ada，UUID `GPU-6eac7f06-8173-e1a3-c938-239f6f6eb19e`；身份验证 passed；
+- 环境：Python 3.11.15、PyTorch 2.4.1+cu121、CUDA 12.1、float64、deterministic algorithms；
+- 用时/显存：423.0 秒；自身 peak allocated 85,664,256 bytes；GPU 5 同期已有其他满载进程，墙钟不可比较方法成本；
+- 规模：2 seeds × 5 shared SGD checkpoints × 64 paired probe batches；6 条 on-policy 轨迹各 800 steps；
+- 产物：除 Matplotlib cache 外 93 个文件；9 份 CSV、6 张图、3 份 NPZ、shared/on-policy checkpoints、manifest/metrics/integrity 完整；
+- 自动测试：全项目 25/25 unittest passed；包括 E002 quick CLI、不定二次 signed spectrum、HVP 与方法退化契约；
+- passed gates：内部方法 fidelity、Hessian symmetry/eigen reconstruction、covariance PSD、主/最小 $\eta$ Taylor；
+- failed gate：seed 3408 的 SGD train loss ratio .829 > .7；其绝对 loss 与 accuracy 仍改善，故登记为脆弱相对门槛失败而非发散；
+- precision warning：140 条 covariance 记录中 4 条 CI 相对半宽 > .25；
+- Taylor 观测：$\eta=.05$ 最坏 row median .00303、最坏 p90 .00798；允许本设置的一步分解；
+- Hessian 观测：10 个 anchor 全部不定，负模态 25–33 个，$\lambda_{\max}$ 没有随训练下降；
+- 协方差观测：SAM/GAM/MS/LB 的 raw $\operatorname{Tr}(H_+\Sigma)$ 均高于 SGD，但总方差同时放大，NHA 只小幅变化；
+- 路径观测：$k=2$ fixed-budget 的 misalignment 很小，以最后梯度为分母，路径平均 trace 低约 5.6%–6.9%；
+- 时间观测：fixed-data SGD path 上 orthogonal correction 的 lag-20 cosine 约 .967/.975，但相对 drift 仍 .322/.243；
+- 结论边界：不能作方法排名、GAM endpoint 结论、LookSAM cache 因果结论、协方差导致泛化结论或 E003 外推；完整解释见 [E002-P 结果页](07_e002_gpu5_pilot.md)。
 
 ## 运行记录模板
 
@@ -97,4 +120,4 @@
 
 ## E002/E003 启动规则
 
-E002 只有在 [结果页列出的启动门槛](06_e001_results_and_sensitivity.md#10-进入-e002-前的门槛) 完成后才从 `planned` 改为 `in progress`。E001 工程验收通过本身不再视为充分条件。E003 只有在 E002 形成可复核的稳定机制假设后才启动。状态变化必须附日期、责任范围和可追溯产物，不能因 Wiki 已描述设计就标记完成。
+E002-P 已从 `planned` 推进到已运行 pilot，但因上述失败/精度门槛不能标为 formal completed。formal E002 必须先完成 [E002-P 结果页的下一步 gate](07_e002_gpu5_pilot.md#6-下一步-gate)。E003 只有在 formal E002 形成可复核的稳定机制假设后才启动。状态变化必须附日期、责任范围和可追溯产物，不能因 Wiki 已描述设计就标记完成。

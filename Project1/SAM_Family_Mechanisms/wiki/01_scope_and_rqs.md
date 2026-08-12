@@ -10,7 +10,7 @@
 | 轨迹层 | E002：Two Moons MLP | checkpoint、更新均值/协方差、路径与时间相关 | 曲率信息如何改变方向、随机性和训练轨迹 | 较大视觉任务上的普适泛化 |
 | 端点层 | E003：FashionMNIST 小网络 | 训练/测试端点、top Hessian 谱、sharpness | 前两层机制能否外推到小型视觉网络 | 大规模模型和数据集上的普遍结论 |
 
-**当前实现边界：只做 E001。** E001 已通过工程验收；E002 和 E003 均为 planned。Wiki 描述后两者的设计是为了固定路线图，不代表相关代码、运行或结果已经存在。
+**当前实现边界：E001 已完成，E002 只完成 pilot。** E002-P 已在 GPU 5 上执行 shared-anchor 与 on-policy 校准，但 formal readiness 为 false；E003 仍为 planned。Wiki 中的 E002-P 数值只能支持本设置内的一步描述与方法/数值验收，不能升级为最终性能的因果解释。
 
 ## 三个总研究问题
 
@@ -55,14 +55,14 @@ E001 是确定性全批量二次模型，只能建立确定性算子基线。以
 3. **多步路径是新信息还是放大？** 用 QR 后的嵌套 Krylov 拟合、H1 residual、matched-SAM、严格修正强度和固定有效半径检验。
 4. **内层扰动解决了哪个 sharpness 目标？** 用同半径精确 oracle 归一化的 $Q_0/Q_1$ 比较零阶与一阶目标。
 
-## 当前明确不做的内容
+## 当前仍不做的内容
 
-- 不训练神经网络，不使用 CIFAR，也不报告准确率或泛化间隙；
-- 不实现 LookSAM、SAM-$k$、Noise-only 或 mini-batch 协方差；
+- 不使用 CIFAR，也不把 Two-Moons 两个种子的准确率写成排名或泛化结论；
+- E002-P 已实现 LookSAM、SAM-$k$ 与 mini-batch 协方差；Noise-only 与 centered-noise 因果干预仍未实现；
 - 不用二次模型结果声称某方法会选择更平坦的 basin；
 - 不把理论预期、验收阈值或图表占位符写成实验结果；
 - 不用单一 $\lambda_{\max}$ 代替方法自身对应的零阶或一阶 sharpness 目标。
 
 ## 升级到下一层的门槛
 
-E001 的工程门槛已经通过，但 [敏感性审计](06_e001_results_and_sensitivity.md) 表明科学门槛尚未完全通过。正式 E002 前还需完成方法 one-step 保真、path-mean surrogate 与 faithful Lookbehind 的语义拆分、不定二次 signed-spectrum 单元测试，以及 shared-anchor/on-policy、bootstrap 和 Taylor 误差阈值的预注册。门槛约束实现和推断有效性，不要求结果符合某个预期方向。
+E002-P 已完成方法 one-step 保真、path-mean surrogate/faithful Lookbehind 拆分、不定二次 signed-spectrum 单元测试、shared-anchor/on-policy、bootstrap 与 Taylor 校准。方法和 Taylor 门槛通过；但 4/140 条协方差记录仍被标为 CI underpowered，且 seed 3408 因初始损失已经较低而未达到预注册的“最终/初始训练损失 < .7”相对降幅门槛。正式 E002 应先扩充 probe 数，并同时预注册绝对收敛与相对降幅口径；不能在看到本次结果后把旧门槛改成通过。详见 [E002-P 结果页](07_e002_gpu5_pilot.md)。

@@ -8,10 +8,10 @@
 | --- | --- | --- | --- |
 | E001 | 20 维正定二次函数，算子层面 | **已实现，工程验收通过** | 谱滤波、Krylov 可压缩性、内层问题质量、路径半径与聚合机制 |
 | E001-S | 半径/条件数/维度/$k$/初始化敏感性 | **已实现，17 项 unittest 通过** | 初始假设稳健性、严格修正强度匹配、$Q$ 半径分解 |
-| E002 | Two Moons 小型非凸 MLP，轨迹层面 | **planned，尚未实现** | 随机更新协方差、一步 Taylor 分解、LookSAM 时间复用、非凸训练轨迹 |
+| E002-P | Two Moons 小型非凸 MLP，轨迹层 pilot | **GPU 5 已运行；校准门槛部分通过** | 随机更新协方差、一步 Taylor 分解、LookSAM 时间复用、非凸训练轨迹 |
 | E003 | 小型 FashionMNIST 网络，端点层面 | **planned，尚未实现** | 平坦性、泛化和机制结论在较大模型上的外推 |
 
-当前不能声称 E002 或 E003 已完成，也不能从 E001 推断 basin selection、轨迹随机性或泛化收益。E001 的二次函数只有一个极小值。
+E002-P 已完成 2-seed 工程/统计校准，但不是正式 E002 结论：方法、Hessian、协方差 PSD 和 Taylor 门槛通过；预注册 SGD 相对降幅门槛有一个种子未通过，4/140 条协方差记录的相对 CI 半宽超过 .25。因此仍不能声称优化器泛化排名、最终性能的因果来源或 E003 外推成立。
 
 ## E001 约定入口
 
@@ -33,15 +33,33 @@ python run_quadratic.py \
 
 所有实验自由参数都允许通过 CLI 覆盖；固定的 float64/epsilon 不变量由配置校验保护。完整示例和产物契约见 [实验协议](wiki/04_experiments.md)。标准 E001 与 E001-S 敏感性运行均已完成；数值解读和假设审计见 [E001 结果与敏感性](wiki/06_e001_results_and_sensitivity.md)。这些结果仍只属于 PSD 二次族。
 
+## E002-P GPU 5 入口
+
+E002 使用单独的 PyTorch 依赖文件。绑定物理 GPU 5 后，进程内部设备必须写作 `cuda:0`：
+
+```bash
+cd Project1/SAM_Family_Mechanisms
+python -m pip install -r requirements-e002.txt
+
+CUDA_VISIBLE_DEVICES=5 \
+CUBLAS_WORKSPACE_CONFIG=:4096:8 \
+python run_e002_pilot.py \
+  --config configs/e002_pilot.yaml \
+  --output-dir outputs/e002_gpu5_pilot
+```
+
+本次正式运行已在 RTX 6000 Ada 的物理 GPU 5 上完成，设备 UUID、启动/结束占用、峰值显存、配置和代码指纹均写入 `manifest.json`。入口也支持 `--quick --device cpu` 做 smoke；CPU quick 不能冒充 GPU 正式运行。协议、产物和实际结果见 [E002 GPU 5 pilot](wiki/07_e002_gpu5_pilot.md)；便于版本管理的小型产物见 [E002-P 精简结果摘要](summaries/e002_gpu5_pilot.md)。
+
 ## Wiki 导航
 
 - [总览与导航](WIKI.md)
 - [研究范围与研究问题](wiki/01_scope_and_rqs.md)
 - [方法与统一比较对象](wiki/02_methods_and_objects.md)
 - [指标、精确 oracle 与判定规则](wiki/03_metrics.md)
-- [E001 实验协议及 E002/E003 路线图](wiki/04_experiments.md)
+- [E001/E002 实验协议及 E003 路线图](wiki/04_experiments.md)
 - [公平性、复现与结论边界](wiki/05_fairness_and_reproduction.md)
 - [E001 结果、敏感性与假设审计](wiki/06_e001_results_and_sensitivity.md)
+- [E002 GPU 5 pilot 结果与门槛](wiki/07_e002_gpu5_pilot.md)
 - [实验日志](wiki/log.md)
 
 ## 一条必须遵守的解释规则

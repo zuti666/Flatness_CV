@@ -307,3 +307,26 @@ D_{\mathrm{last\text{-}avg}}
 - 配置拒绝 NaN/Infinity、非整数 `inner_steps`、字符串伪布尔值和重复的扫描/协议条目。
 
 只有通过这些不变量后，图表才可用于机制解释。
+
+## 10. E002-P：协方差与一步 Taylor 口径
+
+对同一 shared SGD anchor 的 $M=64$ 个配对 mini-batch 方向，E002-P 使用无偏样本协方差
+
+\[
+\Sigma_m=\frac1{M-1}\sum_B(d_B-\mu_m)(d_B-\mu_m)^\top.
+\]
+
+样本平均二阶恒等式中的噪声项必须乘 $(M-1)/M$：
+
+\[
+\widehat{\Delta L}
+=-\eta g^\top\mu_m
++\frac{\eta^2}{2}\mu_m^\top H\mu_m
++\frac{\eta^2}{2}\frac{M-1}{M}\operatorname{Tr}(H\Sigma_m).
+\]
+
+面对不定 Hessian，最后一项分为 $H_+$ 的正贡献与 $-H_-$ 的负贡献，不允许互相抵消后才解释。signed transfer 保留 $v_i^\top\bar c$ 的符号；当 $|v_i^\top\hat g|$ 小于预注册 mask 时，比例输出 `null`。
+
+Taylor gate 使用每个 virtual update 的 component-normalized residual。主 $\eta=.05$ 要求 median $\le .10$ 且 p90 $\le .25$；最小 $\eta=.00625$ 要求 median $\le .02$ 且 p90 $\le .05$。另保留以真实变化为分母的误差，但在真实变化接近零时不把它作为唯一门槛。
+
+当前用 500 次单方法边际 bootstrap 报告 CI；probe batch 在方法间是 paired design，但这些 CI 不是方法对 SGD 的 paired contrast CI。相对半宽超过 .25 的记录标为 `underpowered`。CI 跨零或 underpowered 都不是结果“失败”，但阻止 pilot 升级为正式定量结论。formal 运行必须在方法间共用同一组 resample indices，直接 bootstrap paired contrast。
