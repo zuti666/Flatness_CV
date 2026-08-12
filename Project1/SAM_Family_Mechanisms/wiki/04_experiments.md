@@ -4,7 +4,8 @@
 
 | 编号 | 名称 | 状态 | 本次是否实现 |
 | --- | --- | --- | --- |
-| E001 | 20 维精确 Hessian 二次算子实验 | **current scope** | 是，本次唯一实现范围 |
+| E001 | 20 维精确 Hessian 二次算子实验 | **implemented；工程验收 passed** | 是，标准算子运行 |
+| E001-S | E001 半径、谱、维度、$k$、初始化与强度敏感性 | **implemented；运行 passed** | 是，E001 的科学审计 |
 | E002 | Two Moons 一层隐藏层非凸轨迹实验 | **planned** | 否 |
 | E003 | 小型 FashionMNIST 端点验证 | **planned** | 否 |
 
@@ -40,18 +41,20 @@ epsilon: 1.0e-15
 
 上述是默认协议；实际运行必须以 `manifest.json` 中的解析后参数为准。
 
+配置解析采用严格验证：数值必须有限，`dimension/inner_steps/seed` 必须是精确整数，`make_plots` 不接受字符串伪布尔值，扫描半径、路径步数和协议不得重复；`dtype=float64` 与 `epsilon=1e-15` 是 E001 固定不变量。
+
 ### 2.3 方法矩阵
 
-| 方法/对象 | $k$ | 路径协议 | 角色 |
+| `key / object_kind` | `method` | $k$ 与路径协议 | 角色与内层质量 |
 | --- | --- | --- | --- |
-| SGD | — | — | $c=0$ 参考 |
-| SAM final correction | — | — | 单次 $H\hat g$ 通道 |
-| GAM probe direction | — | — | Hessian 定向探测 |
-| GAM probe increment | — | — | $H^2$ 型探测点梯度变化 |
-| GAM final regularizer | — | — | 最低阶 $H$ 型正则项 |
-| MS-SAM | 2, 5 | fixed-step, fixed-budget | 使用最远端梯度 |
-| Lookbehind | 2, 5 | fixed-step, fixed-budget | 聚合路径梯度 |
-| matched-SAM | 对每条 Lookbehind 记录生成 | 继承比较记录 | 有效半径对照 |
+| `sgd / update_correction` | `sgd` | 空 | $c=0$ 参考；零扰动具有参考 $Q_0/Q_1$ |
+| `sam / update_correction` | `sam` | 空 | 单次 $H\hat g$ 通道；SAM 扰动承担 $Q_0/Q_1$ |
+| `gam_probe_direction / probe_direction` | `gam` | 空 | Hessian 定向探测；$\rho u_{\mathrm{GAM}}$ 承担 GAM 的 $Q_0/Q_1$ |
+| `gam_probe_increment / probe_increment` | `gam` | 空 | $H^2$ 型探测点梯度变化；$Q_0/Q_1$ 为空 |
+| `gam / final_regularizer` | `gam` | 空 | 最低阶 $H$ 型最终正则项；$Q_0/Q_1$ 为空 |
+| `ms_sam_* / update_correction` | `multistep_sam` | 2, 5；两协议 | 使用最远端梯度 |
+| `lookbehind_* / update_correction` | `lookbehind` | 2, 5；两协议 | `path_mean_surrogate`，不是 faithful slow-weight optimizer |
+| `matched_sam_* / update_correction` | `matched_sam` | 保留配对的 $k$/协议 | 有效半径对照 |
 
 LookSAM、SAM-$k$ 与 Noise-only 不在 E001 中。
 
@@ -85,18 +88,18 @@ CLI 覆盖值优先于 YAML；最终解析值必须进入 manifest。若保留 `
 
 | 文件 | 必需内容 |
 | --- | --- |
-| `manifest.json` | `schema_version`、解析后参数、固定 dtype、命令与运行环境、方法与对象、每种方法的实测 gradient/backward-equivalent 预算 |
+| `manifest.json` | `schema_version`、解析后参数、`code_fingerprint`、固定 dtype、命令与运行环境、三类 GAM 对象语义，以及各方法的 algorithmic-equivalent gradient/HVP/backward 预算 |
 | `arrays.npz` | $H$、特征值/特征向量、$w$、$g$，以及各对象的 $d/c$、扰动、路径点或路径梯度 |
 | `hvp_scan.csv` | `rho_scale,rho,cos_hvp,relative_error_hvp,estimate_norm,truth_norm` |
-| `spectral_gain.csv` | `key,method,object_kind,is_update,protocol,inner_steps,eigen_index,eigenvalue,correction_projection,ghat_projection,gain` |
-| `method_summary.csv` | 主键 `key,method,object_kind,protocol,inner_steps`，以及修正范数、E1/E5/E10、正/负 Rayleigh、嵌套 $R^2$、$Q_0/Q_1$、路径半径、预算、gradient evaluations、matched-SAM cosine、PathNovelty |
+| `spectral_gain.csv` | `key,method,object_kind,is_update,is_correction,protocol,inner_steps,rho_scale,rho,eigen_index,eigenvalue,object_projection,correction_projection,ghat_projection,gain`；probe 行的 `correction_projection` 为 `null` |
+| `method_summary.csv` | 主键 `key,method,object_kind,protocol,inner_steps`；半径字段 `rho_scale,rho,rho_step,paired_path_rho_step,associated_perturbation_radius`；`object_norm/correction_norm`；E1/E5/E10、正/负 Rayleigh、嵌套 Krylov $R^2$、$Q_0/Q_1$、路径预算、algorithmic-equivalent 预算、`h1_residual`，以及 matched-SAM 的 cosine、拟合半径比、修正范数比和向量相对误差 |
 | `metrics.json` | 与 CSV 同源的层次化机器可读汇总；未定义值为 `null` |
 | `spectral_gain.png` | $G_i$ 对 $\lambda_i$ 的谱增益图，GAM 对象分开标注 |
 | `top_subspace_curvature.png` | $E_q$ 与曲率暴露汇总 |
-| `hp_fit.png` | $H^p\hat g$ 嵌套增量 $R^2$ |
+| `hp_fit.png` | 有序 Krylov 子空间的嵌套增量 $R^2$ |
 | `inner_quality.png` | 同半径 oracle 归一化的 $Q_0/Q_1$ |
 
-`method_summary.csv` 的方法主键是 `key,method,object_kind,protocol,inner_steps`。任何为了绘图新增的列都应保持向后兼容，并在 `schema_version` 变化时记录。
+`method_summary.csv` 的方法主键是 `key,method,object_kind,protocol,inner_steps`。单步对象的后两列为空；matched-SAM 则保留配对路径的值。`associated_perturbation_radius` 不代表该行一定有内层质量，是否计算 $Q_0/Q_1$ 必须看 `quality_perturbation_kind` 与 `oracle_radius`。任何为了绘图新增的列都应保持向后兼容，并在 `schema_version` 变化时记录。
 
 生成产物不应手工修改。重新运行前应使用新的输出目录，或明确记录覆盖行为；默认不把临时输出当作源代码提交。
 
@@ -104,10 +107,10 @@ CLI 覆盖值优先于 YAML；最终解析值必须进入 manifest。若保留 `
 
 1. `spectral_gain.png`：修正随特征值如何放大；只能比较同一对象语义和明确的半径协议。
 2. `top_subspace_curvature.png`：能量是否集中到顶部 Hessian 子空间；曲率暴露不是越小越好。
-3. `hp_fit.png`：加入 $H^2\hat g,H^3\hat g$ 后是否产生额外解释度；必须使用 QR。
-4. `inner_quality.png`：候选扰动对 $R^{(0)}$ 与 $R^{(1)}$ 内层目标的相对求解质量；所有点按各自 `oracle_radius` 调用精确 oracle，多步记录的该值等于配对 `path_budget`。
+3. `hp_fit.png`：加入 $H^2\hat g,H^3\hat g$ 后 Krylov 子空间是否产生额外解释度；必须使用 QR，但不能把增量解释度当作唯一阶数系数。
+4. `inner_quality.png`：候选扰动对 $R^{(0)}$ 与 $R^{(1)}$ 内层目标的相对求解质量；GAM 点来自 `gam_probe_direction`，不是 final regularizer 或 probe increment。所有点按各自 `oracle_radius` 调用精确 oracle，多步记录的该值等于配对 `path_budget`。
 
-matched-SAM cosine、PathNovelty、`R_end/R_path` 主要在表格和 JSON 中解释，不能只凭某一条谱曲线判断路径是否提供了新信息。
+matched-SAM cosine、修正幅度/向量误差、H1 residual、`endpoint_radius/path_radius` 主要在表格和 JSON 中解释，不能只凭某一条谱曲线判断路径是否提供了新信息。
 
 ### 2.7 E001 验收顺序
 
@@ -120,6 +123,24 @@ matched-SAM cosine、PathNovelty、`R_end/R_path` 主要在表格和 JSON 中解
 7. 通过以上检查后，才在 [实验日志](log.md) 登记 run ID 并解读图表。
 
 验收阈值见 [指标页](03_metrics.md)。Wiki 不预填具体观测值。
+
+### 2.8 E001-S 敏感性入口
+
+标准 E001 只给一个主点，不能直接回答假设是否稳健。补充入口为：
+
+```bash
+python Project1/SAM_Family_Mechanisms/run_e001_sensitivity.py \
+  --output-dir Project1/SAM_Family_Mechanisms/outputs/e001_sensitivity
+```
+
+该入口执行 17 个 one-factor-at-a-time 配置：五个半径、三个条件数、四个维度和五个 $k$；另外生成：
+
+- 原生半径二分求解的严格 $r_c\in\{.1,.25,.5\}$ 修正强度匹配；
+- 固定 $\rho_{\mathrm{eff}}$ 的 $k$ 扫描；
+- raw/boundary/own-radius 的 $Q$ 分解；
+- 一个 equal-gradient 夹具与各 100 个 random-$w$/random-$g$ 起点。
+
+CI/smoke 可使用 `--quick --no-plots`。完整输出契约与数值解释见 [结果页](06_e001_results_and_sensitivity.md)。E001-S 仍在 PSD 恒 Hessian 二次族内，不是 E002 的替代品。
 
 ## 3. E002：Two Moons 非凸轨迹实验（planned）
 
@@ -135,7 +156,7 @@ E002 的建议设置是：训练集 512、测试集 4096、数据噪声 0.15，�
 4. 比较一步 Taylor 的确定性与随机二阶分解和真实一步损失变化；
 5. 用 PGD 估计多半径 $R^{(0)},R^{(1)}$。
 
-这些数值是未来实验设计参数，不是当前结果。E002 尚未实现。
+这些数值是未来实验设计参数，不是当前结果。E002 尚未实现，且必须先满足 [E001 审计给出的启动门槛](06_e001_results_and_sensitivity.md#10-进入-e002-前的门槛)。特别地，固定 checkpoint 的描述性分解不能自动升级成“最终性能来源”的因果结论。
 
 ## 4. E003：FashionMNIST 端点验证（planned）
 

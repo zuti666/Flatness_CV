@@ -103,8 +103,13 @@ SUMMARY_FIELDS = [
     "path_misalign",
     "last_average_difference",
     "path_novelty",
+    "h1_residual",
     "matched_direction_cosine",
     "matched_correction_cosine",
+    "rho_fit",
+    "rho_fit_over_rho_eff",
+    "matched_correction_norm_ratio",
+    "matched_correction_relative_error",
     "direction_gradient_cosine",
     "descent_per_unit_norm",
     "positive_curvature_exposure",
@@ -150,11 +155,23 @@ def _validate_config(config: dict[str, Any]) -> None:
         raise ValueError("lambda_min must be positive in E001")
     if float(config["lambda_max"]) <= float(config["lambda_min"]):
         raise ValueError("lambda_max must exceed lambda_min")
+    numeric = np.finfo(np.float64)
+    if float(config["lambda_min"]) < 32.0 * numeric.tiny**0.5:
+        raise ValueError("lambda_min is too small for stable float64 squared-norm diagnostics")
+    if float(config["lambda_max"]) > numeric.max**0.5 / 32.0:
+        raise ValueError("lambda_max is too large for stable H^2 float64 diagnostics")
     if float(config["primary_rho_scale"]) <= 0:
         raise ValueError("primary_rho_scale must be positive")
     rho_scales = [float(value) for value in config["rho_scales"]]
     if not rho_scales or any(value <= 0 for value in rho_scales):
         raise ValueError("rho_scales must contain positive values")
+    minimum_resolvable_radius = 32.0 * np.finfo(np.float64).eps
+    if float(config["primary_rho_scale"]) < minimum_resolvable_radius:
+        raise ValueError("primary_rho_scale is below stable float64 resolution")
+    if any(value < minimum_resolvable_radius for value in rho_scales):
+        raise ValueError("rho_scales contain a radius below stable float64 resolution")
+    if len(rho_scales) != len(set(rho_scales)):
+        raise ValueError("rho_scales must not contain duplicates")
     inner_steps = [int(value) for value in config["inner_steps"]]
     if not inner_steps or any(value < 1 for value in inner_steps):
         raise ValueError("inner_steps must contain positive integers")
@@ -168,6 +185,13 @@ def _validate_config(config: dict[str, Any]) -> None:
         raise ValueError("path_protocols must not contain duplicates")
     if len(inner_steps) != len(set(inner_steps)):
         raise ValueError("inner_steps must not contain duplicates")
+    maximum_radius = max(
+        max(rho_scales),
+        float(config["primary_rho_scale"]) * max(inner_steps),
+    )
+    maximum_log_h_delta = math.log(float(config["lambda_max"])) + math.log(maximum_radius)
+    if maximum_log_h_delta > 0.5 * math.log(np.finfo(np.float64).max) - math.log(32.0):
+        raise ValueError("rho and lambda_max imply unstable float64 quadratic diagnostics")
 
 
 def resolved_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -206,16 +230,28 @@ def resolved_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
 
 def build_quadratic_problem(config: dict[str, Any]) -> tuple[Array, Array, Array]:
     """Construct the diagonal spectrum and equal-gradient-amplitude start."""
-    eigenvalues = np.logspace(
-        np.log10(float(config["lambda_min"])),
-        np.log10(float(config["lambda_max"])),
+    log_eigenvalues = np.linspace(
+        np.log(float(config["lambda_min"])),
+        np.log(float(config["lambda_max"])),
         int(config["dimension"]),
         dtype=np.float64,
     )
+    eigenvalues = np.exp(log_eigenvalues)
     hessian = np.diag(eigenvalues)
-    weights = 1.0 / eigenvalues
+    # Subtract the largest log-weight before exponentiating.  This preserves
+    # w_i proportional to 1/lambda_i without overflowing at wide spectra.
+    log_weights = -log_eigenvalues
+    weights = np.exp(log_weights - float(log_weights.max()))
     weights /= np.linalg.norm(weights)
     gradient = hessian @ weights
+    if (
+        not np.all(np.isfinite(hessian))
+        or not np.all(np.isfinite(weights))
+        or not np.all(np.isfinite(gradient))
+        or np.any(gradient == 0.0)
+        or float(np.linalg.norm(gradient)) == 0.0
+    ):
+        raise ValueError("Derived quadratic problem is not representable stably in float64")
     return hessian, weights, gradient
 
 
@@ -330,6 +366,7 @@ def _summary_rows(
         curvature = signed_curvature_metrics(vector, hessian)
         object_norm = float(np.linalg.norm(vector))
         correction_norm = object_norm if is_correction else None
+        h1_residual = path_novelty(vector, hessian, gradient)
         quality_perturbation = record["quality_perturbation"]
         paired_path_rho_step = None
         if trace.method == "matched_sam":
@@ -376,9 +413,18 @@ def _summary_rows(
             "path_budget": comparison_radii[trace.key] if (is_update or quality_perturbation is not None) else None,
             "path_misalign": path["path_misalign"] if is_update else None,
             "last_average_difference": path["last_average_difference"] if is_update else None,
-            "path_novelty": path_novelty(vector, hessian, gradient),
+            "path_novelty": (
+                h1_residual
+                if is_update and trace.method in {"multistep_sam", "lookbehind"}
+                else None
+            ),
+            "h1_residual": h1_residual,
             "matched_direction_cosine": None,
             "matched_correction_cosine": None,
+            "rho_fit": None,
+            "rho_fit_over_rho_eff": None,
+            "matched_correction_norm_ratio": None,
+            "matched_correction_relative_error": None,
             "direction_gradient_cosine": None,
             "descent_per_unit_norm": None,
             "positive_curvature_exposure": None,
@@ -408,6 +454,19 @@ def _summary_rows(
             matched = traces_by_key[matched_key]
             row["matched_direction_cosine"] = cosine(trace.direction, matched.direction)
             row["matched_correction_cosine"] = cosine(trace.correction, matched.correction)
+            h1_reference = hessian @ unit(gradient)
+            rho_fit = float(
+                np.dot(trace.correction, h1_reference)
+                / np.dot(h1_reference, h1_reference)
+            )
+            rho_eff = 0.5 * (int(trace.inner_steps) + 1) * float(trace.rho_step)
+            row["rho_fit"] = rho_fit
+            row["rho_fit_over_rho_eff"] = rho_fit / rho_eff
+            matched_norm = float(np.linalg.norm(matched.correction))
+            row["matched_correction_norm_ratio"] = correction_norm / matched_norm
+            row["matched_correction_relative_error"] = float(
+                np.linalg.norm(trace.correction - matched.correction) / correction_norm
+            )
         summaries.append(row)
     return summaries
 
@@ -437,13 +496,17 @@ def _spectral_rows(
                     "method": record["method"],
                     "object_kind": record["object_kind"],
                     "is_update": bool(record["is_update"]),
+                    "is_correction": bool(record["is_correction"]),
                     "protocol": trace.protocol,
                     "inner_steps": trace.inner_steps,
                     "rho_scale": float(rho_scale),
                     "rho": float(rho),
                     "eigen_index": index,
                     "eigenvalue": float(eigenvalue),
-                    "correction_projection": float(correction_projection),
+                    "object_projection": float(correction_projection),
+                    "correction_projection": (
+                        float(correction_projection) if record["is_correction"] else None
+                    ),
                     "ghat_projection": float(ghat_projection),
                     "gain": None if correction_is_zero else float(gain),
                 }
@@ -585,9 +648,7 @@ def run_quadratic_experiment(
     sam = next(trace for trace in traces if trace.key == "sam")
     gam = next(trace for trace in traces if trace.key == "gam")
     sam_truth = rho * (hessian @ unit(gradient))
-    gam_probe_truth = rho * (hessian @ hessian @ unit(gradient)) / float(
-        np.linalg.norm(hessian @ unit(gradient))
-    )
+    gam_probe_truth = rho * (hessian @ unit(hessian @ unit(gradient)))
     if gam.probe_increment is None or gam.final_regularizer is None:
         raise RuntimeError("Incomplete GAM trace")
     h1_reference = hessian @ unit(gradient)
@@ -707,12 +768,14 @@ def run_quadratic_experiment(
             "method",
             "object_kind",
             "is_update",
+            "is_correction",
             "protocol",
             "inner_steps",
             "rho_scale",
             "rho",
             "eigen_index",
             "eigenvalue",
+            "object_projection",
             "correction_projection",
             "ghat_projection",
             "gain",

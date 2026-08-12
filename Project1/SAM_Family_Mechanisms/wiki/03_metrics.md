@@ -14,7 +14,9 @@ H=V\Lambda V^\top=\sum_i\lambda_i v_iv_i^\top.
 (key, method, object_kind, protocol, inner_steps)
 ```
 
-其中单步对象在语义上没有多步路径；实现可用 `single_step` 与 `inner_steps=1` 显式表示。GAM 的 `probe_increment` 必须与表示 `final_regularizer` 的最终 `update_correction` 分行。未定义指标输出 `null`，不能输出 NaN、无穷或虚构的零。
+单步对象的 `protocol` 与 `inner_steps` 为空；matched-SAM 使用 `method=matched_sam`，并保留所配对 Lookbehind 的 `protocol/inner_steps`。GAM 固定为三行：`gam/final_regularizer`、`gam_probe_direction/probe_direction`、`gam_probe_increment/probe_increment`。未定义指标输出 `null`，不能输出 NaN、无穷或虚构的零。
+
+每行用 `object_kind` 解释其分析向量 $x$。`is_update` 表示该行是否对应实际外层下降方向，`is_correction` 表示 $x$ 能否解释为 $d-g$；`correction_norm` 只对 correction 定义，而 `object_norm` 对三个 GAM 对象和所有普通 correction 都定义。`associated_perturbation_radius` 只说明该对象所属 trace 的扰动尺度，不自动表示该行具有 $Q_0/Q_1$。
 
 ## 2. SAM 的 HVP 近似检查
 
@@ -57,38 +59,43 @@ s\in\{10^{-4},10^{-3},10^{-2},10^{-1}\}.
 
 ## 3. Hessian 谱增益
 
-对任意修正对象 $c$，定义
+对任意分析对象 $x$，定义
 
 \[
-G_i(c)
-=\frac{|v_i^\top c|}
+G_i(x)
+=\frac{|v_i^\top x|}
 {|v_i^\top\hat g|+\epsilon}.
 \]
 
 绘制 $\log G_i$ 对 $\log\lambda_i$，同时在 CSV 中保留未取对数的投影和增益。理论参照是：
 
 - SAM final correction：$G_i\propto\lambda_i$；
+- GAM probe direction：归一化只改变整体尺度，因此 $G_i\propto\lambda_i$；
 - GAM probe increment：$G_i\propto\lambda_i^2$；
 - GAM final regularizer：最低阶应回到 $G_i\propto\lambda_i$，不能沿用 probe 标签；
 - MS-SAM 和 Lookbehind：不预设固定幂次，由曲线与嵌套拟合判断。
 
 比例关系是二次模型下的理论预期，不是尚未运行便成立的经验结果。
 
-## 4. $H^p\hat g$ 的嵌套拟合
+`spectral_gain.csv` 用 `object_projection` 保存所有对象的 $v_i^\top x$。只有 `is_correction=true` 的行才同时填写 `correction_projection`；两个 GAM probe 对象的该列为 `null`。因此 probe direction/increment 不会再被字段名称误称为 update correction。
+
+E001 的特征值和各坐标投影均为正对照，绝对值不会暴露符号问题。E002 面对不定 Hessian 时必须补 signed transfer；对 $|v_i^\top\hat g|$ 接近零的模态使用预注册 mask 或谱带聚合，不能把分母爆炸解释为巨大滤波增益。
+
+## 4. 有序 Krylov 子空间的嵌套拟合
 
 依次构造
 
 \[
-x_1=H\hat g,\qquad x_2=H^2\hat g,\qquad x_3=H^3\hat g.
+b_1=H\hat g,\qquad b_2=H^2\hat g,\qquad b_3=H^3\hat g.
 \]
 
-这些向量可能高度共线，必须先对设计矩阵 $[x_1,x_2,x_3]$ 做 QR 正交化，再做无截距的嵌套投影。对目标修正 $c$，定义
+这些基向量可能高度共线，必须先对设计矩阵 $[b_1,b_2,b_3]$ 做 QR 正交化，再做无截距的嵌套投影。对目标对象 $x$，定义
 
 \[
 R_p^2
 =1-
-\frac{\lVert c-\Pi_{\operatorname{span}(x_1,\ldots,x_p)}c\rVert^2}
-{\lVert c\rVert^2+\epsilon},
+\frac{\lVert x-\Pi_{\operatorname{span}(b_1,\ldots,b_p)}x\rVert^2}
+{\lVert x\rVert^2+\epsilon},
 \qquad p=1,2,3.
 \]
 
@@ -100,15 +107,17 @@ R_1^2,\qquad
 \Delta R_3^2=R_3^2-R_2^2.
 \]
 
-嵌套投影的 $R^2$ 应单调不减；若数值上出现明显下降，优先判定为实现或病态数值问题。对于 $c=0$ 的 SGD，拟合没有解释意义，应输出 `null`。
+嵌套投影的 $R^2$ 应单调不减；若数值上出现明显下降，优先判定为实现或病态数值问题。对于 $x=c=0$ 的 SGD，拟合没有解释意义，应输出 `null`。
+
+该指标回答“对象在按 $H$ 生成的 Krylov 子空间中是否可压缩”，不唯一识别物理 Hessian 阶数。QR 只改善设计矩阵数值条件；$\Delta R_2^2$ 依赖基向量加入顺序，也不等于 $H^2\hat g$ 的多项式系数。E002 应同时报告设计矩阵条件数，并用解析式、held-out eigenmode 或 signed transfer 辅助解释。
 
 ## 5. 顶部子空间能量与曲率暴露
 
-令 $V_q=[v_1,\ldots,v_q]$ 包含最大的 $q$ 个特征值，对 $q\in\{1,5,10\}$ 定义
+令 $V_q=[v_1,\ldots,v_q]$ 包含最大的 $q$ 个特征值，对 $q\in\{1,5,10\}$ 和分析对象 $x$ 定义
 
 \[
-E_q(c)=\frac{\lVert V_q^\top c\rVert^2}
-{\lVert c\rVert^2+\epsilon}.
+E_q(x)=\frac{\lVert V_q^\top x\rVert^2}
+{\lVert x\rVert^2+\epsilon}.
 \]
 
 并报告正、负曲率分量和正曲率 Rayleigh quotient：
@@ -120,9 +129,9 @@ H_-=\sum_{\lambda_i<0}\lambda_i v_iv_i^\top,
 \]
 
 \[
-\kappa_+(c)=\frac{c^\top H_+c}{\lVert c\rVert^2+\epsilon},
+\kappa_+(x)=\frac{x^\top H_+x}{\lVert x\rVert^2+\epsilon},
 \qquad
-\kappa_-(c)=\frac{c^\top(-H_-)c}{\lVert c\rVert^2+\epsilon}.
+\kappa_-(x)=\frac{x^\top(-H_-)x}{\lVert x\rVert^2+\epsilon}.
 \]
 
 E001 的 $H$ 正定，所以 $\kappa_-=0$；保留字段是为避免 E002 中用完整不定 Hessian 互相抵消正负曲率。
@@ -147,13 +156,15 @@ SAM、MS-SAM 与 Lookbehind 的路径最初针对零阶损失上升；GAM 的 pr
 
 ## 7. E001 的精确 $Q_0/Q_1$ Oracle
 
-对每条记录，使用该记录的 `oracle_radius` 作为共同球半径 $r$；对多步记录，它等于配对的 `path_budget`。候选扰动约定为：
+只对具有关联内层候选的记录计算质量，并使用该记录的 `oracle_radius` 作为共同球半径 $r$；对多步记录，它等于配对的 `path_budget`。候选扰动约定为：
 
+- SGD update：零扰动，只作为 $Q_0=Q_1=0$ 的参考行；
 - SAM：$\delta_{\mathrm{SAM}}$；
-- GAM 的最终 update summary：使用该方法产生 final regularizer 前的 $\delta_{\mathrm{probe}}$；
+- GAM probe direction：使用 $\delta_{\mathrm{probe}}=\rho u_{\mathrm{GAM}}$，这是唯一承载 GAM $Q_0/Q_1$ 的行；
+- GAM final regularizer：不把最终修正冒充内层扰动，$Q_0,Q_1$ 为 `null`；
+- GAM probe increment：该行分析梯度增量，$Q_0,Q_1$ 为 `null`；
 - MS-SAM 与 Lookbehind：共享路径端点 $z_k-w$；
 - matched-SAM：使用其 $\rho_{\mathrm{eff}}\hat g$ 扰动，但用配对 Lookbehind 的路径预算调用 oracle；
-- 单独的 `probe_increment` 诊断行可将 $Q_0,Q_1$ 置为 `null`，避免与 GAM update summary 重复。
 
 路径端点必须满足 $\lVert z_k-w\rVert\le r$。fixed-step 的 $r=k\rho$，fixed-budget 的 $r=\rho$。
 
@@ -183,7 +194,7 @@ Q_0^{(m)}
 {L(w+\delta_0^\star)-L(w)+\epsilon}.
 \]
 
-### 7.2 一阶 oracle
+### 7.2 一阶 oracle 与增量口径
 
 最大化 $\lVert g+H\delta\rVert$ 等价于最大化其平方。全局最大解满足
 
@@ -196,7 +207,7 @@ Q_0^{(m)}
 \nu>\lambda_{\max}^2.
 \]
 
-定义
+当前 schema 为兼容原实验蓝图仍使用字段名 `q1`，其实际定义是归一化的梯度范数增量：
 
 \[
 Q_1^{(m)}
@@ -205,6 +216,18 @@ Q_1^{(m)}
 \]
 
 原始一阶 sharpness 定义中的共同半径因子 $r$ 在同半径比值中抵消，因此不重复写入 $Q_1$ 的分子和分母。
+
+更准确的语义标签是 $\Delta Q_1$，而不是原始目标值比。接近驻点或极小半径时，其增量分母可能病态；E002 必须同时报告 raw objective ratio、增量比和 absolute regret。
+
+### 7.3 候选方向与半径利用率
+
+若候选没有用满注册 oracle 球，raw $Q$ 会同时惩罚方向和半径。E001-S 因此另外报告：
+
+1. `raw_q*`：使用注册的 path/oracle budget；
+2. `boundary_q*`：保持候选方向，将其径向投影到同一 oracle 球面；
+3. `own_radius_q*`：把 oracle 半径改为候选自身范数。
+
+这三者只用于分解混杂，不能选择其中最有利的一项替代预注册主指标。MS 与 Lookbehind 共享端点，其 $Q$ 应视为一条 inner-path 证据；外层聚合另用方向与一步损失评价。
 
 在精确 oracle 与可行候选下，$Q_0,Q_1\le1+\text{tol}$。若明显超过上界，应检查候选半径、oracle 求根和归一化是否使用了同一个预算，不能把超界值解释成方法“优于 oracle”。
 
@@ -231,16 +254,29 @@ R_{\mathrm{path}}=\sum_{i=1}^k\lVert z_i-z_{i-1}\rVert,
 \bigl(c_{\mathrm{LB}},c_{\mathrm{matched\text{-}SAM}}\bigr),
 \]
 
-并定义路径新信息残差
+对任意非零对象，通用的 H1 residual 定义为
 
 \[
-\mathrm{PathNovelty}
+\mathrm{H1Residual}
 =\frac{
 \min_a\lVert c_{\mathrm{LB}}-aH\hat g\rVert
 }{\lVert c_{\mathrm{LB}}\rVert+\epsilon}.
 \]
 
-若 cosine 很高且 PathNovelty 很小，只能支持“有效半径放大加路径聚合”的解释，不能声称获得了本质不同的高阶曲率信息。
+只有 MS-SAM/Lookbehind 等真实路径对象才把同一数值另存为 `path_novelty`；GAM 等非路径对象的该字段为 `null`，只保留 `h1_residual`。对正 cosine 的 LB，H1 residual 与 correction cosine 存在解析冗余，因此不能把两者算作独立证据。
+
+若 cosine 很高且 H1 residual 很小，只能支持“有效半径放大加路径聚合”的解释，不能声称获得了本质不同的高阶曲率信息。还必须报告
+
+\[
+\rho_{\mathrm{fit}}
+=\frac{c_{\mathrm{LB}}^\top H\hat g}{\lVert H\hat g\rVert^2},
+\quad
+\frac{\rho_{\mathrm{fit}}}{\rho_{\mathrm{eff}}},
+\quad
+\frac{\lVert c_{\mathrm{LB}}\rVert}{\lVert c_{\mathrm{matched}}\rVert},
+\quad
+\frac{\lVert c_{\mathrm{LB}}-c_{\mathrm{matched}}\rVert}{\lVert c_{\mathrm{LB}}\rVert}.
+\]
 
 E001 还从保存的路径梯度导出两个确定性诊断：
 
@@ -262,10 +298,12 @@ D_{\mathrm{last\text{-}avg}}
 
 - SAM 的 $c_{\mathrm{SAM}}=\rho H\hat g$ 相对数值误差小于 $10^{-12}$；
 - GAM 的 $\Delta g_{\mathrm{probe}}=\rho H u_{\mathrm{GAM}}$ 相对数值误差小于 $10^{-12}$；
+- GAM 三行语义及其 $Q_0/Q_1$ 空值/非空值位置符合契约；
 - fixed-step 的路径预算为 $k\rho$，fixed-budget 为 $\rho$，且实测路径总长与协议一致；
 - Lookbehind 在 $k=1$ 时与 SAM 方向一致；
 - 所有可定义的 $Q_0,Q_1\le1+\text{tol}$；
-- 嵌套 $R^2$ 在数值容差内单调不减；
+- 嵌套 Krylov $R^2$ 在数值容差内单调不减；
 - JSON 不含 NaN/Infinity，重复运行的核心 CSV 一致。
+- 配置拒绝 NaN/Infinity、非整数 `inner_steps`、字符串伪布尔值和重复的扫描/协议条目。
 
 只有通过这些不变量后，图表才可用于机制解释。

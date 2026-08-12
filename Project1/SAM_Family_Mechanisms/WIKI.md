@@ -13,7 +13,7 @@ E003 端点层：小型 FashionMNIST（planned）
       最后检验局部机制能否解释平坦性与泛化
 ```
 
-本次只实现 E001。E002 与 E003 是路线图，不属于当前完成项。
+当前已实现 E001 标准算子实验和 E001-S 敏感性审计。E002 与 E003 是路线图，不属于当前完成项；E001 的验收与敏感性结论都不等于轨迹或泛化结论成立。
 
 ## 统一语言
 
@@ -25,7 +25,7 @@ d^{(m)}=\text{方法 }m\text{ 实际用于下降的方向},\qquad
 c^{(m)}=d^{(m)}-g.
 \]
 
-解释时必须分开报告原始梯度 $g$、额外修正 $c$ 和总方向 $d$。对 GAM 还必须额外拆分 probe direction、probe increment 与 final regularizer；对多步方法必须同时记录路径端点、路径总长和路径梯度。
+解释时必须分开报告原始梯度 $g$、额外修正 $c$ 和总方向 $d$。谱与拟合表还使用 `object_kind` 指明当前分析向量：普通方法是 update correction；GAM 则严格拆成 `probe_direction`、`probe_increment` 与 `final_regularizer` 三行。对多步方法还必须记录路径端点、路径总长和路径梯度。
 
 ## 当前比较集合
 
@@ -44,10 +44,11 @@ SGD 只作为 $c=0$ 的参考基线。LookSAM、SAM-$k$、Noise-only、更新协
 
 1. [范围与研究问题](wiki/01_scope_and_rqs.md)：三级实验为什么分开，以及每一级能支持什么结论。
 2. [方法与对象](wiki/02_methods_and_objects.md)：二次问题、SAM/GAM/MS-SAM/Lookbehind，以及两个路径半径协议。
-3. [指标](wiki/03_metrics.md)：谱增益、$H^p\hat g$ 拟合、$Q_0/Q_1$、matched-SAM 和验收不变量。
+3. [指标](wiki/03_metrics.md)：谱增益、Krylov 子空间拟合、$Q_0/Q_1$、matched-SAM 和验收不变量。
 4. [实验](wiki/04_experiments.md)：E001 配置、CLI、输出契约、四张核心图，以及 planned 的 E002/E003。
 5. [公平性与复现](wiki/05_fairness_and_reproduction.md)：计算预算、强度匹配、确定性与研究结论边界。
-6. [日志](wiki/log.md)：只登记真实运行，不把预期写成结果。
+6. [E001 结果与敏感性](wiki/06_e001_results_and_sensitivity.md)：标准结果、OFAT 扫描、假设判定与 E002 门槛。
+7. [日志](wiki/log.md)：只登记真实运行，不把预期写成结果。
 
 ## 证据标签
 

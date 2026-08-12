@@ -22,8 +22,9 @@ def _load_pyplot(output_dir: Path):
 
 def _label(key: str) -> str:
     return (
-        key.replace("gam_probe_increment", "GAM probe")
-        .replace("gam", "GAM final")
+        key.replace("gam_probe_direction", "GAM probe direction")
+        .replace("gam_probe_increment", "GAM probe increment")
+        .replace("gam", "GAM final regularizer")
         .replace("ms_sam", "MS-SAM")
         .replace("lookbehind", "Lookbehind")
         .replace("matched_sam", "Matched-SAM")
@@ -34,16 +35,14 @@ def _label(key: str) -> str:
 
 
 def _quality_label(key: str) -> str:
-    if key == "gam":
-        return "GAM (probe perturbation)"
     return _label(key)
 
 
-def _nonempty_update_rows(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _nonempty_object_rows(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         row
         for row in summaries
-        if bool(row["is_update"]) and row["key"] != "sgd" and float(row["correction_norm"]) > 0
+        if row["key"] != "sgd" and float(row["object_norm"]) > 0
     ]
 
 
@@ -78,7 +77,7 @@ def make_quadratic_plots(
     fig.savefig(output_dir / "spectral_gain.png", dpi=180)
     plt.close(fig)
 
-    rows = _nonempty_update_rows(summaries)
+    rows = _nonempty_object_rows(summaries)
     labels = [_label(str(row["key"])) for row in rows]
     positions = np.arange(len(rows))
     fig, axes = plt.subplots(2, 1, figsize=(max(10.0, 0.62 * len(rows)), 8.0), sharex=True)
@@ -102,7 +101,7 @@ def make_quadratic_plots(
     axes[1].set_ylabel("positive Rayleigh quotient")
     axes[1].set_xticks(positions, labels, rotation=55, ha="right", fontsize=8)
     axes[1].grid(axis="y", alpha=0.25)
-    fig.suptitle("Top Hessian exposure of method corrections")
+    fig.suptitle("Top Hessian exposure of analyzed method objects")
     fig.tight_layout()
     fig.savefig(output_dir / "top_subspace_curvature.png", dpi=180)
     plt.close(fig)
@@ -134,22 +133,25 @@ def make_quadratic_plots(
     fig.savefig(output_dir / "hp_fit.png", dpi=180)
     plt.close(fig)
 
-    quality_rows = [row for row in summaries if bool(row["is_update"]) and row["key"] != "sgd"]
-    fig, axis = plt.subplots(figsize=(8.0, 6.5))
-    for row in quality_rows:
-        axis.scatter(float(row["q0"]), float(row["q1"]), s=42)
-        axis.annotate(
-            _quality_label(str(row["key"])),
-            (float(row["q0"]), float(row["q1"])),
-            xytext=(4, 3),
-            textcoords="offset points",
-            fontsize=7,
+    quality_rows = [
+        row for row in summaries if row["q0"] is not None and row["key"] != "sgd"
+    ]
+    fig, axis = plt.subplots(figsize=(10.6, 6.5))
+    colors = plt.cm.tab20(np.linspace(0.0, 1.0, len(quality_rows)))
+    for row, color in zip(quality_rows, colors):
+        axis.scatter(
+            float(row["q0"]),
+            float(row["q1"]),
+            s=48,
+            color=color,
+            label=_quality_label(str(row["key"])),
         )
     axis.axline((0.0, 0.0), slope=1.0, color="black", linewidth=0.8, linestyle="--", alpha=0.5)
     axis.set_xlabel("Q0: zero-order inner quality")
     axis.set_ylabel("Q1: first-order inner quality")
     axis.set_title("Inner maximization quality at matched path budgets")
     axis.grid(alpha=0.25)
+    axis.legend(bbox_to_anchor=(1.02, 1.0), loc="upper left", fontsize=7)
     fig.tight_layout()
     fig.savefig(output_dir / "inner_quality.png", dpi=180)
     plt.close(fig)

@@ -12,6 +12,12 @@ import unittest
 
 import numpy as np
 
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.experiment import resolved_config
 from src.diagnostics import (
     inner_problem_quality,
     maximize_quadratic_on_ball,
@@ -25,10 +31,6 @@ from src.operators import (
     sam_trace,
     unit,
 )
-
-
-ROOT = Path(__file__).resolve().parents[1]
-
 
 class QuadraticOperatorTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -51,9 +53,7 @@ class QuadraticOperatorTests(unittest.TestCase):
         gradient = self.hessian @ self.weights
         normalized_gradient = unit(gradient)
         hessian_gradient = self.hessian @ normalized_gradient
-        expected_probe = rho * (
-            self.hessian @ self.hessian @ normalized_gradient
-        ) / np.linalg.norm(hessian_gradient)
+        expected_probe = rho * (self.hessian @ unit(hessian_gradient))
         expected_final = rho * self.hessian @ unit(gradient + expected_probe)
 
         self.assertIsNotNone(trace.probe_increment)
@@ -129,6 +129,8 @@ class QuadraticOperatorTests(unittest.TestCase):
         residual = stationarity_vector - multiplier * solution
         self.assertGreater(multiplier, float(np.linalg.eigvalsh(matrix)[-1]))
         self.assertLess(float(np.linalg.norm(residual)), 2e-11)
+        with self.assertRaises(ValueError):
+            maximize_quadratic_on_ball(-np.eye(3), np.zeros(3), radius)
 
     def test_inner_problem_oracles_reach_q0_and_q1_boundaries(self) -> None:
         radius = 0.21
@@ -176,6 +178,23 @@ class QuadraticOperatorTests(unittest.TestCase):
             self.assertLessEqual(value, 1.0)
             self.assertGreaterEqual(float(fit[f"delta_r2_{order}"]), -1e-14)
         self.assertAlmostEqual(numeric_values[-1], 1.0, places=12)
+
+    def test_config_rejects_lossy_or_nonfinite_values(self) -> None:
+        invalid_overrides = (
+            {"dimension": 3.5},
+            {"inner_steps": [2.7]},
+            {"rho_scales": [float("nan")]},
+            {"lambda_max": float("inf")},
+            {"lambda_min": 1e-300},
+            {"lambda_max": 1e300},
+            {"primary_rho_scale": 1e-20},
+            {"rho_scales": [1e308]},
+            {"make_plots": "false"},
+            {"path_protocols": ["fixed_step", "fixed_step"]},
+        )
+        for overrides in invalid_overrides:
+            with self.subTest(overrides=overrides), self.assertRaises(ValueError):
+                resolved_config(overrides)
 
 
 class QuadraticCliTests(unittest.TestCase):
@@ -283,6 +302,44 @@ class QuadraticCliTests(unittest.TestCase):
                 with first_csv[name].open("r", encoding="utf-8", newline="") as handle:
                     rows = list(csv.DictReader(handle))
                 self.assertTrue(rows, f"CSV contains no data rows: {name}")
+
+            with (first / "spectral_gain.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                spectral_reader = csv.DictReader(handle)
+                self.assertTrue(
+                    {"correction_projection", "ghat_projection", "rho_scale", "rho"}
+                    .issubset(spectral_reader.fieldnames or [])
+                )
+
+            with (first / "method_summary.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                summary_rows = {row["key"]: row for row in csv.DictReader(handle)}
+            self.assertEqual(summary_rows["gam"]["object_kind"], "final_regularizer")
+            self.assertEqual(summary_rows["gam"]["q0"], "")
+            self.assertEqual(
+                summary_rows["gam_probe_direction"]["quality_perturbation_kind"],
+                "gam_probe_perturbation",
+            )
+            self.assertNotEqual(summary_rows["gam_probe_direction"]["q0"], "")
+            self.assertEqual(summary_rows["gam_probe_increment"]["q0"], "")
+            self.assertEqual(summary_rows["matched_sam_k2_fixed_step"]["inner_steps"], "2")
+            self.assertEqual(
+                summary_rows["matched_sam_k2_fixed_step"]["method"], "matched_sam"
+            )
+            self.assertEqual(summary_rows["gam"]["path_novelty"], "")
+            self.assertNotEqual(summary_rows["gam"]["h1_residual"], "")
+            lookbehind = summary_rows["lookbehind_k5_fixed_budget"]
+            self.assertNotEqual(lookbehind["rho_fit_over_rho_eff"], "")
+            self.assertNotEqual(lookbehind["matched_correction_norm_ratio"], "")
+            self.assertNotEqual(lookbehind["matched_correction_relative_error"], "")
+
+            manifest = json.loads((first / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["runtime"]["dtype"], "float64")
+            self.assertTrue(manifest["compute_budget"])
+            self.assertTrue(manifest["objects"])
+            self.assertEqual(len(manifest["code_fingerprint"]["sha256"]), 64)
 
 
 if __name__ == "__main__":

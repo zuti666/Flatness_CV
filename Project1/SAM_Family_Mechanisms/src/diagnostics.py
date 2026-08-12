@@ -121,12 +121,21 @@ def maximize_quadratic_on_ball(
         raise ValueError("matrix must be square")
     if linear.shape != (matrix.shape[0],):
         raise ValueError("linear term has the wrong shape")
-    if radius <= 0:
+    if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(linear)):
+        raise ValueError("matrix and linear term must be finite")
+    if not np.isfinite(radius) or radius <= 0:
         raise ValueError("radius must be positive")
+    if not np.isfinite(tolerance) or tolerance <= 0:
+        raise ValueError("tolerance must be positive and finite")
+    if isinstance(max_iterations, bool) or int(max_iterations) != max_iterations or max_iterations < 1:
+        raise ValueError("max_iterations must be a positive integer")
     if not np.allclose(matrix, matrix.T, rtol=0.0, atol=1e-12):
         raise ValueError("matrix must be symmetric")
 
     eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+    psd_tolerance = tolerance * max(1.0, float(np.max(np.abs(eigenvalues))))
+    if float(eigenvalues[0]) < -psd_tolerance:
+        raise ValueError("maximize_quadratic_on_ball currently requires a PSD matrix")
     coefficients = eigenvectors.T @ linear
     top = float(eigenvalues[-1])
     scale = max(1.0, abs(top), float(np.linalg.norm(linear)))
@@ -301,4 +310,3 @@ def hvp_scan(
             }
         )
     return rows
-

@@ -10,10 +10,16 @@ Array = np.ndarray
 
 def unit(vector: Array, eps: float = 1e-15) -> Array:
     """Return a numerically safe L2-normalized copy of ``vector``."""
-    norm = float(np.linalg.norm(vector))
+    vector = np.asarray(vector, dtype=np.float64)
+    if not np.all(np.isfinite(vector)):
+        raise ValueError("Cannot normalize a non-finite vector")
+    scale = float(np.max(np.abs(vector)))
+    if scale == 0.0:
+        raise ValueError("Cannot normalize a zero vector")
+    norm = scale * float(np.linalg.norm(vector / scale))
     if norm <= eps:
         raise ValueError("Cannot normalize a zero vector")
-    return np.asarray(vector, dtype=np.float64) / norm
+    return vector / (norm + float(eps))
 
 
 def _validate_problem(hessian: Array, weights: Array) -> tuple[Array, Array]:
@@ -25,6 +31,8 @@ def _validate_problem(hessian: Array, weights: Array) -> tuple[Array, Array]:
         raise ValueError("weights must have one entry per Hessian dimension")
     if not np.allclose(hessian, hessian.T, rtol=0.0, atol=1e-12):
         raise ValueError("hessian must be symmetric")
+    if not np.all(np.isfinite(hessian)) or not np.all(np.isfinite(weights)):
+        raise ValueError("hessian and weights must be finite")
     return hessian, weights
 
 
@@ -161,7 +169,7 @@ def ascent_path(
     weights: Array,
     rho_step: float,
     inner_steps: int,
-) -> tuple[Array, Array]:
+) -> tuple[Array, Array, Array]:
     """Build ``z_0,...,z_k`` and post-ascent gradients ``g_1,...,g_k``."""
     hessian, weights = _validate_problem(hessian, weights)
     if rho_step <= 0:
@@ -170,6 +178,7 @@ def ascent_path(
         raise ValueError("inner_steps must be at least one")
     point = weights.copy()
     gradient = hessian @ point
+    clean_gradient = gradient.copy()
     points = [point.copy()]
     gradients: list[Array] = []
     for _ in range(int(inner_steps)):
@@ -177,7 +186,7 @@ def ascent_path(
         gradient = hessian @ point
         points.append(point.copy())
         gradients.append(gradient.copy())
-    return np.stack(points), np.stack(gradients)
+    return np.stack(points), np.stack(gradients), clean_gradient
 
 
 def multistep_sam_trace(
@@ -188,8 +197,9 @@ def multistep_sam_trace(
     protocol: str,
 ) -> OperatorTrace:
     hessian, weights = _validate_problem(hessian, weights)
-    points, gradients = ascent_path(hessian, weights, rho_step, inner_steps)
-    clean_gradient = hessian @ weights
+    points, gradients, clean_gradient = ascent_path(
+        hessian, weights, rho_step, inner_steps
+    )
     direction = gradients[-1]
     return OperatorTrace(
         key=f"ms_sam_k{inner_steps}_{protocol}",
@@ -216,8 +226,9 @@ def lookbehind_trace(
     protocol: str,
 ) -> OperatorTrace:
     hessian, weights = _validate_problem(hessian, weights)
-    points, gradients = ascent_path(hessian, weights, rho_step, inner_steps)
-    clean_gradient = hessian @ weights
+    points, gradients, clean_gradient = ascent_path(
+        hessian, weights, rho_step, inner_steps
+    )
     direction = gradients.mean(axis=0)
     return OperatorTrace(
         key=f"lookbehind_k{inner_steps}_{protocol}",
@@ -233,7 +244,11 @@ def lookbehind_trace(
         path_gradients=gradients,
         gradient_evaluations=int(inner_steps) + 1,
         backward_equivalents=int(inner_steps) + 1,
-        metadata={"aggregation": "mean_post_ascent_gradients", "alpha": 1.0},
+        metadata={
+            "aggregation": "mean_post_ascent_gradients",
+            "operator_semantics": "path_mean_surrogate",
+            "faithful_slow_weight_interpolation": False,
+        },
     )
 
 

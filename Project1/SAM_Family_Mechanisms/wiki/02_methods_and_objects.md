@@ -27,7 +27,7 @@ g=Hw
 \hat g=\frac{g}{\lVert g\rVert+\epsilon}.
 \]
 
-这个问题中 $H$ 恒定且正定，特征向量是坐标轴。正曲率与负曲率字段仍保留在输出 schema 中，以便 E002 复用；E001 的负曲率量应是零或不适用，而不是伪造非零值。
+这个等梯度起点是刻意激发全部谱模态的 `diagnostic fixture`，不是典型初始化的概率模型；E001-S 另外报告 random-$w$/random-$g$ ensemble。这个问题中 $H$ 恒定且正定，特征向量是坐标轴。正曲率与负曲率字段仍保留在输出 schema 中，以便 E002 复用；E001 的负曲率量应是零或不适用，而不是伪造非零值。
 
 ## 2. 统一对象：$g,c,d$
 
@@ -39,13 +39,13 @@ d^{(m)}=\text{实际用于下降的方向},\qquad
 c^{(m)}=d^{(m)}-g.
 \]
 
-如果某个中间对象不是最终下降方向，例如 GAM probe increment，必须使用单独的 `object_kind` 标签，不能塞进 final correction。SGD 参考为
+如果某个中间对象不是最终下降方向，例如 GAM probe direction 或 probe increment，必须使用单独的 `object_kind` 标签，不能塞进 final correction。为统一谱分析，记每行实际分析的向量为 $x$：普通更新行取 $x=c$，GAM 的两个 probe 行分别取 $x=u_{\mathrm{GAM}}$ 与 $x=\Delta g_{\mathrm{probe}}$。SGD 参考为
 
 \[
 d^{(\mathrm{SGD})}=g,\qquad c^{(\mathrm{SGD})}=0.
 \]
 
-SGD 的 `correction_projection` 是零参考；为避免把“无修正”混作一条可拟合曲线，`gain` 以及以 $\lVert c\rVert$ 为分母的顶部能量、Rayleigh 和拟合指标输出 `null`，而不是 NaN。
+SGD 的 `correction_projection` 是零参考；为避免把“无修正”混作一条可拟合曲线，`gain` 以及以 $\lVert x\rVert$ 为分母的顶部能量、Rayleigh 和拟合指标输出 `null`，而不是 NaN。非 correction 对象使用 `object_norm`，其 `correction_norm` 为 `null`。
 
 ## 3. SAM：单次方向性 Hessian 修正
 
@@ -84,6 +84,8 @@ u_{\mathrm{GAM}}
 
 这是 GAM 用 Hessian 定向探测邻域的方向，本身不是最终正则项。
 
+汇总表中它是 `key=gam_probe_direction, object_kind=probe_direction`。实际内层候选是 $\delta_{\mathrm{probe}}=\rho u_{\mathrm{GAM}}$，因此 GAM 的 $Q_0/Q_1$ 只放在这一行；方向向量的 `object_norm` 与候选扰动半径由不同字段记录。
+
 ### 4.2 Probe increment：$H^2$ 型
 
 令
@@ -103,6 +105,8 @@ u_{\mathrm{GAM}}
 
 只有这个 `probe_increment` 对象具有明确的 $H^2$ 型谱响应。
 
+汇总表中它是 `key=gam_probe_increment, object_kind=probe_increment`。该行分析梯度增量本身，不把它再次当作内层候选，所以 $Q_0/Q_1$ 为 `null`。
+
 ### 4.3 Final regularizer：最低阶 $H$ 型
 
 在探测点 $w^{\mathrm{adv}}=w+\delta_{\mathrm{probe}}$ 上定义
@@ -121,7 +125,7 @@ h_{\mathrm{GAM}}
 =\rho H\hat g_{\mathrm{adv}}
 \]
 
-（最后一步利用了 E001 中 Hessian 恒定）。其小半径最低阶项仍是 $\rho H\hat g$。E001 的约定最终方向是 $d_{\mathrm{GAM}}=g+h_{\mathrm{GAM}}$；`arrays.npz` 分别保存 `probe_direction`、`probe_increment` 和 `final_regularizer`，表格则用独立的 `probe_increment` 行与代表最终正则修正的 `update_correction` 行区分二者。
+（最后一步利用了 E001 中 Hessian 恒定）。其小半径最低阶项仍是 $\rho H\hat g$。E001 是同一 loss、exact-HVP、正则权重 1 的理想化特例，最终方向约定为 $d_{\mathrm{GAM}}=g+h_{\mathrm{GAM}}$。汇总表中 `key=gam, object_kind=final_regularizer` 明确表示这条最终修正；它不承担内层候选质量，所以 $Q_0/Q_1$ 为 `null`。`arrays.npz` 也分别保存 `probe_direction`、`probe_increment` 和 `final_regularizer`。E002 必须显式记录实际正则权重、oracle loss 和 batch 语义。
 
 **禁止的解释：** 由 probe increment 的 $H^2$ 性质推导“GAM 最终总更新等价于 $H^2g$”。
 
@@ -145,7 +149,7 @@ d_{\mathrm{MS}}=g_k,
 \qquad c_{\mathrm{MS}}=g_k-g.
 \]
 
-E001 使用 $k\in\{2,5\}$。不能预设它严格等于某个固定 $H^p\hat g$；应由谱曲线和嵌套拟合判断。
+E001 使用 $k\in\{2,5\}$。不能预设它严格等于某个固定 $H^p\hat g$；谱曲线和嵌套 Krylov 拟合只能描述响应与可压缩性，不能唯一识别物理阶数。
 
 ## 6. Lookbehind：路径梯度聚合
 
@@ -157,7 +161,13 @@ d_{\mathrm{LB}}=\frac1k\sum_{i=1}^k g_i,
 c_{\mathrm{LB}}=d_{\mathrm{LB}}-g.
 \]
 
-E001 关注聚合方向本身；当前聚合权重等价于 $\alpha=1$。若未来引入 slow-weight interpolation 或其他 $\alpha$，必须独立记录，不能悄悄改变 $c$ 的范数后与其他方法比较。
+E001 只研究
+
+\[
+\texttt{path\_mean\_surrogate}=\frac1k\sum_i g_i.
+\]
+
+它不是包含 inner ascent/descent、slow-weight interpolation、学习率、动量和 weight decay 状态的完整 Lookbehind optimizer，也不能简单标成 faithful algorithm 的 $\alpha=1$。E002 必须将该 surrogate 与真实 slow-weight delta 分行，并显式记录 interpolation 系数和实际 forward/backward/data-access 成本。
 
 当 $k=1$ 时，路径定义应退化为 SAM。这一退化关系是实现验收项。
 
@@ -187,13 +197,23 @@ R_{\mathrm{path}}\approx\rho,
 \text{radius\_budget}=\rho.
 \]
 
-它隔离“更多路径采样”与“更大总扰动”这两个因素。端点半径
+它控制总路径长度，从而大幅减弱“更大总扰动”的混杂，但并未完全隔离路径采样点数：Lookbehind 的一阶有效半径 $(k+1)\rho/(2k)$ 仍随 $k$ 变化。端点半径
 
 \[
 R_{\mathrm{end}}=\lVert z_k-w\rVert
 \]
 
 通常不超过路径总长，必须实测而不能用预算替代。
+
+### 7.3 fixed-effective-radius：E001-S 的补充诊断
+
+为固定 Lookbehind 的一阶 matched-SAM 半径，E001-S 额外设置
+
+\[
+\rho_{\mathrm{step}}=\frac{2\rho_{\mathrm{eff}}}{k+1}.
+\]
+
+该协议只用于敏感性因果控制，不替代 fixed-step/fixed-budget。它允许在 matched-SAM 完全相同的情况下观察增加路径分辨率还留下多少方向残差。
 
 ## 8. Matched-SAM：匹配 Lookbehind 的一阶有效半径
 
@@ -222,4 +242,4 @@ d_{\mathrm{LB}}
 - fixed-step 下，$\rho_{\mathrm{eff}}=(k+1)\rho/2$；
 - fixed-budget 下，$\rho_{\mathrm{eff}}=(k+1)\rho/(2k)$。
 
-比较时同时报告 Lookbehind 与 matched-SAM 修正的 cosine 及 PathNovelty。只有在匹配有效半径后仍存在稳定残差，才有理由讨论超出“加强版 SAM”的路径新信息。
+比较时不能只报告 cosine，还要同时给出修正范数比、$\rho_{\mathrm{fit}}/\rho_{\mathrm{eff}}$、向量相对误差和 H1 residual。cosine 会忽略幅度失配；默认 k=5 fixed-step 虽有 correction cosine .9949，修正范数比仍为 1.221、向量相对误差为 .203。E001-S 另用二分求解原生半径实现严格 $\lVert c\rVert/\lVert g\rVert$ 匹配。
